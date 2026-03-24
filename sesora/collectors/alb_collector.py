@@ -1,0 +1,106 @@
+from datetime import datetime
+from typing import List, Optional
+
+from alibabacloud_alb20200616 import models as alb_models
+from alibabacloud_alb20200616.client import Client as AlbClient
+from alibabacloud_tea_openapi import models as open_api_models
+
+from sesora.core.context import AssessmentContext
+from sesora.core.dataitem import DataSource
+from sesora.schema.rds_oss import AlbListenerRecord
+
+
+class ALBCollector:
+    def __init__(
+        self, context: AssessmentContext, load_balancer_ids: Optional[List[str]] = None
+    ):
+        self.context = context
+        self.load_balancer_ids = load_balancer_ids
+        self.client = self._create_client()
+
+    def _create_client(self) -> AlbClient:
+        creds = self.context.aliyun_credentials
+        config = open_api_models.Config(
+            access_key_id=creds.access_key_id,
+            access_key_secret=creds.access_key_secret,
+            endpoint=f"alb.{creds.region}.aliyuncs.com",
+            protocol="https",
+        )
+        return AlbClient(config)
+
+    def collect(self) -> DataSource:
+        records: List = []
+        status = "ok"
+
+        try:
+            listeners = self._collect_listeners()
+            records.extend(listeners)
+            print(f"\n总计采集到 {len(listeners)} 个 ALB 监听器")
+        except Exception as e:
+            status = "error"
+            print(f"ALB 采集失败: {e}")
+
+        return DataSource(
+            collector="alb_collector",
+            collected_at=datetime.now(),
+            status=status,
+            records=records,
+        )
+
+    def _collect_listeners(self) -> List[AlbListenerRecord]:
+        records: List[AlbListenerRecord] = []
+
+        next_token = None
+        max_results = 100
+        while True:
+            request = alb_models.ListListenersRequest(
+                max_results=max_results,
+            )
+            if self.load_balancer_ids:
+                request.load_balancer_ids = self.load_balancer_ids
+            if next_token:
+                request.next_token = next_token
+
+            response = self.client.list_listeners(request)
+            body = response.body
+
+            for listener in body.listeners:
+                record = self._parse_listener(listener)
+                records.append(record)
+
+            # 检查分页
+            next_token = response.body.next_token
+            if not next_token:
+                break
+
+        return records
+
+    def _parse_listener(
+        self, listener: alb_models.ListListenersResponseBodyListeners
+    ) -> AlbListenerRecord:
+        listener_id = listener.listener_id
+        load_balancer_id = listener.load_balancer_id
+
+        default_actions = [act.to_map() for act in listener.default_actions]
+
+        # 解析 QUIC 配置
+        quic_config = {}
+        if listener.quic_config:
+            quic_config = listener.quic_config.to_map()
+
+        # 解析 XForwardedFor 配置（注意 SDK 字段名是 xforwarded_for_config）
+        x_forwarded_for_config = {}
+        if listener.xforwarded_for_config:
+            x_forwarded_for_config = listener.xforwarded_for_config.to_map()
+
+        return AlbListenerRecord(
+            listener_id=listener_id,
+            load_balancer_id=load_balancer_id,
+            listener_protocol=listener.listener_protocol,
+            listener_port=int(listener.listener_port),
+            default_actions=default_actions,
+            gzip_enabled=bool(listener.gzip_enabled),
+            http2_enabled=bool(listener.http_2enabled),
+            quic_config=quic_config,
+            x_forwarded_for_config=x_forwarded_for_config,
+        )
