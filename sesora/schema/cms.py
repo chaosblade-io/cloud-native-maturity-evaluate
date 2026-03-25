@@ -32,7 +32,7 @@ class CmsContactRecord:
     channels: list[str] = field(default_factory=list)  # SMS/Email/DingTalk
     phone: str = ""
     email: str = ""
-    dingtalk_webhook: str = ""
+    dingtalk_webhook: Optional[str] = None
     desc: str = ""
 
 
@@ -42,7 +42,7 @@ class CmsContactGroupRecord:
     group_name: str
     contacts: list[str] = field(default_factory=list)  # 联系人名称列表
     enable_subscribed: bool = False
-    describe: str = ""
+    describe: Optional[str] = None
 
 
 @dataclass

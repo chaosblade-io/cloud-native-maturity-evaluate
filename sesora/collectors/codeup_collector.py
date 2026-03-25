@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Optional
 
 from sesora.core.context import AssessmentContext
@@ -909,7 +909,8 @@ class CodeupCollector:
 
         return False
 
-    def _has_manual_gate(self, stage: dict) -> bool:
+    @staticmethod
+    def _has_manual_gate(stage: dict) -> bool:
         """
         检查阶段是否包含人工审批
 

@@ -4,7 +4,7 @@ RDS/OSS/PolarDB/ROS 相关 DataItem Record 类型定义
 """
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Literal, Optional
+from typing import Literal, Optional, Union
 
 
 @dataclass
@@ -40,8 +40,8 @@ class RdsBackupPolicyRecord:
     preferred_backup_period: list[str] = field(default_factory=list)  # Monday/Tuesday/etc.
     backup_method: str = "Physical"  # Physical/Snapshot
     enable_backup_log: bool = False
-    log_backup_retention_period: int = 7
-    cross_backup_region: Optional[str] = ""  # 跨地域备份区域
+    log_backup_retention_period: Optional[Union[int, str]] = None  # API返回可能是字符串
+    cross_backup_region: Optional[str] = None  # 跨地域备份区域
     cross_backup_enabled: bool = False
 
 
