@@ -53,15 +53,14 @@ class SLSCollector:
     def __init__(self, context: AssessmentContext):
         self.context = context
         self.project_name = context.sls_project
-        self.sls_region = context.sls_region or context.aliyun_credentials.region
+        self.sls_region = context.sls_region
         self.client = self._create_client()
 
     def _create_client(self) -> SlsClient:
         """使用 AK/SK 初始化 SLS 客户端"""
         creds = self.context.aliyun_credentials
         config = open_api_models.Config(
-            access_key_id=creds.access_key_id,
-            access_key_secret=creds.access_key_secret,
+            credential=creds,
             endpoint=f"{self.sls_region}.log.aliyuncs.com",
             protocol="https",
         )
@@ -72,11 +71,15 @@ class SLSCollector:
             self.project_name, sls_models.ListLogStoresRequest()
         )
         body = response.body
+        if response.status_code != 200:
+            raise Exception(f"ListLogStores API 调用失败: {response.status_code}")
         return body.logstores
 
     def _get_logstore_detail(self, logstore_name: str) -> SlsLogstoreRecord:
         response = self.client.get_log_store(self.project_name, logstore_name)
         body = response.body
+        if response.status_code != 200:
+            raise Exception(f"GetLogStore API 调用失败: {response.status_code}")
         create_time = datetime.datetime.fromtimestamp(body.create_time)
         last_modify_time = datetime.datetime.fromtimestamp(body.last_modify_time)
         return SlsLogstoreRecord(
@@ -94,6 +97,8 @@ class SLSCollector:
     def _get_index_config(self, logstore_name: str) -> SlsIndexConfigRecord:
         response = self.client.get_index(self.project_name, logstore_name)
         body = response.body
+        if response.status_code != 200:
+            raise Exception(f"GetIndex API 调用失败: {response.status_code}")
 
         # 解析字段索引
         field_names = []
@@ -137,6 +142,8 @@ class SLSCollector:
             ),
         )
         body = response.body
+        if response.status_code != 200:
+            raise Exception(f"GetLogs API 调用失败: {response.status_code}")
 
         records = []
         for log in body:

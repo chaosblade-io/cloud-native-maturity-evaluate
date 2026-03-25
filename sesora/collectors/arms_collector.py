@@ -102,10 +102,9 @@ class ARMSCollector:
 
     def _create_client(self) -> ARMSClient:
         creds = self.context.aliyun_credentials
-        region = creds.region or self.context.region
+        region = self.context.region
         config = open_api_models.Config(
-            access_key_id=creds.access_key_id,
-            access_key_secret=creds.access_key_secret,
+            credential=creds,
             protocol="https",
             endpoint=f"arms.{region}.aliyuncs.com",
         )
@@ -209,12 +208,10 @@ class ARMSCollector:
         # TODO: filter by cluster_id
 
         response = self.client.list_trace_apps(
-            arms_models.ListTraceAppsRequest(
-                region_id=self.context.aliyun_credentials.region or self.context.region
-            )
+            arms_models.ListTraceAppsRequest(region_id=self.context.region)
         )
         body = response.body
-        if not body.success:
+        if response.status_code != 200 or not body.success:
             raise Exception(f"ListTraceApps API 调用失败: {body.message}")
 
         for app in body.trace_apps:
@@ -311,11 +308,7 @@ class ARMSCollector:
         end_time = int(datetime.now().timestamp() * 1000)
         start_time = int((datetime.now() - timedelta(hours=hours)).timestamp() * 1000)
 
-        region = (
-            self.context.aliyun_credentials.region
-            or self.context.region
-            or "cn-hangzhou"
-        )
+        region = self.context.region
 
         current_page = 1
         max_pages = 2
@@ -343,10 +336,13 @@ class ARMSCollector:
 
                 response = self.client.query_metric_by_page(request)
 
-                if not response.body or not response.body.success:
-                    msg = response.body.message if response.body else "未知错误"
-                    print(f"  QueryMetricByPage({metric}) 失败: {msg}")
-                    break
+                if response.status_code != 200 or not response.body.success:
+                    msg = (
+                        response.body.message
+                        if response.body
+                        else f"{response.status_code}"
+                    )
+                    raise Exception(f"QueryMetricByPage API 调用失败: {msg}")
 
                 data = response.body.data
                 if not data or not data.items:
@@ -440,7 +436,7 @@ class ARMSCollector:
         start_time = end_time - timedelta(hours=hours)
         end_time = int(end_time.timestamp() * 1000)
         start_time = int(start_time.timestamp() * 1000)
-        region = self.context.aliyun_credentials.region or self.context.region
+        region = self.context.region
 
         records: List[ApmTraceRecord] = []
         error_trace_ids: set = set()
@@ -459,6 +455,8 @@ class ARMSCollector:
             )
         )
         body = response.body
+        if response.status_code != 200:
+            raise Exception(f"SearchTracesByPage API 调用失败: {response.status_code}")
 
         for info in body.page_bean.trace_infos:
             error_trace_ids.add(info.trace_id)
@@ -487,6 +485,9 @@ class ARMSCollector:
             )
         )
         body = response.body
+        if response.status_code != 200:
+            raise Exception(f"SearchTracesByPage API 调用失败: {response.status_code}")
+
         for info in body.page_bean.trace_infos:
             tid = info.trace_id
             if tid in error_trace_ids:
@@ -513,7 +514,7 @@ class ARMSCollector:
     ) -> None:
         end_time = int(datetime.now().timestamp() * 1000)
         start_time = int((datetime.now() - timedelta(hours=hours)).timestamp() * 1000)
-        region = self.context.aliyun_credentials.region or self.context.region
+        region = self.context.region
 
         for rec in sample_traces:
             response = self.client.get_trace(
@@ -525,6 +526,8 @@ class ARMSCollector:
                 )
             )
             body = response.body
+            if response.status_code != 200:
+                raise Exception(f"GetTrace API 调用失败: {response.status_code}")
 
             spans = body.spans
             rec.span_count = len(spans)
@@ -697,6 +700,11 @@ class ARMSCollector:
                 arms_models.GetTraceAppConfigRequest(pid=svc.pid)
             )
             body = response.body
+            if response.status_code != 200:
+                raise Exception(
+                    f"获取应用 {svc.service_name} 配置失败: {response.status_code}"
+                )
+
             try:
                 # 解析 JSON
                 config = json.loads(body.data)

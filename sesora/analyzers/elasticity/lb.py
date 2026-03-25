@@ -269,7 +269,6 @@ class LbAlgorithmsAnalyzer(Analyzer):
         # --- 2. 检查 ALB 监听器配置 ---
         # 注意：ALB 的调度算法在 ServerGroup 上配置，Listener 只包含协议信息
         # 从 Listener 可以推断：HTTPS/QUIC 支持 SNI/高级路由，HTTP 为基础能力
-        alb_total = 0
         alb_https_count = 0
         alb_http_count = 0
 
@@ -547,7 +546,6 @@ class TrafficMgmtAnalyzer(Analyzer):
         return self._scored(final_score, conclusion, evidence)
 
 
-# 导出所有分析器
 LB_ANALYZERS = [
     LbCapabilityAnalyzer(),
     LbAlgorithmsAnalyzer(),

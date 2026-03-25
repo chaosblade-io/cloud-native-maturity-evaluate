@@ -18,7 +18,7 @@ from ...schema.cms import CmsAlarmRuleRecord, CmsContactRecord
 from ...schema.apm import ApmServiceRecord, ApmCoverageAnalysisRecord
 
 
-class MonMetricsDepth(Analyzer):
+class MonMetricsDepthAnalyzer(Analyzer):
     """
     指标收集深度分析器
     
@@ -436,7 +436,7 @@ class MonAlertRulesAnalyzer(Analyzer):
         return self._scored(final_score, conclusion, evidence)
 
 
-class MonAlertSeverity(Analyzer):
+class MonAlertSeverityAnalyzer(Analyzer):
     """
     告警分级分析器
     
@@ -541,7 +541,7 @@ class MonAlertSeverity(Analyzer):
         return self._scored(final_score, conclusion, evidence)
 
 
-class MonAlertChannels(Analyzer):
+class MonAlertChannelsAnalyzer(Analyzer):
     """
     告警通道多样性分析器
     
@@ -684,7 +684,7 @@ class MonAlertChannels(Analyzer):
         return self._scored(final_score, conclusion, evidence)
 
 
-class MonToolIntegration(Analyzer):
+class MonToolIntegrationAnalyzer(Analyzer):
     """
     工具链集成分析器
     
@@ -812,7 +812,7 @@ class MonToolIntegration(Analyzer):
         return self._scored(final_score, conclusion, evidence)
 
 
-class MonCoverageGap(Analyzer):
+class MonCoverageGapAnalyzer(Analyzer):
     """
     监控覆盖差距分析器
     
@@ -949,13 +949,12 @@ class MonCoverageGap(Analyzer):
         return self._scored(final_score, conclusion, evidence)
 
 
-# 导出所有分析器
 MONITORING_ANALYZERS = [
-    MonMetricsDepth(),
+    MonMetricsDepthAnalyzer(),
     MonMetricsStdAnalyzer(),
     MonAlertRulesAnalyzer(),
-    MonAlertSeverity(),
-    MonAlertChannels(),
-    MonToolIntegration(),
-    MonCoverageGap(),
+    MonAlertSeverityAnalyzer(),
+    MonAlertChannelsAnalyzer(),
+    MonToolIntegrationAnalyzer(),
+    MonCoverageGapAnalyzer(),
 ]

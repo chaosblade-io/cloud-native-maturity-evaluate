@@ -23,9 +23,8 @@ class FCCollector:
     def _create_client(self) -> FCClient:
         creds = self.context.aliyun_credentials
         config = open_api_models.Config(
-            access_key_id=creds.access_key_id,
-            access_key_secret=creds.access_key_secret,
-            endpoint=f"fcv3.{creds.region}.aliyuncs.com",
+            credential=creds,
+            endpoint=f"fcv3.{self.context.region}.aliyuncs.com",
             protocol="https",
         )
         return FCClient(config)
@@ -136,6 +135,8 @@ class FCCollector:
                 )
             )
             body = response.body
+            if response.status_code != 200:
+                raise Exception(f"ListFunctions API 调用失败: {response.status_code}")
 
             for func in body.functions:
                 record = self._parse_function(func)
@@ -151,6 +152,8 @@ class FCCollector:
         response = self.client.get_function(
             function_name, fc_models.GetFunctionRequest()
         )
+        if response.status_code != 200:
+            raise Exception(f"GetFunction API 调用失败: {response.status_code}")
         return self._parse_function(response.body)
 
     def _parse_function(self, func: fc_models.Function) -> FcFunctionRecord:
@@ -160,7 +163,9 @@ class FCCollector:
         create_time = datetime.fromisoformat(func.created_time.replace("Z", "+00:00"))
 
         # 解析修改时间
-        last_modified_time = datetime.fromisoformat(func.last_modified_time.replace("Z", "+00:00"))
+        last_modified_time = datetime.fromisoformat(
+            func.last_modified_time.replace("Z", "+00:00")
+        )
 
         # 解析环境变量
         environment_variables = func.environment_variables
@@ -169,6 +174,8 @@ class FCCollector:
         triggers = []
         list_triggers_request = fc_models.ListTriggersRequest()
         response = self.client.list_triggers(function_name, list_triggers_request)
+        if response.status_code != 200:
+            raise Exception(f"ListTriggers API 调用失败: {response.status_code}")
         resp_triggers = response.body.triggers
         for trigger in resp_triggers:
             trigger_dict = {
@@ -248,6 +255,8 @@ class FCCollector:
                 ),
             )
             body = response.body
+            if response.status_code != 200:
+                raise Exception(f"ListAliases API 调用失败: {response.status_code}")
 
             for alias in body.aliases:
                 record = self._parse_alias(alias)
@@ -264,7 +273,9 @@ class FCCollector:
         # 解析创建时间
         created_time = datetime.fromisoformat(alias.created_time.replace("Z", "+00:00"))
         # 解析修改时间
-        last_modified_time = datetime.fromisoformat(alias.last_modified_time.replace("Z", "+00:00"))
+        last_modified_time = datetime.fromisoformat(
+            alias.last_modified_time.replace("Z", "+00:00")
+        )
         # 解析灰度版本权重
         additional_version_weight = alias.additional_version_weight
         return FcAliasRecord(
@@ -289,6 +300,8 @@ class FCCollector:
                 ),
             )
             body = response.body
+            if response.status_code != 200:
+                raise Exception(f"ListFunctionVersions API 调用失败: {response.status_code}")
 
             for version in body.versions:
                 record = self._parse_version(version, function_name)
@@ -305,7 +318,9 @@ class FCCollector:
     ) -> FcVersionRecord:
         version_id = version.version_id
         # 解析创建时间
-        created_time = datetime.fromisoformat(version.created_time.replace("Z", "+00:00"))
+        created_time = datetime.fromisoformat(
+            version.created_time.replace("Z", "+00:00")
+        )
         return FcVersionRecord(
             function_name=function_name,
             version_id=version_id,

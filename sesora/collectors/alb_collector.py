@@ -21,9 +21,8 @@ class ALBCollector:
     def _create_client(self) -> AlbClient:
         creds = self.context.aliyun_credentials
         config = open_api_models.Config(
-            access_key_id=creds.access_key_id,
-            access_key_secret=creds.access_key_secret,
-            endpoint=f"alb.{creds.region}.aliyuncs.com",
+            credential=creds,
+            endpoint=f"alb.{self.context.region}.aliyuncs.com",
             protocol="https",
         )
         return AlbClient(config)
@@ -63,6 +62,8 @@ class ALBCollector:
 
             response = self.client.list_listeners(request)
             body = response.body
+            if response.status_code != 200:
+                raise Exception(f"ListListeners API 调用失败: {response.status_code}")
 
             for listener in body.listeners:
                 record = self._parse_listener(listener)

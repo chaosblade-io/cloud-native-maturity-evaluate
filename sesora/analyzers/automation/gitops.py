@@ -381,13 +381,9 @@ class AutomatedReconciliationAnalyzer(Analyzer):
 
         full_auto_count = sum(
             1 for a in apps if a.auto_sync_enabled and a.self_heal_enabled)
-        full_auto_ratio = full_auto_count / total_count
         if full_auto_count > 0:
             evidence.append(f"完全自动化 (Sync+Heal) 应用数: {full_auto_count}/{total_count}")
 
-        # 综合评分：同步率 + 健康率 + 自动同步率 + 自愈率
-        # 计算各维度得分
-        sync_score = 0
         if sync_ratio >= 0.9:
             sync_score = 2.5
         elif sync_ratio >= 0.8:
@@ -401,7 +397,6 @@ class AutomatedReconciliationAnalyzer(Analyzer):
         else:
             sync_score = 0.2
 
-        health_score = 0
         if health_ratio >= 0.9:
             health_score = 1.5
         elif health_ratio >= 0.7:
@@ -411,7 +406,6 @@ class AutomatedReconciliationAnalyzer(Analyzer):
         else:
             health_score = 0.2
 
-        auto_score = 0
         if auto_ratio >= 0.8:
             auto_score = 1.5
         elif auto_ratio >= 0.5:
@@ -421,7 +415,6 @@ class AutomatedReconciliationAnalyzer(Analyzer):
         else:
             auto_score = 0.2
 
-        self_heal_score = 0
         if self_heal_ratio >= 0.8:
             self_heal_score = 1
         elif self_heal_ratio >= 0.5:
@@ -581,7 +574,6 @@ class EnvironmentSeparationAnalyzer(Analyzer):
             return self._scored(1, "环境隔离配置薄弱，建议建立规范的环境管理", evidence)
 
 
-# 导出所有分析器
 GITOPS_ANALYZERS = [
     DeclarativeConfigurationAnalyzer(),
     VersionControlAnalyzer(),

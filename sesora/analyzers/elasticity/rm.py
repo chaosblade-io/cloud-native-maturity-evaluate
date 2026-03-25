@@ -474,7 +474,8 @@ class RmReservationAnalyzer(Analyzer):
 
         return self._scored(final_score, conclusion, evidence)
 
-    def _parse_cpu(self, cpu_str: str) -> float:
+    @staticmethod
+    def _parse_cpu(cpu_str: str) -> float:
         """解析 CPU 值，返回核心数"""
         if isinstance(cpu_str, (int, float)):
             return float(cpu_str)
@@ -483,7 +484,8 @@ class RmReservationAnalyzer(Analyzer):
             return float(cpu_str[:-1]) / 1000
         return float(cpu_str)
 
-    def _parse_memory(self, mem_str: str) -> float:
+    @staticmethod
+    def _parse_memory(mem_str: str) -> float:
         """解析内存值，返回 MiB"""
         if isinstance(mem_str, (int, float)):
             return float(mem_str)
@@ -699,7 +701,8 @@ class RmDynamicAllocAnalyzer(Analyzer):
 
         return self._scored(final_score, conclusion, evidence)
 
-    def _parse_cpu(self, cpu_str: str) -> float:
+    @staticmethod
+    def _parse_cpu(cpu_str: str) -> float:
         """解析 CPU 值，返回核心数"""
         cpu_str = str(cpu_str).strip()
         if cpu_str.endswith("m"):
@@ -710,7 +713,6 @@ class RmDynamicAllocAnalyzer(Analyzer):
             return 0
 
 
-# 导出所有分析器
 RM_ANALYZERS = [
     RmIsolationAnalyzer(),
     RmQuotaAnalyzer(),

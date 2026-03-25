@@ -25,8 +25,7 @@ class CMSCollector:
     def _create_client(self) -> CmsClient:
         creds = self.context.aliyun_credentials
         config = open_api_models.Config(
-            access_key_id=creds.access_key_id,
-            access_key_secret=creds.access_key_secret,
+            credential=creds,
             endpoint="metrics.aliyuncs.com",
             protocol="https",
         )
@@ -96,7 +95,7 @@ class CMSCollector:
                 )
             )
             body = response.body
-            if not body.success:
+            if response.status_code != 200 or not body.success:
                 raise Exception(f"获取联系人失败：{body.message}")
 
             for contact in body.contacts.contact:
@@ -176,8 +175,8 @@ class CMSCollector:
                 )
             )
             body = response.body
-            if not body.success:
-                raise Exception(f"获取告警规则失败：{body.message}")
+            if response.status_code != 200 or not body.success:
+                raise Exception(f"获取告警规则失败：{body.message if body else response.status_code}")
 
             for alarm in body.alarms.alarm:
                 record = self._parse_alarm_rule(alarm)
@@ -282,8 +281,8 @@ class CMSCollector:
                 )
             )
             body = response.body
-            if not body.success:
-                raise Exception(f"获取联系组失败：{body.message}")
+            if response.status_code != 200 or not body.success:
+                raise Exception(f"获取联系组失败：{body.message if body else response.status_code}")
 
             contact_groups = body.contact_group_list.contact_group
             for group in contact_groups:
@@ -336,8 +335,8 @@ class CMSCollector:
                 )
             )
             body = response.body
-            if not body.success:
-                raise Exception(f"获取告警历史失败：{body.message}")
+            if response.status_code != 200 or not body.success:
+                raise Exception(f"获取告警历史失败：{body.message if body else response.status_code}")
             alarm_history_list = body.alert_log_list
             for alarm in alarm_history_list:
                 record = self._parse_alarm_history(alarm)
@@ -388,8 +387,8 @@ class CMSCollector:
                 )
             )
             body = response.body
-            if not body.success:
-                raise Exception(f"获取事件触发器失败：{body.message}")
+            if response.status_code != 200 or not body.success:
+                raise Exception(f"获取事件触发器失败：{body.message if body else response.status_code}")
 
             event_rules = body.event_rules.event_rule
             for rule in event_rules:

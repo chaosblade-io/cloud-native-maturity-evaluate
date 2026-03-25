@@ -36,10 +36,8 @@ class CodeupCollector:
 
     def _create_client(self) -> DevOpsClient:
         creds = self.context.aliyun_credentials
-        region = creds.region or self.context.region
         config = open_api_models.Config(
-            access_key_id=creds.access_key_id,
-            access_key_secret=creds.access_key_secret,
+            credential=creds,
             protocol="https",
             endpoint=f"devops.cn-hangzhou.aliyuncs.com",
         )
@@ -103,7 +101,7 @@ class CodeupCollector:
                     branches = self._collect_repo_branches(org_id, repo.repo_id)
                     records.extend(branches)
                     print(f"    采集到仓库 {repo.repo_name} 的 {len(branches)} 个分支")
-                    
+
                     print(f"正在采集仓库 {repo.repo_name} 的提交信息...")
                     commits = self._collect_repo_commits(org_id, repo.repo_id)
                     records.extend(commits)
@@ -175,7 +173,7 @@ class CodeupCollector:
                 )
             )
             body = response.body
-            if not body.success:
+            if response.status_code != 200 or not body.success:
                 raise Exception(f"获取仓库列表失败 (org_id={org_id}, page={page_no})")
 
             repos = body.result
@@ -200,7 +198,7 @@ class CodeupCollector:
             ),
         )
         body = response.body
-        if not body.success:
+        if response.status_code != 200 or not body.success:
             raise Exception(f"获取仓库信息失败 (repo_id={repo_id})")
 
         repo = body.repository
@@ -234,7 +232,7 @@ class CodeupCollector:
             ),
         )
         body = response.body
-        if not body.success:
+        if response.status_code != 200 or not body.success:
             raise Exception(f"获取文件树失败 (repo_id={repo_id}, path={path})")
 
         files = body.result
@@ -253,7 +251,7 @@ class CodeupCollector:
             repo_id=file_info.id,
             repo_name=repo_name,
             path=file_info.path,
-            type='file' if file_info.type == "blob" else 'directory',
+            type="file" if file_info.type == "blob" else "directory",
             name=file_info.name,
         )
 
@@ -276,7 +274,7 @@ class CodeupCollector:
                 ),
             )
             body = response.body
-            if not body.success:
+            if response.status_code != 200 or not body.success:
                 raise Exception(f"获取标签列表失败 (repo_id={repo_id}, page={page_no})")
 
             tags = body.result
@@ -309,7 +307,9 @@ class CodeupCollector:
         is_semver = self._is_semver_tag(tag_name)
 
         # 解析创建时间
-        create_time = datetime.fromisoformat(commit_info.committed_date.replace("Z", "+00:00"))
+        create_time = datetime.fromisoformat(
+            commit_info.committed_date.replace("Z", "+00:00")
+        )
 
         # 获取创建者
         created_by = commit_info.committer_name
@@ -353,7 +353,7 @@ class CodeupCollector:
                 ),
             )
             body = response.body
-            if not body.success:
+            if response.status_code != 200 or not body.success:
                 raise Exception(f"获取分支列表失败 (repo_id={repo_id}, page={page_no})")
 
             branches = body.result
@@ -383,7 +383,9 @@ class CodeupCollector:
         commit_id = commit_info.id
 
         # 解析提交时间
-        commit_time = datetime.fromisoformat(commit_info.committed_date.replace("Z", "+00:00"))
+        commit_time = datetime.fromisoformat(
+            commit_info.committed_date.replace("Z", "+00:00")
+        )
 
         return CodeupBranchRecord(
             repo_id=str(repo_id),
@@ -415,7 +417,7 @@ class CodeupCollector:
                 ),
             )
             body = response.body
-            if not body.success:
+            if response.status_code != 200 or not body.success:
                 raise Exception(f"获取提交记录失败 (repo_id={repo_id}, page={page_no})")
 
             commits = body.result
@@ -443,7 +445,7 @@ class CodeupCollector:
             ),
         )
         body = response.body
-        if not body.success:
+        if response.status_code != 200 or not body.success:
             raise Exception(
                 f"获取文件最后一次提交失败 (repo_id={repo_id}, file_path={file_path})"
             )
@@ -456,7 +458,9 @@ class CodeupCollector:
             author_name=result.author_name,
             author_email=result.author_email,
             commit_message=result.message,
-            commit_time=datetime.fromisoformat(result.committed_date.replace("Z", "+00:00")),
+            commit_time=datetime.fromisoformat(
+                result.committed_date.replace("Z", "+00:00")
+            ),
             # TODO: this check is incorrect, need to rafactor
             has_merge_request=len(result.parent_ids) > 1,
         )
@@ -480,8 +484,12 @@ class CodeupCollector:
         committer_email = commit.committer.email
 
         # 解析时间
-        author_time = datetime.fromisoformat(commit.authored_date.replace("Z", "+00:00"))
-        commit_time = datetime.fromisoformat(commit.committed_date.replace("Z", "+00:00"))
+        author_time = datetime.fromisoformat(
+            commit.authored_date.replace("Z", "+00:00")
+        )
+        commit_time = datetime.fromisoformat(
+            commit.committed_date.replace("Z", "+00:00")
+        )
 
         # 获取父提交 ID
         parent_ids = commit.parent_ids
@@ -517,7 +525,7 @@ class CodeupCollector:
                 ),
             )
             body = response.body
-            if not body.success:
+            if response.status_code != 200 or not body.success:
                 raise Exception(f"获取流水线列表失败 (org_id={org_id})")
 
             for pipeline in body.pipelines:
@@ -553,7 +561,7 @@ class CodeupCollector:
             pipeline_id,
         )
         body = response.body
-        if not body.success:
+        if response.status_code != 200 or not body.success:
             print(f"获取流水线详情失败 (pipeline_id={pipeline_id})")
             return False
 
@@ -582,7 +590,7 @@ class CodeupCollector:
             pipeline_id,
         )
         body = response.body
-        if not body.success:
+        if response.status_code != 200 or not body.success:
             raise Exception(
                 f"获取流水线配置失败 (org_id={org_id}, pipeline_id={pipeline_id})"
             )
@@ -951,7 +959,7 @@ class CodeupCollector:
                 ),
             )
             body = response.body
-            if not body.success:
+            if response.status_code != 200 or not body.success:
                 raise Exception(
                     f"获取流水线运行记录失败 (org_id={org_id}, pipeline_id={pipeline_id})"
                 )

@@ -14,7 +14,7 @@ from ...core.analyzer import Analyzer, ScoreResult
 from ...schema.codeup import (
     CodeupPipelineRunRecord,
     CodeupPipelineStageRecord, CodeupRepoFileTreeRecord,
-    CodeupRepoTagRecord, CodeupCommitRecord, CodeupFileCommitRecord
+    CodeupRepoTagRecord, CodeupFileCommitRecord
 )
 
 
@@ -440,7 +440,6 @@ class PipelineAsCodeAnalyzer(Analyzer):
             return self._not_scored("流水线代码化管理不完善", evidence)
 
 
-# 导出所有分析器
 CICD_ANALYZERS = [
     BuildAutomationAnalyzer(),
     TestAutomationAnalyzer(),

@@ -21,8 +21,7 @@ class ROSCollector:
     def _create_client(self) -> RosClient:
         creds = self.context.aliyun_credentials
         config = open_api_models.Config(
-            access_key_id=creds.access_key_id,
-            access_key_secret=creds.access_key_secret,
+            credential=creds,
             endpoint="ros.aliyuncs.com",
             protocol="https",
         )
@@ -73,6 +72,8 @@ class ROSCollector:
                 )
             )
             body = response.body
+            if response.status_code != 200:
+                raise Exception(f"ListStacks API 调用失败: {response.status_code}")
             for stack in body.stacks:
                 record = self._parse_stack(stack)
                 records.append(record)
@@ -96,10 +97,18 @@ class ROSCollector:
         create_time = datetime.fromisoformat(stack.create_time.replace("Z", "+00:00"))
 
         # 解析更新时间
-        update_time = datetime.fromisoformat(stack.update_time.replace("Z", "+00:00")) if stack.update_time else None
+        update_time = (
+            datetime.fromisoformat(stack.update_time.replace("Z", "+00:00"))
+            if stack.update_time
+            else None
+        )
 
         # 解析漂移检测时间
-        drift_detection_time = datetime.fromisoformat(stack.drift_detection_time.replace("Z", "+00:00")) if stack.drift_detection_time else None
+        drift_detection_time = (
+            datetime.fromisoformat(stack.drift_detection_time.replace("Z", "+00:00"))
+            if stack.drift_detection_time
+            else None
+        )
 
         # 解析标签
         tags = {}
@@ -138,6 +147,8 @@ class ROSCollector:
             )
         )
         body = response.body
+        if response.status_code != 200:
+            raise Exception(f"ListStackResources API 调用失败: {response.status_code}")
 
         # 获取漂移的资源信息
         drifted_resources = []

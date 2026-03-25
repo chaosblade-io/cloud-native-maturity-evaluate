@@ -22,10 +22,9 @@ class ECSCollector:
     def _create_client(self) -> AcsClient:
         creds = self.context.aliyun_credentials
         config = open_api_models.Config(
-            access_key_id=creds.access_key_id,
-            access_key_secret=creds.access_key_secret,
-            endpoint=f"ecs.{creds.region}.aliyuncs.com",
-            region_id=creds.region,
+            credential=creds,
+            endpoint=f"ecs.{self.context.region}.aliyuncs.com",
+            protocol="https",
         )
         return AcsClient(config)
 
@@ -75,6 +74,8 @@ class ECSCollector:
                 )
             )
             body = response.body
+            if response.status_code != 200:
+                raise Exception(f"DescribeInstances API 调用失败: {response.status_code}")
 
             instances = body.instances
             for instance in instances.instance:
@@ -180,6 +181,8 @@ class ECSCollector:
                 )
             )
             body = response.body
+            if response.status_code != 200:
+                raise Exception(f"DescribeSecurityGroups API 调用失败: {response.status_code}")
 
             security_groups = body.security_groups
             for sg in security_groups.security_group:
@@ -225,6 +228,8 @@ class ECSCollector:
             )
         )
         body = response.body
+        if response.status_code != 200:
+            raise Exception(f"DescribeSecurityGroupAttribute API 调用失败: {response.status_code}")
 
         # 解析入方向规则
         for rule in body.permissions.permission:

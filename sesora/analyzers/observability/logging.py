@@ -506,7 +506,7 @@ class LogRetentionPolicyAnalyzer(Analyzer):
         return self._scored(final_score, conclusion, evidence)
 
 
-class LogContext(Analyzer):
+class LogContextAnalyzer(Analyzer):
     """
     上下文关联分析器
     
@@ -625,11 +625,10 @@ class LogContext(Analyzer):
         return self._scored(final_score, conclusion, evidence)
 
 
-# 导出所有分析器
 LOGGING_ANALYZERS = [
     LogCentralizedAnalyzer(),
     LogStructureAnalyzer(),
     LogAnalysisAnalyzer(),
     LogRetentionPolicyAnalyzer(),
-    LogContext(),
+    LogContextAnalyzer(),
 ]

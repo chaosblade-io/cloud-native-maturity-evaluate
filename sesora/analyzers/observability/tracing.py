@@ -16,7 +16,7 @@ from ...schema.apm import (
 from ...schema.k8s import K8sDeploymentRecord
 
 
-class TracePropagation(Analyzer):
+class TracePropagationAnalyzer(Analyzer):
     """
     跨服务传播分析器
     
@@ -125,7 +125,7 @@ class TracePropagation(Analyzer):
         return self._scored(final_score, conclusion, evidence)
 
 
-class TraceSampling(Analyzer):
+class TraceSamplingAnalyzer(Analyzer):
     """
     智能采样分析器
     
@@ -266,7 +266,7 @@ class TraceSampling(Analyzer):
         return self._scored(final_score, conclusion, evidence)
 
 
-class TraceVisualization(Analyzer):
+class TraceVisualizationAnalyzer(Analyzer):
     """
     拓扑与瀑布图分析器
     
@@ -380,7 +380,7 @@ class TraceVisualization(Analyzer):
         return self._scored(final_score, conclusion, evidence)
 
 
-class TraceCoverage(Analyzer):
+class TraceCoverageAnalyzer(Analyzer):
     """
     接入覆盖率分析器
     
@@ -472,10 +472,9 @@ class TraceCoverage(Analyzer):
         return self._scored(final_score, conclusion, evidence)
 
 
-# 导出所有分析器
 TRACING_ANALYZERS = [
-    TracePropagation(),
-    TraceSampling(),
-    TraceVisualization(),
-    TraceCoverage(),
+    TracePropagationAnalyzer(),
+    TraceSamplingAnalyzer(),
+    TraceVisualizationAnalyzer(),
+    TraceCoverageAnalyzer(),
 ]

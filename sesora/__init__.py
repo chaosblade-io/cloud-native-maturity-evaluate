@@ -14,7 +14,6 @@ __version__ = "0.1.0"
 
 from .core import (
     AssessmentContext,
-    Credentials,
     DataItem,
     DataSource,
     Analyzer,

@@ -8,7 +8,7 @@ SESORA Core Module
 - DataItem: 数据项基础结构
 """
 
-from .context import AssessmentContext, Credentials
+from .context import AssessmentContext
 from .dataitem import DataItem, DataSource
 from .analyzer import Analyzer, AnalyzerRegistry, ScoreResult, ScoreState
 from .report import AssessmentReport, DimensionReport, CategoryReport, SummaryStats
@@ -16,7 +16,6 @@ from .report import AssessmentReport, DimensionReport, CategoryReport, SummarySt
 __all__ = [
     # Context
     "AssessmentContext",
-    "Credentials",
     # DataItem
     "DataItem",
     "DataSource",

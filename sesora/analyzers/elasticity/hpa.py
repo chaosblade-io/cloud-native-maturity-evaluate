@@ -388,7 +388,6 @@ class HsPolicyIntelligenceAnalyzer(Analyzer):
             return self._scored(2, "仅使用基础固定阈值策略，建议引入 AHPA 应对突发流量", evidence)
 
 
-# 导出所有分析器
 HPA_ANALYZERS = [
     HsImplementedAnalyzer(),
     HsAutoScalingAnalyzer(),

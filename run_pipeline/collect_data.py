@@ -6,6 +6,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 import json
 
+from alibabacloud_credentials.client import Client as CredentialClient
+
 from sesora.collectors.ack_collector import ACKCollector
 from sesora.collectors.acr_collector import ACRCollector
 from sesora.collectors.alb_collector import ALBCollector
@@ -26,7 +28,7 @@ load_dotenv(dotenv_path=env_path, override=True)
 
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from sesora.core.context import AssessmentContext, Credentials
+from sesora.core.context import AssessmentContext
 from sesora.core.dataitem import DataSource
 from sesora.store.sqlite_store import SQLiteDataStore
 from sesora.schema import CodeupFileCommitRecord
@@ -133,16 +135,7 @@ def create_context(config: dict) -> AssessmentContext:
     创建评估上下文
     """
     # 创建阿里云凭证
-    aliyun_credentials = None
-    creds = config.get('aliyun_credentials', {})
-    if creds.get('access_key_id') and creds.get('access_key_secret'):
-        aliyun_credentials = Credentials(
-            access_key_id=creds['access_key_id'],
-            access_key_secret=creds['access_key_secret'],
-            account_id=creds.get('account_id', ''),
-            security_token=creds.get('security_token', ''),
-            region=creds.get('region', config['region']),
-        )
+    aliyun_credentials = CredentialClient()
     
     return AssessmentContext(
         # 基础信息

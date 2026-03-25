@@ -15,7 +15,7 @@ from ...schema.manual import ManualDrPlanRecord, ManualRtoRpoRecord, ManualDrTes
 from datetime import datetime, timezone
 
 
-class DrBackupStrategy(Analyzer):
+class DrBackupStrategyAnalyzer(Analyzer):
     """
     备份策略分析器
     
@@ -176,7 +176,7 @@ class DrBackupStrategy(Analyzer):
         return self._scored(final_score, status_msg, evidence)
 
 
-class DrRecoveryPlan(Analyzer):
+class DrRecoveryPlanAnalyzer(Analyzer):
     """
     恢复计划分析器
     
@@ -284,7 +284,7 @@ class DrRecoveryPlan(Analyzer):
         return self._scored(round(final_score), status_msg, evidence)
 
 
-class DrRtoRpoDefined(Analyzer):
+class DrRtoRpoDefinedAnalyzer(Analyzer):
     """
     RTO/RPO 定义分析器
     
@@ -408,7 +408,7 @@ class DrRtoRpoDefined(Analyzer):
         return self._scored(round(final_score), status_msg, evidence)
 
 
-class DrRecoveryTesting(Analyzer):
+class DrRecoveryTestingAnalyzer(Analyzer):
     """
     恢复演练分析器
 
@@ -552,10 +552,9 @@ class DrRecoveryTesting(Analyzer):
         return self._scored(round(final_score), status_msg, evidence)
 
 
-# 导出所有分析器
 DR_ANALYZERS = [
-    DrBackupStrategy(),
-    DrRecoveryPlan(),
-    DrRtoRpoDefined(),
-    DrRecoveryTesting(),
+    DrBackupStrategyAnalyzer(),
+    DrRecoveryPlanAnalyzer(),
+    DrRtoRpoDefinedAnalyzer(),
+    DrRecoveryTestingAnalyzer(),
 ]

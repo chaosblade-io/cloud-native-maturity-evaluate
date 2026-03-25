@@ -155,7 +155,6 @@ class ScalingAutomationAnalyzer(Analyzer):
             return self._not_evaluated("未获取到 HPA 数据或 HPA 数据为空，无法评估扩缩容自动化")
 
         evidence = []
-        base_score = 0
         bonus_score = 0
 
         # --- 1. 分析 HPA 配置质量 ---
@@ -283,7 +282,6 @@ class BackupAutomationAnalyzer(Analyzer):
         has_data = False
 
         now = datetime.now(timezone.utc)
-        one_day_ago = now - timedelta(days=1)
         seven_days_ago = now - timedelta(days=7)
 
         # 1. 检查 K8s CronJob 中的备份任务
@@ -445,7 +443,6 @@ class SecurityAutomationAnalyzer(Analyzer):
             return self._scored(1, "安全自动化能力非常有限，建议加强流水线卡点和定期扫描", evidence)
 
 
-# 导出所有分析器
 OPS_ANALYZERS = [
     IncidentManagementAnalyzer(),
     ScalingAutomationAnalyzer(),

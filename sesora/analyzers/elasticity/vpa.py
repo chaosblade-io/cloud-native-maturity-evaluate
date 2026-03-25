@@ -377,7 +377,6 @@ class VsResourceOptAnalyzer(Analyzer):
         return self._scored(final_score, conclusion, evidence)
 
 
-# 导出所有分析器
 VPA_ANALYZERS = [
     VsImplementedAnalyzer(),
     VsAutoScalingAnalyzer(),

@@ -581,7 +581,6 @@ class DriftDetectionAnalyzer(Analyzer):
         return self._scored(final_score, final_msg, evidence)
 
 
-# 导出所有分析器
 IAC_ANALYZERS = [
     ProvisioningAutomationAnalyzer(),
     ConfigurationManagementAnalyzer(),

@@ -22,8 +22,8 @@ class OSSCollector:
 
     def _create_client(self):
         creds = self.context.aliyun_credentials
-        auth = oss2.Auth(creds.access_key_id, creds.access_key_secret)
-        endpoint = f"oss-{creds.region}.aliyuncs.com"
+        auth = oss2.Auth(creds.get_access_key_id(), creds.get_access_key_secret())
+        endpoint = f"oss-{self.context.region}.aliyuncs.com"
         return oss2.Service(auth, endpoint)
 
     def _get_bucket_names(self) -> List[str]:
@@ -89,11 +89,12 @@ class OSSCollector:
 
     # TODO: remove these exceptions handling
     def _collect_bucket_detail(self, bucket_name: str) -> OssBucketRecord:
+        # TODO: remove this duplicate auth
         creds = self.context.aliyun_credentials
-        auth = oss2.Auth(creds.access_key_id, creds.access_key_secret)
+        auth = oss2.Auth(creds.get_access_key_id(), creds.get_access_key_secret())
 
         # 首先使用默认 endpoint 获取 Bucket 信息（包含真实地域）
-        default_endpoint = f"oss-{creds.region}.aliyuncs.com"
+        default_endpoint = f"oss-{self.context.region}.aliyuncs.com"
 
         bucket = oss2.Bucket(auth, default_endpoint, bucket_name)
 
@@ -166,14 +167,14 @@ class OSSCollector:
 
         try:
             creds = self.context.aliyun_credentials
-            auth = oss2.Auth(creds.access_key_id, creds.access_key_secret)
+            auth = oss2.Auth(creds.get_access_key_id(), creds.get_access_key_secret())
 
             # 使用缓存的地域信息，如果没有则使用默认地域
             bucket_location = self._bucket_locations.get(bucket_name)
             if bucket_location:
                 endpoint = self._get_bucket_endpoint(bucket_location)
             else:
-                endpoint = f"oss-{creds.region}.aliyuncs.com"
+                endpoint = f"oss-{self.context.region}.aliyuncs.com"
 
             bucket = oss2.Bucket(auth, endpoint, bucket_name)
 

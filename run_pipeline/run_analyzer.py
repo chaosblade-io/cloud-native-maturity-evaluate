@@ -194,8 +194,30 @@ def save_to_csv(results: list[dict], output_path: Path) -> None:
     print(f"\n✓ 结果已保存到: {output_path}")
 
 
+def get_maturity_level(percentage: float) -> str:
+    """根据百分比返回成熟度等级
+    
+    分级标准:
+    - 无: 0%
+    - 基础: 1-25%
+    - 标准: 26-50%
+    - 高级: 51-75%
+    - 全面: 76-100%
+    """
+    if percentage <= 0:
+        return "无"
+    elif percentage <= 25:
+        return "基础"
+    elif percentage <= 50:
+        return "标准"
+    elif percentage <= 75:
+        return "高级"
+    else:
+        return "全面"
+
+
 def save_summary_csv(results: list[dict], output_path: Path) -> None:
-    """保存汇总结果到 CSV（按维度汇总）"""
+    """保存汇总结果到 CSV（按维度汇总，含成熟度评价）"""
     if not results:
         return
     
@@ -205,7 +227,7 @@ def save_summary_csv(results: list[dict], output_path: Path) -> None:
         dim = r["dimension"] or "Unknown"
         if dim not in by_dimension:
             by_dimension[dim] = {"score": 0, "max_score": 0, "count": 0}
-        if r["state"] in ("SCORED", "NOT_SCORED"):
+        if r["state"] in ("scored", "not_scored"):
             by_dimension[dim]["score"] += r["score"]
             by_dimension[dim]["max_score"] += r["max_score"]
             by_dimension[dim]["count"] += 1
@@ -214,7 +236,7 @@ def save_summary_csv(results: list[dict], output_path: Path) -> None:
     
     with open(summary_path, 'w', newline='', encoding='utf-8-sig') as f:
         writer = csv.writer(f)
-        writer.writerow(["维度", "得分", "满分", "百分比", "评估项数"])
+        writer.writerow(["维度", "得分", "满分", "百分比", "成熟度等级", "评估项数"])
         
         total_score = 0
         total_max = 0
@@ -223,16 +245,52 @@ def save_summary_csv(results: list[dict], output_path: Path) -> None:
         for dim in sorted(by_dimension.keys()):
             data = by_dimension[dim]
             pct = data["score"] / data["max_score"] * 100 if data["max_score"] > 0 else 0
-            writer.writerow([dim, data["score"], data["max_score"], f"{pct:.1f}%", data["count"]])
+            maturity = get_maturity_level(pct)
+            writer.writerow([dim, data["score"], data["max_score"], f"{pct:.1f}%", maturity, data["count"]])
             total_score += data["score"]
             total_max += data["max_score"]
             total_count += data["count"]
         
         # 总计行
         total_pct = total_score / total_max * 100 if total_max > 0 else 0
-        writer.writerow(["总计", total_score, total_max, f"{total_pct:.1f}%", total_count])
+        total_maturity = get_maturity_level(total_pct)
+        writer.writerow(["总计", total_score, total_max, f"{total_pct:.1f}%", total_maturity, total_count])
     
     print(f"✓ 汇总已保存到: {summary_path}")
+    
+    # 生成成熟度评价报告内容
+    report_lines = []
+    report_lines.append("=" * 70)
+    report_lines.append("成熟度评价")
+    report_lines.append("=" * 70)
+    report_lines.append(f"{'维度':<25}{'得分':<15}{'百分比':<12}{'成熟度等级'}")
+    report_lines.append("-" * 70)
+    
+    for dim in sorted(by_dimension.keys()):
+        data = by_dimension[dim]
+        pct = data["score"] / data["max_score"] * 100 if data["max_score"] > 0 else 0
+        maturity = get_maturity_level(pct)
+        score_str = f"{data['score']}/{data['max_score']}"
+        pct_str = f"{pct:.1f}%"
+        report_lines.append(f"{dim:<25}{score_str:<15}{pct_str:<12}{maturity}")
+    
+    report_lines.append("-" * 70)
+    total_pct = total_score / total_max * 100 if total_max > 0 else 0
+    total_maturity = get_maturity_level(total_pct)
+    total_score_str = f"{total_score}/{total_max}"
+    total_pct_str = f"{total_pct:.1f}%"
+    report_lines.append(f"{'总体成熟度':<23}{total_score_str:<15}{total_pct_str:<12}{total_maturity}")
+    report_lines.append("=" * 70)
+    
+    # 打印到控制台
+    print("\n" + "\n".join(report_lines))
+    
+    # 保存成熟度评价报告到文件
+    report_path = output_path.with_name(output_path.stem + "_maturity_report.txt")
+    with open(report_path, 'w', encoding='utf-8') as f:
+        f.write("\n".join(report_lines))
+    
+    print(f"✓ 成熟度评价已保存到: {report_path}")
 
 
 def main():

@@ -4,17 +4,7 @@ AssessmentContext 定义：评估上下文
 """
 from dataclasses import dataclass, field
 from typing import Optional
-
-
-@dataclass
-class Credentials:
-    """云平台凭证"""
-    access_key_id: str = ""
-    access_key_secret: str = ""
-    account_id: str = ""
-    security_token: str = ""  # STS 临时凭证
-    region: str = ""
-
+from alibabacloud_credentials.client import Client as CredentialClient
 
 @dataclass
 class AssessmentContext:
@@ -88,7 +78,7 @@ class AssessmentContext:
     grafana_workspace_id: str = ""
     
     # 凭证
-    aliyun_credentials: Optional[Credentials] = None
+    aliyun_credentials: Optional[CredentialClient] = None
     
     # K8s 配置
     kubeconfig_paths: list[str] = field(default_factory=list)  # 多 kubeconfig 路径

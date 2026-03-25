@@ -24,9 +24,8 @@ class ACRCollector:
     def _create_client(self) -> CRClient:
         creds = self.context.aliyun_credentials
         config = open_api_models.Config(
-            access_key_id=creds.access_key_id,
-            access_key_secret=creds.access_key_secret,
-            endpoint=f"cr.{creds.region}.aliyuncs.com",
+            credential=creds,
+            endpoint=f"cr.{self.context.region}.aliyuncs.com",
             protocol="https",
         )
         return CRClient(config)
@@ -51,7 +50,7 @@ class ACRCollector:
                 )
             )
             body = response.body
-            if not body.is_success:
+            if response.status_code != 200 or not body.is_success:
                 raise Exception("ListInstance API 调用失败")
 
             for instance in body.instances:
@@ -115,7 +114,7 @@ class ACRCollector:
         return records
 
     def _collect_repositories(self, instance_id: str) -> List[AcrRepositoryRecord]:
-        total_records = 0 # TODO: remove this
+        total_records = 0  # TODO: remove this
         records: List[AcrRepositoryRecord] = []
         page_no = 1
         page_size = 100
@@ -127,13 +126,15 @@ class ACRCollector:
                 )
             )
             body = response.body
-            if not body.is_success:
+            if response.status_code != 200 or not body.is_success:
                 raise Exception("ListRepository API 调用失败")
 
             for repo in body.repositories:
                 record = self._parse_repository(repo)
                 # TODO: remove this
-                if any(keyword in repo.repo_name for keyword in ["otel", "opentelemetry"]):
+                if any(
+                    keyword in repo.repo_name for keyword in ["otel", "opentelemetry"]
+                ):
                     records.append(record)
                 total_records += 1
 
@@ -178,7 +179,7 @@ class ACRCollector:
                 )
             )
             body = response.body
-            if not body.is_success:
+            if response.status_code != 200 or not body.is_success:
                 raise Exception("ListRepoTag API 调用失败")
 
             for image in response.body.images:
@@ -233,9 +234,10 @@ class ACRCollector:
                 )
             )
             body = response.body
-            if not body.is_success:
+            if response.status_code != 200 or not body.is_success:
                 print(f"ListRepoTagScanResult API 调用失败")
-                break  # Internal server error may happen, just skip
+                # TODO: better way?
+                break  # Internal server error may happen, just skip 
 
             for vuln in body.vulnerabilities:
                 severity = vuln.severity.lower()
@@ -249,7 +251,7 @@ class ACRCollector:
                     unknown_count += 1
 
             vulnerabilities_num += len(body.vulnerabilities)
-            total_count = body.total_count or 0 # total_count may be None
+            total_count = body.total_count or 0  # total_count may be None
             if vulnerabilities_num >= total_count:
                 break
 

@@ -38,7 +38,7 @@ def _parse_timeout_to_seconds(timeout_str: str) -> float | None:
     return total if total > 0 else None
 
 
-class FtCircuitBreaker(Analyzer):
+class FtCircuitBreakerAnalyzer(Analyzer):
     """
     熔断机制分析器
     
@@ -183,7 +183,8 @@ class FtCircuitBreaker(Analyzer):
 
         return self._scored(round(final_score), status_msg, evidence)
 
-    def _evaluate_circuit_breaker_config(self, outlier_config: dict) -> dict:
+    @staticmethod
+    def _evaluate_circuit_breaker_config(outlier_config: dict) -> dict:
         """评估熔断配置的质量等级"""
         issues = []
         warnings = []
@@ -251,7 +252,7 @@ class FtCircuitBreaker(Analyzer):
         return {"level": "well", "params": params}
 
 
-class FtTimeoutHandling(Analyzer):
+class FtTimeoutHandlingAnalyzer(Analyzer):
     """
     超时处理分析器
     
@@ -434,7 +435,8 @@ class FtTimeoutHandling(Analyzer):
 
         return self._scored(round(final_score), status_msg, evidence)
 
-    def _evaluate_timeout_value(self, seconds: float) -> str:
+    @staticmethod
+    def _evaluate_timeout_value(seconds: float) -> str:
         """评估超时值是否合理"""
         if seconds < 0.01:
             return "risk"
@@ -448,7 +450,7 @@ class FtTimeoutHandling(Analyzer):
             return "well"
 
 
-class FtRetryPolicy(Analyzer):
+class FtRetryPolicyAnalyzer(Analyzer):
     """
     智能重试分析器
     
@@ -609,7 +611,8 @@ class FtRetryPolicy(Analyzer):
 
         return self._scored(round(final_score), status_msg, evidence)
 
-    def _evaluate_retry_config(self, retries: dict) -> dict:
+    @staticmethod
+    def _evaluate_retry_config(retries: dict) -> dict:
         """评估重试配置的质量等级"""
         issues = []
         warnings = []
@@ -673,7 +676,7 @@ class FtRetryPolicy(Analyzer):
         return {"level": "well", "params": params}
 
 
-class FtFallback(Analyzer):
+class FtFallbackAnalyzer(Analyzer):
     """
     降级机制分析器
     
@@ -809,7 +812,8 @@ class FtFallback(Analyzer):
 
         return self._scored(round(final_score), status_msg, evidence)
 
-    def _evaluate_fallback_config(self, config: ManualFallbackConfigRecord) -> dict:
+    @staticmethod
+    def _evaluate_fallback_config(config: ManualFallbackConfigRecord) -> dict:
         """评估降级配置的质量等级"""
         issues = []
         warnings = []
@@ -845,7 +849,7 @@ class FtFallback(Analyzer):
         return {"level": "well", "fallback_type": fallback_type}
 
 
-class FtBulkhead(Analyzer):
+class FtBulkheadAnalyzer(Analyzer):
     """
     舱壁模式分析器
     
@@ -989,7 +993,8 @@ class FtBulkhead(Analyzer):
 
         return self._scored(round(final_score), status_msg, evidence)
 
-    def _calculate_isolation_score(self, config: ManualBulkheadConfigRecord) -> dict:
+    @staticmethod
+    def _calculate_isolation_score(config: ManualBulkheadConfigRecord) -> dict:
         """计算隔离配置的深度等级"""
         isolation_types = []
         score = 0
@@ -1014,11 +1019,10 @@ class FtBulkhead(Analyzer):
             return {"level": "basic", "score": score, "isolation_types": isolation_types}
 
 
-# 导出所有分析器
 FAULT_TOLERANCE_ANALYZERS = [
-    FtCircuitBreaker(),
-    FtTimeoutHandling(),
-    FtRetryPolicy(),
-    FtFallback(),
-    FtBulkhead(),
+    FtCircuitBreakerAnalyzer(),
+    FtTimeoutHandlingAnalyzer(),
+    FtRetryPolicyAnalyzer(),
+    FtFallbackAnalyzer(),
+    FtBulkheadAnalyzer(),
 ]

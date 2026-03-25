@@ -48,37 +48,112 @@ class FaasCoverageAnalyzer(Analyzer):
         return ["fc.function.list", "fc.function.statistics"]
 
     def analyze(self, store) -> ScoreResult:
-        functions: list[FcFunctionRecord] = store.get("fc.function.list")
+        functions: list[FcFunctionRecord] = store.get("fc.function.list") or []
 
         if not functions:
-            return self._not_scored("未使用函数计算", [])
+            return self._scored(0, "未使用函数计算：尚未采用 FaaS 架构", ["未检测到 FC 函数配置"])
 
-        evidence = [f"函数数量: {len(functions)}"]
+        evidence: list[str] = [f"函数数量: {len(functions)}"]
+        score = 0.0
 
-        # 检查函数统计数据
+        # --- 1. 函数数量规模评分 (0-4 分) ---
+        func_count = len(functions)
+        if func_count >= 50:
+            score += 4.0
+            evidence.append("✓ 函数数量庞大，FaaS 已在多业务场景广泛应用")
+        elif func_count >= 20:
+            score += 3.0
+            evidence.append("✓ 函数数量充足，FaaS 应用较为广泛")
+        elif func_count >= 10:
+            score += 2.0
+            evidence.append("函数数量较多，FaaS 应用初具规模")
+        elif func_count >= 3:
+            score += 1.0
+            evidence.append("函数数量有限，FaaS 处于试点阶段")
+        else:
+            score += 0.5
+            evidence.append("函数数量极少，FaaS 刚起步")
+
+        # --- 2. 调用量活跃度评分 (0-4 分) ---
         if store.available("fc.function.statistics"):
-            stats: list[FcFunctionStatisticsRecord] = store.get("fc.function.statistics")
+            stats: list[FcFunctionStatisticsRecord] = store.get("fc.function.statistics") or []
             if stats:
                 total_invocations = sum(s.invocation_count for s in stats)
                 evidence.append(f"总调用量: {total_invocations}")
 
-                # 根据调用量判断渗透率
-                if total_invocations >= 100000:
-                    return self._scored(12, "FaaS 业务渗透率高：承载大量请求", evidence)
+                if total_invocations >= 1000000:
+                    score += 4.0
+                    evidence.append("✓ 调用量极高，FaaS 承载核心业务流量")
+                elif total_invocations >= 100000:
+                    score += 3.0
+                    evidence.append("✓ 调用量高，FaaS 业务渗透率高")
                 elif total_invocations >= 10000:
-                    return self._scored(8, "FaaS 业务渗透率中", evidence)
+                    score += 2.0
+                    evidence.append("调用量中等，FaaS 已有一定业务渗透")
                 elif total_invocations >= 1000:
-                    return self._scored(4, "FaaS 业务渗透率低", evidence)
-
-        # 无统计数据时，根据函数数量估算
-        if len(functions) >= 20:
-            return self._scored(12, "FaaS 函数数量充足，渗透率高", evidence)
-        elif len(functions) >= 10:
-            return self._scored(8, "FaaS 函数数量较多，渗透率中", evidence)
-        elif len(functions) >= 3:
-            return self._scored(4, "FaaS 函数数量有限，渗透率低", evidence)
+                    score += 1.0
+                    evidence.append("调用量较低，FaaS 业务渗透有限")
+                else:
+                    evidence.append("调用量极少，函数可能处于测试或低频场景")
+            else:
+                evidence.append("ℹ️ 未获取到函数调用统计数据")
         else:
-            return self._scored(2, "FaaS 使用极少", evidence)
+            evidence.append("ℹ️ 无函数调用统计数据，仅按函数数量评估")
+
+        # --- 3. 函数活跃度分布评分 (0-2 分) ---
+        if store.available("fc.function.statistics"):
+            stats: list[FcFunctionStatisticsRecord] = store.get("fc.function.statistics") or []
+            if stats:
+                active_functions = [s for s in stats if s.invocation_count > 100]
+                if active_functions:
+                    active_ratio = len(active_functions) / len(stats)
+                    evidence.append(f"活跃函数比例: {active_ratio:.0%} ({len(active_functions)}/{len(stats)})")
+                    if active_ratio >= 0.7:
+                        score += 2.0
+                        evidence.append("✓ 绝大多数函数处于活跃状态，资源利用率高")
+                    elif active_ratio >= 0.4:
+                        score += 1.0
+                        evidence.append("部分函数活跃，存在一定僵尸函数")
+                    else:
+                        evidence.append("活跃函数比例低，存在较多僵尸函数")
+                else:
+                    evidence.append("⚠️ 无活跃函数，可能存在大量僵尸函数")
+
+        # --- 4. 高级特性使用情况 (0-2 分) ---
+        advanced_features = 0
+        reserved_funcs = [f for f in functions if f.reserved_instances > 0]
+        container_funcs = [f for f in functions if f.custom_container_config]
+        layer_funcs = [f for f in functions if f.layers]
+
+        if reserved_funcs:
+            advanced_features += 1
+            evidence.append(f"✓ {len(reserved_funcs)} 个函数配置预留实例，冷启动优化到位")
+        if container_funcs:
+            advanced_features += 1
+            evidence.append(f"✓ {len(container_funcs)} 个函数使用自定义容器")
+        if layer_funcs:
+            advanced_features += 1
+            evidence.append(f"✓ {len(layer_funcs)} 个函数使用 Layer 管理依赖")
+
+        if advanced_features >= 2:
+            score += 2.0
+        elif advanced_features == 1:
+            score += 1.0
+
+        final_score = max(min(int(round(score)), 12), 0)
+
+        if final_score >= 10:
+            status_msg = "FaaS 业务渗透率高：函数数量多、调用量大且使用高级特性"
+        elif final_score >= 7:
+            status_msg = "FaaS 业务渗透率较高：函数规模较大且有一定业务流量"
+        elif final_score >= 4:
+            status_msg = "FaaS 业务渗透率中等：函数数量和调用量处于中等水平"
+        elif final_score >= 2:
+            status_msg = "FaaS 业务渗透率较低：函数数量有限或调用量较少"
+        else:
+            status_msg = "FaaS 业务渗透率低：尚未大规模采用函数计算"
+
+        return self._scored(final_score, status_msg, evidence)
 
 
 class FaasTriggerDiversityAnalyzer(Analyzer):
@@ -110,34 +185,94 @@ class FaasTriggerDiversityAnalyzer(Analyzer):
         return ["fc.function.list"]
 
     def analyze(self, store) -> ScoreResult:
-        functions: list[FcFunctionRecord] = store.get("fc.function.list")
+        functions: list[FcFunctionRecord] = store.get("fc.function.list") or []
 
         if not functions:
-            return self._not_evaluated("未使用函数计算")
+            return self._scored(0, "未使用函数计算：尚未采用 FaaS 架构", ["未检测到 FC 函数配置"])
 
-        # 收集所有触发器类型
-        trigger_types = set()
+        trigger_types: set[str] = set()
+        total_triggers = 0
 
-        # 从函数配置中获取触发器
         for f in functions:
             if f.triggers:
                 for t in f.triggers:
-                    t_type = t.get("triggerType", "").lower()
+                    t_type = t.get("type", "").lower()
                     if t_type:
                         trigger_types.add(t_type)
+                        total_triggers += 1
 
-        if not trigger_types:
-            return self._not_scored("函数未配置触发器", [])
-
-        evidence = [f"触发器类型: {', '.join(trigger_types)}"]
         type_count = len(trigger_types)
 
+        if not trigger_types:
+            return self._scored(1, "函数未配置触发器：函数无法被实际调用",
+                                [f"函数数量: {len(functions)}，但均未配置触发器"])
+
+        evidence: list[str] = [
+            f"函数数量: {len(functions)}",
+            f"触发器类型: {', '.join(trigger_types)} ({type_count}种)",
+            f"触发器总数: {total_triggers} 个"
+        ]
+
+        score = 0.0
+
+        # --- 1. 触发器类型多样性 (0-4 分) ---
         if type_count >= 5:
-            return self._scored(8, "触发器类型非常丰富 (>=5种)", evidence)
+            score += 4.0
+            evidence.append("✓ 触发器类型非常丰富 (>=5 种)，多个事件源接入函数")
         elif type_count >= 3:
-            return self._scored(5, "触发器类型丰富 (3-4种)", evidence)
+            score += 2.5
+            evidence.append("✓ 触发器类型丰富 (3-4 种)")
+        elif type_count == 2:
+            score += 1.5
+            evidence.append("触发器类型有限 (2 种)")
         else:
-            return self._scored(2, "触发器类型有限 (1-2种)", evidence)
+            score += 0.5
+            evidence.append("触发器类型单一 (仅 1 种)")
+
+        # --- 2. 触发器覆盖率 (0-2 分) ---
+        functions_with_triggers = len([f for f in functions if f.triggers])
+        trigger_coverage = functions_with_triggers / len(functions) if len(functions) > 0 else 0
+        evidence.append(f"触发器覆盖率: {trigger_coverage:.0%} ({functions_with_triggers}/{len(functions)})")
+
+        if trigger_coverage >= 0.8:
+            score += 2.0
+            evidence.append("✓ 绝大多数函数配置了触发器")
+        elif trigger_coverage >= 0.5:
+            score += 1.0
+            evidence.append("部分函数配置了触发器")
+        elif trigger_coverage > 0:
+            score += 0.5
+            evidence.append("仅少数函数配置了触发器")
+        else:
+            evidence.append("⚠️ 无函数配置触发器")
+
+        # --- 3. 核心触发器类型覆盖 (0-2 分) ---
+        core_types = {"http", "timer", "oss", "mq", "eventbridge", "api", "tablestore", "cdn"}
+        core_covered = sum(1 for t_type in trigger_types if t_type in core_types)
+
+        if core_covered >= 4:
+            score += 2.0
+            evidence.append(f"✓ 核心触发器类型覆盖全面 ({core_covered}/8 种)")
+        elif core_covered >= 2:
+            score += 1.0
+            evidence.append("核心触发器类型部分覆盖")
+        else:
+            evidence.append("核心触发器类型覆盖有限")
+
+        final_score = max(min(int(round(score)), 8), 0)
+
+        if final_score >= 7:
+            status_msg = "触发器配置完善：类型丰富、覆盖率高、核心类型齐全"
+        elif final_score >= 5:
+            status_msg = "触发器配置良好：类型较丰富，覆盖率中等"
+        elif final_score >= 3:
+            status_msg = "触发器配置基础：类型有限，覆盖率较低"
+        elif final_score >= 1:
+            status_msg = "触发器配置较少：仅有少量触发器"
+        else:
+            status_msg = "触发器配置有限：类型单一，覆盖率低"
+
+        return self._scored(final_score, status_msg, evidence)
 
 
 class FaasRuntimeFlexAnalyzer(Analyzer):
@@ -174,10 +309,8 @@ class FaasRuntimeFlexAnalyzer(Analyzer):
         if not functions:
             return self._not_evaluated("未使用函数计算")
 
-        # 统计运行时类型
         runtimes = set(f.runtime for f in functions if f.runtime)
 
-        # 检查是否有自定义容器镜像
         custom_image = any(f.custom_container_config for f in functions)
 
         evidence = [f"运行时类型: {', '.join(runtimes) if runtimes else '无'}"]
@@ -187,14 +320,28 @@ class FaasRuntimeFlexAnalyzer(Analyzer):
 
         runtime_count = len(runtimes)
 
-        if runtime_count >= 4 or custom_image:
-            return self._scored(6, "运行时灵活性高 (>=4种语言或自定义镜像)", evidence)
-        elif runtime_count >= 2:
-            return self._scored(4, "运行时灵活性中 (2-3种语言)", evidence)
+        if runtime_count >= 4:
+            score = 5
+            description = "运行时灵活性高 (>=4种语言)"
+        elif runtime_count == 3:
+            score = 4
+            description = "运行时灵活性中高 (3种语言)"
+        elif runtime_count == 2:
+            score = 2
+            description = "运行时灵活性中 (2种语言)"
         elif runtime_count == 1:
-            return self._scored(1, "运行时灵活性低 (仅1种语言)", evidence)
+            score = 1
+            description = "运行时灵活性低 (仅1种语言)"
         else:
             return self._not_scored("未检测到运行时配置", evidence)
+
+        if custom_image:
+            score = min(6, score + 1)
+            evidence.append("✓ 支持自定义容器镜像 (+1分)")
+            if score == 6:
+                description = "运行时灵活性高 (>=4种语言或自定义镜像)"
+
+        return self._scored(score, description, evidence)
 
 
 class FaasColdStartAnalyzer(Analyzer):
@@ -231,38 +378,45 @@ class FaasColdStartAnalyzer(Analyzer):
             return self._not_evaluated("未使用函数计算")
 
         evidence = []
-        score = 0
 
-        # 检查预留实例配置
+        # --- 配置侧评分 (0-2分) ---
+        config_score = 0
         reserved = [f for f in functions if f.reserved_instances > 0]
         if reserved:
-            score += 3
-            evidence.append(f"✓ 预留实例函数: {len(reserved)} 个")
+            config_score = 2
+            evidence.append(f"✓ 已配置预留实例: {len(reserved)}/{len(functions)} 个函数")
+        else:
+            evidence.append("✗ 未配置预留实例")
 
-        # 检查冷启动指标
+        # --- 效果侧评分 (0-4分) ---
+        metric_score = 0
         if store.available("fc.cold_start_metrics"):
             metrics: list[FcColdStartMetricRecord] = store.get("fc.cold_start_metrics")
             if metrics:
                 p99_cold_start = max(m.p99_cold_start_ms for m in metrics)
                 avg_cold_start = sum(m.avg_cold_start_ms for m in metrics) / len(metrics)
-
-                evidence.append(f"P99 冷启动: {p99_cold_start:.0f}ms")
-                evidence.append(f"平均冷启动: {avg_cold_start:.0f}ms")
+                evidence.append(f"P99 冷启动: {p99_cold_start:.0f}ms, 平均: {avg_cold_start:.0f}ms")
 
                 if p99_cold_start < 500:
-                    score += 3
-                    evidence.append("✓ P99 冷启动 < 500ms")
+                    metric_score = 4
+                    evidence.append("✓ P99 冷启动 < 500ms，优化效果显著")
                 elif p99_cold_start < 1000:
-                    score += 2
+                    metric_score = 3
+                    evidence.append("P99 冷启动 500-1000ms，优化效果良好")
                 elif p99_cold_start < 2000:
-                    score += 1
+                    metric_score = 2
+                    evidence.append("P99 冷启动 1000-2000ms，优化效果一般")
+                else:
+                    metric_score = 1
+                    evidence.append("✗ P99 冷启动 >= 2000ms，优化效果不足")
+
         else:
-            # 无冷启动指标，根据配置估算
-            if reserved:
-                score += 2  # 有预留实例通常冷启动较好
+            evidence.append("冷启动指标不可用，无法评估实际优化效果")
+
+        score = min(6, config_score + metric_score)
 
         if score >= 5:
-            return self._scored(6, "冷启动优化完善", evidence)
+            return self._scored(score, "冷启动优化完善（配置+效果双达标）", evidence)
         elif score >= 3:
             return self._scored(score, "冷启动优化基本满足", evidence)
         elif score > 0:
@@ -305,21 +459,14 @@ class FaasObservabilityAnalyzer(Analyzer):
 
         evidence = []
         score = 0.0
-        max_score = 5.0  # 满分调整为 5 分
-
         total_count = len(functions)
 
-        # --- 1. 检查日志配置 (Logging) - 权重 2.5 分 ---
+        # --- 1. 检查日志配置 (Logging) - 权重 0-2分 ---
         valid_log_funcs = []
         for f in functions:
             cfg = f.log_config
             if cfg:
-                is_enabled = False
-                # 默认开启，除非显式关闭，且必须有 project
-                if cfg.get('enable_instance_metrics', True) is not False and cfg.get('project'):
-                    is_enabled = True
-
-                if is_enabled:
+                if cfg.get('project') and cfg.get('logstore'):
                     valid_log_funcs.append(f)
 
         log_ratio = len(valid_log_funcs) / total_count if total_count else 0
@@ -327,32 +474,29 @@ class FaasObservabilityAnalyzer(Analyzer):
 
         log_score = 0.0
         if log_ratio >= 0.95:
-            log_score = 2.5
-            evidence.append("✓ 日志近乎全覆盖 (2.5/2.5)")
-        elif log_ratio >= 0.8:
             log_score = 2.0
-            evidence.append("ℹ️ 大部分函数已配置日志 (2.0/2.5)")
-        elif log_ratio >= 0.5:
+            evidence.append("✓ 日志近乎全覆盖 (2.0/2.0)")
+        elif log_ratio >= 0.8:
             log_score = 1.5
-            evidence.append("⚠️ 仅半数函数存在日志 (1.5/2.5)")
+            evidence.append("ℹ️ 大部分函数已配置日志 (1.5/2.0)")
+        elif log_ratio >= 0.5:
+            log_score = 1.0
+            evidence.append("⚠️ 仅半数函数存在日志 (1.0/2.0)")
+        elif log_ratio > 0:
+            log_score = 0.5
+            evidence.append("⚠️ 日志配置零星 (0.5/2.0)")
         else:
-            log_score = 0.0
-            evidence.append("❌ 日志配置严重缺失 (0/2.5)")
+            evidence.append("❌ 日志配置缺失 (0/2.0)")
 
         score += log_score
 
-        # --- 2. 检查链路追踪配置 (Tracing) - 权重 2.5 分 ---
+        # --- 2. 检查链路追踪配置 (Tracing) - 权重 0-2分 ---
         valid_trace_funcs = []
         for f in functions:
             cfg = f.trace_config
             if cfg:
-                is_enabled = False
                 trace_type = cfg.get('type')
-
-                if trace_type and str(trace_type).lower() not in ["none", "disabled", "off", "null"]:
-                    is_enabled = True
-
-                if is_enabled:
+                if trace_type and str(trace_type).lower() not in ["none", "disabled", "off", "null", ""]:
                     valid_trace_funcs.append(f)
 
         trace_ratio = len(valid_trace_funcs) / total_count if total_count else 0
@@ -360,33 +504,54 @@ class FaasObservabilityAnalyzer(Analyzer):
 
         trace_score = 0.0
         if trace_ratio >= 0.95:
-            trace_score = 2.5
-            evidence.append("✓ 追踪近乎全覆盖 (2.5/2.5)")
-        elif trace_ratio >= 0.8:
             trace_score = 2.0
-            evidence.append("ℹ️ 大部分函数已配置追踪 (2.0/2.5)")
-        elif trace_ratio >= 0.5:
+            evidence.append("✓ 追踪近乎全覆盖 (2.0/2.0)")
+        elif trace_ratio >= 0.8:
             trace_score = 1.5
-            evidence.append("⚠️ 仅半数函数存在追踪 (1.5/2.5)")
+            evidence.append("ℹ️ 大部分函数已配置追踪 (1.5/2.0)")
+        elif trace_ratio >= 0.5:
+            trace_score = 1.0
+            evidence.append("⚠️ 仅半数函数存在追踪 (1.0/2.0)")
+        elif trace_ratio > 0:
+            trace_score = 0.5
+            evidence.append("⚠️ 追踪配置零星 (0.5/2.0)")
         else:
-            trace_score = 0.0
-            evidence.append("❌ 追踪配置严重缺失 (0/2.5)")
+            evidence.append("❌ 追踪配置缺失 (0/2.0)")
 
         score += trace_score
 
-        if score >= 4.5:
-            conclusion = "可观测性体系完善：全链路日志+追踪无死角"
-        elif score >= 3.5:
+        # --- 3. 检查日志与追踪的关联性 (Correlation) - 权重 0-1分 ---
+        both_configured = [f for f in functions if f in valid_log_funcs and f in valid_trace_funcs]
+        correlation_ratio = len(both_configured) / total_count if total_count else 0
+        evidence.append(f"日志+追踪双覆盖: {len(both_configured)}/{total_count} ({correlation_ratio:.1%})")
+
+        correlation_score = 0.0
+        if correlation_ratio >= 0.8:
+            correlation_score = 1.0
+            evidence.append("✓ 可观测性数据关联性强，支持调用链追踪 (1.0/1.0)")
+        elif correlation_ratio >= 0.5:
+            correlation_score = 0.5
+            evidence.append("ℹ️ 部分函数可观测性数据可关联 (0.5/1.0)")
+        else:
+            evidence.append("❌ 可观测性数据割裂，难以关联调用链 (0/1.0)")
+
+        score += correlation_score
+
+        final_score = round(score)
+
+        if final_score >= 5:
+            conclusion = "可观测性体系完善：全链路日志+追踪无死角，支持调用链关联"
+        elif final_score >= 4:
             conclusion = "可观测性良好：核心链路已覆盖，建议消除剩余盲区"
-        elif score >= 2.0:
+        elif final_score >= 2:
             conclusion = "可观测性基础可用：存在明显盲区，难以应对复杂故障"
-        elif score > 0:
+        elif final_score > 0:
             conclusion = "可观测性薄弱：配置零散，缺乏系统性"
         else:
             return self._not_scored("函数可观测性缺失：无法有效监控和排查故障", evidence)
 
-        final_score = round(score, 1)
-        return self._scored(int(final_score), conclusion, evidence)
+        return self._scored(final_score, conclusion, evidence)
+
 
 class FaasGovernanceAnalyzer(Analyzer):
     """
@@ -424,7 +589,6 @@ class FaasGovernanceAnalyzer(Analyzer):
 
         evidence = []
         score = 0.0
-        max_score = 5.0
 
         functions_with_versions = set(v.function_name for v in versions)
         evidence.append(f"纳管函数数：{len(functions_with_versions)}")
@@ -436,64 +600,53 @@ class FaasGovernanceAnalyzer(Analyzer):
 
         stacked_funcs = [f for f, count in func_version_counts.items() if count > 10]
         avg_versions = sum(func_version_counts.values()) / len(func_version_counts) if func_version_counts else 0
-
         evidence.append(f"平均版本数：{avg_versions:.1f}")
 
-        version_score = 0.0
-        if stacked_funcs:
-            evidence.append(f"⚠️ 发现 {len(stacked_funcs)} 个函数版本堆积 (>10 个)，建议配置版本保留策略")
-            max_score = 3.0
+        # --- 1. 版本健康度 (0-1分) ---
+        if not stacked_funcs:
+            score += 1.0
+            evidence.append("✓ 版本数量合理，无明显堆积 (1.0/1.0)")
+        elif len(stacked_funcs) < len(functions_with_versions) * 0.5:
+            score += 0.5
+            evidence.append(f"⚠️ 发现 {len(stacked_funcs)} 个函数版本堆积 (>10 个)，建议配置版本保留策略 (0.5/1.0)")
         else:
-            version_score = 1.0
-            evidence.append("✓ 版本数量合理，无明显堆积")
+            evidence.append(f"❌ 大量函数版本堆积 ({len(stacked_funcs)} 个)，版本管理混乱 (0/1.0)")
 
-        score += version_score
-
-        has_prod_isolation = False
-        isolation_score = 0.0
-
+        # --- 2. 生产隔离 (0-2分) ---
         if store.available("fc.alias.list"):
             aliases: list[FcAliasRecord] = store.get("fc.alias.list")
 
-            prod_keywords = ["prod", "production", "release", "stable", "online"]
+            prod_keywords = ["prod", "prd", "production", "release", "stable", "online", "live"]
             prod_aliases = [a for a in aliases
                             if any(k in a.alias_name.lower() for k in prod_keywords)]
 
             if prod_aliases:
-                has_prod_isolation = True
-                isolation_score = 2.0
-                evidence.append(f"✓ 生产隔离良好：发现 {len(prod_aliases)} 个标准生产环境别名")
+                score += 2.0
+                evidence.append(f"✓ 生产隔离良好：发现 {len(prod_aliases)} 个标准生产环境别名 (2.0/2.0)")
+            elif aliases:
+                score += 1.0
+                evidence.append("ℹ️ 已配置别名，但未发现标准生产别名 (prod/prd/release)，可能存在环境混用风险 (1.0/2.0)")
             else:
-                if aliases:
-                    isolation_score = 1.0
-                    evidence.append("ℹ️ 已配置别名，但未发现标准生产别名 (prod/release)，可能存在环境混用风险")
-                else:
-                    evidence.append("❌ 未发现别名配置：流量可能直接指向 LATEST 或不稳定版本")
+                evidence.append("❌ 未发现别名配置：流量可能直接指向 LATEST 或不稳定版本 (0/2.0)")
         else:
-            evidence.append("❌ 未获取到别名列表，无法确认生产隔离情况")
+            evidence.append("❌ 未获取到别名列表，无法确认生产隔离情况 (0/2.0)")
 
-        score += isolation_score
-
-        if not has_prod_isolation:
-            if max_score > 4.0:
-                max_score = 4.0
-
-        canary_score = 0.0
-        active_canary_count = 0
-        static_split_count = 0
-
+        # --- 3. 灰度发布能力 (0-2分) ---
         if store.available("fc.alias.list"):
             aliases: list[FcAliasRecord] = store.get("fc.alias.list")
 
+            active_canary_aliases = []
+            static_split_aliases = []
+
             for a in aliases:
-                weights_dict = getattr(a, 'additional_version_weights', None)
+                weights_dict = a.additional_version_weight
 
                 if isinstance(weights_dict, dict) and weights_dict:
                     w_values = []
                     for v_key, w_val in weights_dict.items():
                         try:
                             w_float = float(w_val)
-                            if 0.0 <= w_float <= 1.0 and w_float != 0 and w_float != 1:
+                            if 0.0 <= w_float <= 1.0 and w_float not in (0.0, 1.0):
                                 w_values.append(w_float * 100)
                             else:
                                 w_values.append(w_float)
@@ -503,42 +656,44 @@ class FaasGovernanceAnalyzer(Analyzer):
                     if not w_values:
                         continue
 
-                    has_active_canary = False
-                    is_static = True
-
-                    for w in w_values:
-                        if 0 < w < 100:
-                            has_active_canary = True
-                            break
-
-                    if len(w_values) > 1 and not any(w == 100 for w in w_values):
+                    has_active_canary = any(0 < w < 100 for w in w_values)
+                    if not has_active_canary and len(w_values) > 1 and not any(w == 100 for w in w_values):
                         has_active_canary = True
 
                     if has_active_canary:
-                        active_canary_count += 1
-                    else:
-                        if all(w == 0 or w == 100 for w in w_values):
-                            static_split_count += 1
+                        active_canary_aliases.append(a)
+                    elif all(w == 0 or w == 100 for w in w_values):
+                        static_split_aliases.append(a)
 
-            if active_canary_count > 0:
-                canary_score = 2.0
-                evidence.append(f"✓ 正在进行灰度发布：{active_canary_count} 个别名处于流量分割状态")
-            elif static_split_count > 0:
-                canary_score = 1.0
-                evidence.append(f"ℹ️ 具备灰度配置能力：{static_split_count} 个别名配置了多版本权重 (但当前为全量/零量)")
-            else:
-                if aliases:
-                    evidence.append("ℹ️ 别名均为单一版本指向或未利用权重进行流量控制")
+            total_aliases = len(aliases) if aliases else 0
+            if total_aliases > 0 and active_canary_aliases:
+                canary_ratio = len(active_canary_aliases) / total_aliases
+                if canary_ratio >= 0.5:
+                    score += 2.0
+                    evidence.append(
+                        f"✓ 灰度发布广泛实施：{len(active_canary_aliases)}/{total_aliases} 个别名处于流量分割状态 (2.0/2.0)")
+                elif canary_ratio >= 0.2:
+                    score += 1.5
+                    evidence.append(
+                        f"✓ 灰度发布部分实施：{len(active_canary_aliases)}/{total_aliases} 个别名处于流量分割状态 (1.5/2.0)")
+                else:
+                    score += 1.0
+                    evidence.append(
+                        f"ℹ️ 灰度发布试点：{len(active_canary_aliases)}/{total_aliases} 个别名处于流量分割状态 (1.0/2.0)")
+            elif static_split_aliases:
+                score += 0.5
+                evidence.append(
+                    f"ℹ️ 具备灰度配置能力：{len(static_split_aliases)} 个别名配置了多版本权重（当前为全量/零量）(0.5/2.0)")
+            elif aliases:
+                evidence.append("ℹ️ 别名均为单一版本指向，未利用权重进行流量控制 (0/2.0)")
 
-        score += canary_score
+        final_score = min(5, round(score))
 
-        final_score = min(score, max_score)
-
-        if final_score >= 4.5:
+        if final_score >= 5:
             conclusion = "函数治理卓越：生产隔离清晰、版本控制合理、正在实施动态灰度"
-        elif final_score >= 3.5:
+        elif final_score >= 4:
             conclusion = "函数治理良好：具备生产隔离和版本管理，建议引入动态灰度提升发布平滑度"
-        elif final_score >= 2.5:
+        elif final_score >= 3:
             conclusion = "函数治理基础：有版本和别名概念，但缺乏明确的生产环境规范或流量控制"
         elif final_score > 0:
             if stacked_funcs:
@@ -548,9 +703,9 @@ class FaasGovernanceAnalyzer(Analyzer):
         else:
             return self._not_scored("无有效函数版本管理数据", evidence)
 
-        return self._scored(int(final_score), conclusion, evidence)
+        return self._scored(final_score, conclusion, evidence)
 
-# 导出所有分析器
+
 FAAS_ANALYZERS = [
     FaasCoverageAnalyzer(),
     FaasTriggerDiversityAnalyzer(),

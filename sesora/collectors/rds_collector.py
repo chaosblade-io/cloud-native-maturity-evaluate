@@ -27,8 +27,7 @@ class RDSCollector:
     def _create_client(self) -> RdsClient:
         creds = self.context.aliyun_credentials
         config = open_api_models.Config(
-            access_key_id=creds.access_key_id,
-            access_key_secret=creds.access_key_secret,
+            credential=creds,
             endpoint="rds.aliyuncs.com",
             protocol="https",
         )
@@ -121,6 +120,8 @@ class RDSCollector:
                 )
             )
             body = response.body
+            if response.status_code != 200:
+                raise Exception(f"DescribeDBInstances API 调用失败: {response.status_code}")
 
             items = body.items
             for item in items.dbinstance:
@@ -142,6 +143,8 @@ class RDSCollector:
             rds_models.DescribeDBInstanceAttributeRequest(dbinstance_id=instance_id)
         )
         body = response.body
+        if response.status_code != 200:
+            raise Exception(f"DescribeDBInstanceAttribute API 调用失败: {response.status_code}")
         items = body.items.dbinstance_attribute
         item = items[0]  # TODO: why?
         return self._parse_instance(item)
@@ -152,6 +155,8 @@ class RDSCollector:
         response = self.client.describe_backup_policy(
             rds_models.DescribeBackupPolicyRequest(dbinstance_id=instance_id)
         )
+        if response.status_code != 200:
+            raise Exception(f"DescribeBackupPolicy API 调用失败: {response.status_code}")
         return self._parse_backup_policy(response.body, instance_id, engine)
 
     def _parse_backup_policy(
@@ -178,6 +183,8 @@ class RDSCollector:
             )
         )
         body = response.body
+        if response.status_code != 200:
+            raise Exception(f"DescribeInstanceCrossBackupPolicy API 调用失败: {response.status_code}")
         cross_backup_enabled = body.backup_enabled == "Enabled"
         cross_backup_region = body.cross_backup_region
 
@@ -201,6 +208,8 @@ class RDSCollector:
             )
         )
         body = response.body
+        if response.status_code != 200:
+            raise Exception(f"DescribeDBProxy API 调用失败: {response.status_code}")
 
         return RdsProxyRecord(
             instance_id=instance_id,

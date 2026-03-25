@@ -14,7 +14,7 @@ from ...schema import SlsLogstoreRecord
 from ...schema.grafana import GrafanaDashboardRecord, GrafanaDashboardAnalysisRecord, GrafanaFolderRecord
 
 
-class DashDiversity(Analyzer):
+class DashDiversityAnalyzer(Analyzer):
     """
     仪表盘类型丰富度分析器
     
@@ -139,7 +139,7 @@ class DashDiversity(Analyzer):
         return self._scored(final_score, conclusion, evidence)
 
 
-class DashRealtime(Analyzer):
+class DashRealtimeAnalyzer(Analyzer):
     """
     实时监控分析器
     
@@ -271,7 +271,7 @@ class DashRealtime(Analyzer):
         return self._scored(final_score, conclusion, evidence)
 
 
-class DashHistorical(Analyzer):
+class DashHistoricalAnalyzer(Analyzer):
     """
     历史回溯分析器
     
@@ -300,12 +300,12 @@ class DashHistorical(Analyzer):
         return ["grafana.dashboard.list"]
 
     def analyze(self, store) -> ScoreResult:
-        raw_logstores = store.get("sls.logstore.list")
+        raw_logstores: list[SlsLogstoreRecord] = store.get("sls.logstore.list")
         if not raw_logstores:
             return self._not_scored("未获取到日志存储配置", [])
 
         logstores: list[SlsLogstoreRecord] = [ls for ls in raw_logstores if
-                                              hasattr(ls, 'ttl') and isinstance(ls.ttl, (int, float))]
+                                              ls.ttl and isinstance(ls.ttl, (int, float))]
 
         if not logstores:
             return self._not_scored("有效的日志存储配置为空", [])
@@ -378,7 +378,7 @@ class DashHistorical(Analyzer):
         return self._scored(final_score, conclusion, evidence)
 
 
-class DashRoleBased(Analyzer):
+class DashRoleBasedAnalyzer(Analyzer):
     """
     角色视图分析器
     
@@ -497,7 +497,7 @@ class DashRoleBased(Analyzer):
         return self._scored(final_score, conclusion, evidence)
 
 
-class DashActionable(Analyzer):
+class DashActionableAnalyzer(Analyzer):
     """
     可行动性分析器
     
@@ -606,11 +606,10 @@ class DashActionable(Analyzer):
         return self._scored(final_score, conclusion, evidence)
 
 
-# 导出所有分析器
 VISUALIZATION_ANALYZERS = [
-    DashDiversity(),
-    DashRealtime(),
-    DashHistorical(),
-    DashRoleBased(),
-    DashActionable(),
+    DashDiversityAnalyzer(),
+    DashRealtimeAnalyzer(),
+    DashHistoricalAnalyzer(),
+    DashRoleBasedAnalyzer(),
+    DashActionableAnalyzer(),
 ]

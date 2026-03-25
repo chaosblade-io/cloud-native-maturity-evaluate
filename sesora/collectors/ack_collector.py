@@ -45,9 +45,8 @@ class ACKCollector:
     def _create_client(self) -> CSClient:
         creds = self.context.aliyun_credentials
         config = open_api_models.Config(
-            access_key_id=creds.access_key_id,
-            access_key_secret=creds.access_key_secret,
-            endpoint=f"cs.{creds.region}.aliyuncs.com",
+            credential=creds,
+            endpoint=f"cs.{self.context.region}.aliyuncs.com",
             protocol="https",
         )
         return CSClient(config)
@@ -107,6 +106,8 @@ class ACKCollector:
                 ),
             )
             body = response.body
+            if response.status_code != 200:
+                raise Exception(f"获取 ACK 集群列表失败: {response.status_code}")
 
             for cluster in body.clusters:
                 cluster_ids.append(cluster.cluster_id)
@@ -126,6 +127,9 @@ class ACKCollector:
                 temporary_duration_minutes=60,
             ),
         )
+        if response.status_code != 200:
+            print(f"  获取集群 {cluster_id} kubeconfig 失败: {response.status_code}")
+            return None
         body = response.body
         return body.config
 
