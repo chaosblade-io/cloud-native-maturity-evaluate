@@ -7,9 +7,9 @@ Elasticity 维度 - 负载分发能力 (Load Distribution) 分析器
 | lb_algorithms     | 2-6    | 仅轮询:2分, +加权/最少连接:+2分, +一致性哈希/内容路由:+2分     |
 | traffic_mgmt      | 0-12   | 流量治理策略覆盖度，每项约2分（流量分流/金丝雀/蓝绿/熔断等）   |
 """
-from ...core.analyzer import Analyzer, ScoreResult
-from ...schema.k8s import K8sIngressRecord, K8sServiceRecord, IstioVirtualServiceRecord, IstioDestinationRuleRecord
-from ...schema.rds_oss import AlbListenerRecord, GtmAddressPoolRecord
+from sesora.core.analyzer import Analyzer, ScoreResult
+from sesora.schema.k8s import K8sIngressRecord, K8sServiceRecord, IstioVirtualServiceRecord, IstioDestinationRuleRecord
+from sesora.schema.rds_oss import AlbListenerRecord, GtmAddressPoolRecord
 
 
 class LbCapabilityAnalyzer(Analyzer):

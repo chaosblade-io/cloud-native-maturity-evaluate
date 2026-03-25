@@ -10,10 +10,10 @@ Service Architecture 维度 - API 设计与治理分析器
 | api_versioning_strategy   | 6    | 版本控制策略：明确的 API 版本管理，支持多版本共存          |
 | api_contract_testing      | 5    | 契约测试：CI/CD 中实施消费者驱动契约测试                   |
 """
-from ...core.analyzer import Analyzer, ScoreResult
-from ...schema import CodeupPipelineStageRecord, CodeupRepoFileTreeRecord
-from ...schema.k8s import K8sIngressRecord, IstioGatewayRecord, K8sNetworkPolicyRecord, K8sServiceRecord
-from ...schema.apm import ApmServiceRecord
+from sesora.core.analyzer import Analyzer, ScoreResult
+from sesora.schema import CodeupPipelineStageRecord, CodeupRepoFileTreeRecord
+from sesora.schema.k8s import K8sIngressRecord, IstioGatewayRecord, K8sNetworkPolicyRecord, K8sServiceRecord
+from sesora.schema.apm import ApmServiceRecord
 import re
 
 

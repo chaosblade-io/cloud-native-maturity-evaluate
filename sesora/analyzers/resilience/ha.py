@@ -8,9 +8,9 @@ Resilience 维度 - 高可用性 (High Availability) 分析器
 | ha_load_balancing         | 5    | 负载均衡：入口流量和内部服务间调用均通过负载均衡器分发         |
 | ha_global_dist            | 5    | 全球/多活分布：(高阶项) 跨地域的流量调度或异地多活架构         |
 """
-from ...core.analyzer import Analyzer, ScoreResult
-from ...schema.k8s import K8sDeploymentRecord, K8sStatefulSetRecord, K8sNodeRecord, K8sIngressRecord, K8sServiceRecord
-from ...schema.rds_oss import GtmAddressPoolRecord
+from sesora.core.analyzer import Analyzer, ScoreResult
+from sesora.schema.k8s import K8sDeploymentRecord, K8sStatefulSetRecord, K8sNodeRecord, K8sIngressRecord, K8sServiceRecord
+from sesora.schema.rds_oss import GtmAddressPoolRecord
 
 
 class HaRedundancyAnalyzer(Analyzer):

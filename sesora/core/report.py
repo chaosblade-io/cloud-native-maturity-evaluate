@@ -10,8 +10,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional
 
-from .analyzer import ScoreResult, ScoreState
-from .context import AssessmentContext
+from sesora.core.analyzer import ScoreResult
+from sesora.core.context import AssessmentContext
 
 
 @dataclass

@@ -8,8 +8,8 @@ Elasticity 维度 - 水平扩展能力 (Horizontal Scaling) 分析器
 | hs_triggers_richness       | 0-8    | 仅CPU/内存:2分, +QPS/网络:+3分, +业务指标:+3分               |
 | hs_policy_intelligence     | 0-8   | 固定阈值:2分, +预测性缩放:+6分               |
 """
-from ...core.analyzer import Analyzer, ScoreResult
-from ...schema.k8s import K8sDeploymentRecord, K8sHpaRecord, K8sEventRecord, K8sAhpaMetricsRecord
+from sesora.core.analyzer import Analyzer, ScoreResult
+from sesora.schema.k8s import K8sDeploymentRecord, K8sHpaRecord, K8sEventRecord, K8sAhpaMetricsRecord
 from datetime import datetime, timedelta, timezone
 
 

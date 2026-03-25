@@ -11,11 +11,11 @@ Observability 维度 - 监控能力 (Monitoring) 分析器
 | mon_tool_integration     | 5    | 工具链集成：指标、告警、可视化是否无缝集成                     |
 | mon_coverage_gap         | 8    | 核心服务拓扑覆盖率(4分) + 黄金信号完整性(4分)                  |
 """
-from ...core.analyzer import Analyzer, ScoreResult
-from ...schema import SlsLogstoreRecord
-from ...schema.sls import SlsIndexConfigRecord
-from ...schema.cms import CmsAlarmRuleRecord, CmsContactRecord
-from ...schema.apm import ApmServiceRecord, ApmCoverageAnalysisRecord
+from sesora.core.analyzer import Analyzer, ScoreResult
+from sesora.schema import SlsLogstoreRecord
+from sesora.schema.sls import SlsIndexConfigRecord
+from sesora.schema.cms import CmsAlarmRuleRecord, CmsContactRecord
+from sesora.schema.apm import ApmServiceRecord, ApmCoverageAnalysisRecord
 
 
 class MonMetricsDepthAnalyzer(Analyzer):

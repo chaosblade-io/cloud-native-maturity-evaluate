@@ -9,12 +9,12 @@ Observability 维度 - 日志管理能力 (Logging) 分析器
 | log_retention_policy     | 4    | 保留策略：分层存储策略 (热/温/冷数据) 及自动过期机制           |
 | log_context              | 4    | 上下文关联：日志能通过 TraceID 与 Tracing 系统关联             |
 """
-from ...core.analyzer import Analyzer, ScoreResult
-from ...schema.sls import (
+from sesora.core.analyzer import Analyzer, ScoreResult
+from sesora.schema.sls import (
     SlsLogstoreRecord, SlsIndexConfigRecord,
     SlsLogStructureAnalysisRecord, SlsArchiveConfigRecord
 )
-from ...schema.apm import ApmServiceRecord
+from sesora.schema.apm import ApmServiceRecord
 
 
 class LogCentralizedAnalyzer(Analyzer):

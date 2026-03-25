@@ -10,9 +10,9 @@ Service Architecture 维度 - 数据管理与解耦分析器
 | data_migration_strategy    | 5    | 在线数据迁移：不停机情况下进行数据库变更的能力               |
 | data_ownership_clear       | 5    | 数据所有权明确：每个数据表有唯一写入者，其他服务通过 API 访问|
 """
-from ...core.analyzer import Analyzer, ScoreResult
-from ...schema.apm import ApmServiceDbMappingRecord, ApmExternalDatabaseRecord
-from ...schema.manual import ManualDataConsistencyRecord, ManualDataMigrationRecord, ManualDataOwnershipRecord
+from sesora.core.analyzer import Analyzer, ScoreResult
+from sesora.schema.apm import ApmServiceDbMappingRecord, ApmExternalDatabaseRecord
+from sesora.schema.manual import ManualDataConsistencyRecord, ManualDataMigrationRecord, ManualDataOwnershipRecord
 
 
 class DataArchitecturePatternAnalyzer(Analyzer):

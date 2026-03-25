@@ -11,9 +11,9 @@ Automation 维度 - GitOps 实践分析器
 """
 import os
 
-from ...core.analyzer import Analyzer, ScoreResult
-from ...schema.k8s import ArgoAppRecord, K8sDeploymentRecord
-from ...schema.codeup import (
+from sesora.core.analyzer import Analyzer, ScoreResult
+from sesora.schema.k8s import ArgoAppRecord, K8sDeploymentRecord
+from sesora.schema.codeup import (
     CodeupRepoFileTreeRecord, CodeupCommitRecord,
     CodeupBranchRecord
 )

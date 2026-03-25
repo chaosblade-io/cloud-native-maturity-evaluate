@@ -8,12 +8,12 @@ Observability 维度 - 分布式追踪能力 (Tracing) 分析器
 | trace_visualization     | 5    | 拓扑与瀑布图：可视化调用链瀑布图和依赖拓扑图，支持钻取        |
 | trace_coverage          | 0-3  | 接入覆盖率：全面(3)/核心(2)/试点(1)                            |
 """
-from ...core.analyzer import Analyzer, ScoreResult
-from ...schema.apm import (
+from sesora.core.analyzer import Analyzer, ScoreResult
+from sesora.schema.apm import (
     ApmServiceRecord, ApmTraceRecord, ApmServiceDependencyRecord,
     ApmSamplingConfigRecord
 )
-from ...schema.k8s import K8sDeploymentRecord
+from sesora.schema.k8s import K8sDeploymentRecord
 
 
 class TracePropagationAnalyzer(Analyzer):

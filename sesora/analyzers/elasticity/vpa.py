@@ -7,8 +7,8 @@ Elasticity 维度 - 垂直扩展能力 (Vertical Scaling) 分析器
 | vs_auto_scaling     | 5    | VPA 运行在 Auto 模式，配置了 MaxUnavailable 确保业务不中断         |
 | vs_resource_opt     | 5    | 具备资源推荐机制，能识别资源浪费或瓶颈并给出建议                   |
 """
-from ...core.analyzer import Analyzer, ScoreResult
-from ...schema.k8s import K8sVpaRecord
+from sesora.core.analyzer import Analyzer, ScoreResult
+from sesora.schema.k8s import K8sVpaRecord
 
 
 class VsImplementedAnalyzer(Analyzer):

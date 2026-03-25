@@ -9,12 +9,12 @@ Serverless 维度 - 事件驱动架构 (EDA) 分析器
 | eda_decoupling          | 5     | 解耦程度：生产者完全不知道消费者的存在                         |
 | eda_error_handling      | 5     | 死信与重试：自动重试机制和死信队列                             |
 """
-from ...core.analyzer import Analyzer, ScoreResult
-from ...schema.eventbridge import (
+from sesora.core.analyzer import Analyzer, ScoreResult
+from sesora.schema.eventbridge import (
     EbEventBusRecord, EbEventRuleRecord, EbEventTargetRecord,
     EbEventSourceRecord, EbSchemaRecord
 )
-from ...schema.apm import ApmServiceDependencyRecord
+from sesora.schema.apm import ApmServiceDependencyRecord
 
 
 class EdaEventSourcesAnalyzer(Analyzer):

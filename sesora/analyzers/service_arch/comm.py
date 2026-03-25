@@ -11,11 +11,11 @@ Service Architecture 维度 - 服务通信与韧性分析器
 | comm_retry_safety        | 5    | 安全重试机制：指数退避+抖动，仅幂等操作触发                |
 | comm_service_mesh        | 3    | 服务网格(可选高阶)：引入 Service Mesh 下沉通信逻辑         |
 """
-from ...core.analyzer import Analyzer, ScoreResult
-from ...schema import IstioGatewayRecord
-from ...schema.k8s import K8sServiceRecord, IstioVirtualServiceRecord, IstioDestinationRuleRecord, K8sIngressRecord
-from ...schema.apm import ApmTopologyMetricsRecord, ApmExternalMessageRecord
-from ...schema.codeup import CodeupRepoFileTreeRecord
+from sesora.core.analyzer import Analyzer, ScoreResult
+from sesora.schema import IstioGatewayRecord
+from sesora.schema.k8s import K8sServiceRecord, IstioVirtualServiceRecord, IstioDestinationRuleRecord, K8sIngressRecord
+from sesora.schema.apm import ApmTopologyMetricsRecord, ApmExternalMessageRecord
+from sesora.schema.codeup import CodeupRepoFileTreeRecord
 import re
 
 

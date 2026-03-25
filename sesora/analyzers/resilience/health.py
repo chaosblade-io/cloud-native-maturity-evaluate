@@ -9,10 +9,10 @@ Resilience 维度 - 健康管理 (Health Management) 分析器
 | hm_proactive_monitoring     | 8    | 主动监控：基于趋势预测提前告警，而非仅在故障发生后告警         |
 """
 
-from ...core.analyzer import Analyzer, ScoreResult
-from ...schema.k8s import K8sPodProbesRecord, K8sEventRecord
-from ...schema.chaos import ChaosExperimentRecord, ChaosExperimentRunRecord
-from ...schema.cms import CmsAlarmRuleRecord, CmsAlarmSloRecord
+from sesora.core.analyzer import Analyzer, ScoreResult
+from sesora.schema.k8s import K8sPodProbesRecord, K8sEventRecord
+from sesora.schema.chaos import ChaosExperimentRecord, ChaosExperimentRunRecord
+from sesora.schema.cms import CmsAlarmRuleRecord, CmsAlarmSloRecord
 from datetime import datetime, timezone, timedelta
 
 

@@ -8,11 +8,11 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional
 
-from .core.context import AssessmentContext
-from .core.analyzer import AnalyzerRegistry, ScoreResult
-from .core.report import AssessmentReport
-from .store.sqlite_store import SQLiteDataStore
-from .analyzers import create_default_registry, get_analyzer_metadata
+from sesora.core.context import AssessmentContext
+from sesora.core.analyzer import AnalyzerRegistry
+from sesora.core.report import AssessmentReport
+from sesora.store.sqlite_store import SQLiteDataStore
+from sesora.analyzers import create_default_registry, get_analyzer_metadata
 
 
 @dataclass

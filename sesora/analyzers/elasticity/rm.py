@@ -8,8 +8,8 @@ Elasticity 维度 - 资源管理能力 (Resource Management) 分析器
 | rm_reservation       | 6    | 关键业务拥有 Guaranteed QoS 等级或专属节点池/预留实例保障        |
 | rm_dynamic_alloc     | 7    | 支持混合部署（在线/离线混部）或基于潮汐效应的动态资源超卖/回收   |
 """
-from ...core.analyzer import Analyzer, ScoreResult
-from ...schema.k8s import K8sNamespaceRecord, K8sNodeRecord, K8sResourceQuotaRecord, K8sPodRecord, \
+from sesora.core.analyzer import Analyzer, ScoreResult
+from sesora.schema.k8s import K8sNamespaceRecord, K8sNodeRecord, K8sResourceQuotaRecord, K8sPodRecord, \
     K8sNetworkPolicyRecord
 
 

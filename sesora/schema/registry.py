@@ -6,8 +6,8 @@ DataItem 名称 → Record 类型的映射
 """
 from typing import Optional
 
-from . import RosStackRecord, RosStackDriftRecord
-from .k8s import (
+from sesora.schema import RosStackRecord, RosStackDriftRecord
+from sesora.schema.k8s import (
     K8sDeploymentRecord,
     K8sStatefulSetRecord,
     K8sPodRecord,
@@ -33,7 +33,7 @@ from .k8s import (
     ArgoCdApplicationRecord,
     FluxKustomizationRecord,
 )
-from .apm import (
+from sesora.schema.apm import (
     ApmServiceRecord,
     ApmServiceDependencyRecord,
     ApmTopologyMetricsRecord,
@@ -43,7 +43,7 @@ from .apm import (
     ApmServiceDbMappingRecord,
     ApmCoverageAnalysisRecord, ApmTraceRecord,
 )
-from .cms import (
+from sesora.schema.cms import (
     CmsAlarmRuleRecord,
     CmsContactRecord,
     CmsContactGroupRecord,
@@ -52,7 +52,7 @@ from .cms import (
     CmsAlarmHistoryRecord,
     CmsEventTriggerRecord,
 )
-from .sls import (
+from sesora.schema.sls import (
     SlsLogstoreRecord,
     SlsLogSampleRecord,
     SlsLogStructureAnalysisRecord,
@@ -60,9 +60,7 @@ from .sls import (
     SlsQueryCapabilityRecord,
     SlsArchiveConfigRecord,
 )
-from .codeup import (
-    CodeupPipelineRecord,
-    CodeupRepoRecord,
+from sesora.schema.codeup import (
     CodeupPipelineRunRecord,
     CodeupRepoFileTreeRecord,
     CodeupCommitRecord,
@@ -72,7 +70,7 @@ from .codeup import (
     CodeupBranchRecord,
     CodeupFileCommitRecord, CodeupPipelineRecord, CodeupPipelineMetricsRecord, CodeupRepoRecord,
 )
-from .fc import (
+from sesora.schema.fc import (
     FcFunctionRecord,
     FcAliasRecord,
     FcVersionRecord,
@@ -82,7 +80,7 @@ from .fc import (
     FcUsageSummaryRecord,
     FcFunctionStatisticsRecord,
 )
-from .eventbridge import (
+from sesora.schema.eventbridge import (
     EventBridgeEventSourceRecord,
     EventBridgeEventBusRecord,
     EventBridgeSchemaRecord,
@@ -90,7 +88,7 @@ from .eventbridge import (
     EbEventTargetRecord,
     RocketMqTopicRecord,
 )
-from .rds_oss import (
+from sesora.schema.rds_oss import (
     RdsInstanceRecord,
     RdsBackupPolicyRecord,
     RdsProxyRecord,
@@ -99,18 +97,18 @@ from .rds_oss import (
     AlbListenerRecord,
     GtmAddressPoolRecord,
 )
-from .acr import (
+from sesora.schema.acr import (
     AcrRepositoryRecord,
     AcrImageRecord,
     AcrScanResultRecord,
 )
-from .chaos import (
+from sesora.schema.chaos import (
     ChaosExperimentRecord,
     ChaosExperimentRunRecord,
     ChaosScheduleRecord,
     ChaosWorkflowRecord,
 )
-from .policy import (
+from sesora.schema.policy import (
     KyvernoPolicyRecord,
     KyvernoPolicyViolationRecord,
     OpaConstraintTemplateRecord,
@@ -118,7 +116,7 @@ from .policy import (
     OpaViolationRecord,
     PolicyEnforcementSummaryRecord,
 )
-from .grafana import (
+from sesora.schema.grafana import (
     GrafanaDashboardRecord,
     GrafanaFolderRecord,
     GrafanaPanelRecord,
@@ -126,7 +124,7 @@ from .grafana import (
     GrafanaDashboardAnalysisRecord,
     MetricIntervalRecord,
 )
-from .manual import (
+from sesora.schema.manual import (
     ManualQuestionnaireRecord,
     ManualFallbackConfigRecord,
     ManualBulkheadConfigRecord,
@@ -139,13 +137,13 @@ from .manual import (
     ManualConfigManagementRecord,
     ManualConsistencyModelRecord,
 )
-from .cloud_storage import (
+from sesora.schema.cloud_storage import (
     CloudStorageProductRecord,
     CloudStorageSummaryRecord,
     RdsInstanceModeRecord,
     TairInstanceModeRecord,
 )
-from .ecs import (
+from sesora.schema.ecs import (
     EcsInstanceRecord,
     EcsSecurityGroupRecord,
     EcsSecurityGroupRuleRecord,

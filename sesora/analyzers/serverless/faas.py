@@ -10,8 +10,8 @@ Serverless 维度 - 函数即服务 (FaaS) 分析器
 | faas_observability         | 5     | 函数可观测性：独立的日志、指标和追踪，关联到调用链             |
 | faas_governance            | 5     | 治理与版本：版本控制、别名管理及灰度发布策略                   |
 """
-from ...core.analyzer import Analyzer, ScoreResult
-from ...schema.fc import (
+from sesora.core.analyzer import Analyzer, ScoreResult
+from sesora.schema.fc import (
     FcFunctionRecord, FcVersionRecord, FcAliasRecord,
     FcColdStartMetricRecord, FcFunctionStatisticsRecord
 )

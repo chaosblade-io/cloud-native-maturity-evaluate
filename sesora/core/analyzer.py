@@ -13,7 +13,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
-    from ..store.sqlite_store import DataStore
+    from sesora.store.sqlite_store import DataStore
 
 
 class ScoreState(Enum):

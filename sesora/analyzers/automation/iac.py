@@ -9,13 +9,13 @@ Automation 维度 - 基础设施即代码 (IaC) 分析器
 | policy_as_code           | 5    | 基础设施合规性策略代码化 (如 OPA/Sentinel)    |
 | drift_detection          | 5    | 能自动检测并告警实际环境与代码定义的偏差      |
 """
-from ...core.analyzer import Analyzer, ScoreResult
-from ...schema.codeup import CodeupRepoFileTreeRecord
-from ...schema.ros import RosStackRecord, RosStackDriftRecord
-from ...schema.ecs import EcsInstanceRecord
-from ...schema.rds_oss import RdsInstanceRecord, OssBucketRecord
-from ...schema.k8s import K8sGatekeeperConstraintRecord, K8sKyvernoPolicyRecord
-from ...schema.cms import CmsAlarmHistoryRecord
+from sesora.core.analyzer import Analyzer, ScoreResult
+from sesora.schema.codeup import CodeupRepoFileTreeRecord
+from sesora.schema.ros import RosStackRecord, RosStackDriftRecord
+from sesora.schema.ecs import EcsInstanceRecord
+from sesora.schema.rds_oss import RdsInstanceRecord, OssBucketRecord
+from sesora.schema.k8s import K8sGatekeeperConstraintRecord, K8sKyvernoPolicyRecord
+from sesora.schema.cms import CmsAlarmHistoryRecord
 import datetime
 
 

@@ -9,10 +9,10 @@ Serverless 维度 - 无服务器数据 (Serverless Data) 分析器
 | sd_connection_pooling     | 5    | 连接池优化：RDS Proxy、Data API 或连接池中间件                 |
 | sd_consistency_model      | 5    | 一致性模型适配：正确适配最终一致性或使用强一致性读取           |
 """
-from ...core.analyzer import Analyzer, ScoreResult
-from ...schema.rds_oss import RdsInstanceRecord, OssBucketRecord, OssBucketLifecycleRecord, RdsProxyRecord
-from ...schema.cloud_storage import CloudStorageProductRecord, RdsInstanceModeRecord, TairInstanceModeRecord
-from ...schema.manual import ManualConsistencyModelRecord
+from sesora.core.analyzer import Analyzer, ScoreResult
+from sesora.schema.rds_oss import RdsInstanceRecord, OssBucketRecord, OssBucketLifecycleRecord, RdsProxyRecord
+from sesora.schema.cloud_storage import CloudStorageProductRecord, RdsInstanceModeRecord, TairInstanceModeRecord
+from sesora.schema.manual import ManualConsistencyModelRecord
 
 
 class SdStorageTypesAnalyzer(Analyzer):

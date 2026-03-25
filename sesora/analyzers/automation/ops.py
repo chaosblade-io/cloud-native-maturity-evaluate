@@ -11,12 +11,12 @@ Automation 维度 - 运维自动化 (Operations Automation) 分析器
 """
 from datetime import datetime, timedelta, timezone
 
-from ...core.analyzer import Analyzer, ScoreResult
-from ...schema.cms import CmsAlarmRuleRecord, CmsEventTriggerRecord
-from ...schema.k8s import K8sHpaRecord, K8sVpaRecord, K8sCronJobRecord
-from ...schema.rds_oss import RdsBackupPolicyRecord
-from ...schema.acr import AcrImageScanResultRecord
-from ...schema.codeup import CodeupPipelineStageRecord
+from sesora.core.analyzer import Analyzer, ScoreResult
+from sesora.schema.cms import CmsAlarmRuleRecord, CmsEventTriggerRecord
+from sesora.schema.k8s import K8sHpaRecord, K8sVpaRecord, K8sCronJobRecord
+from sesora.schema.rds_oss import RdsBackupPolicyRecord
+from sesora.schema.acr import AcrImageScanResultRecord
+from sesora.schema.codeup import CodeupPipelineStageRecord
 
 
 class IncidentManagementAnalyzer(Analyzer):

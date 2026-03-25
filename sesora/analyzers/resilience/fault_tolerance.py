@@ -9,9 +9,9 @@ Resilience 维度 - 容错能力 (Fault Tolerance) 分析器
 | ft_fallback             | 5    | 降级机制：非核心依赖失败时有预设的默认值、缓存数据或简化流程   |
 | ft_bulkhead             | 5    | 舱壁模式：对资源（线程池、连接池）进行隔离                     |
 """
-from ...core.analyzer import Analyzer, ScoreResult
-from ...schema.k8s import IstioDestinationRuleRecord, IstioVirtualServiceRecord
-from ...schema.manual import ManualFallbackConfigRecord, ManualBulkheadConfigRecord
+from sesora.core.analyzer import Analyzer, ScoreResult
+from sesora.schema.k8s import IstioDestinationRuleRecord, IstioVirtualServiceRecord
+from sesora.schema.manual import ManualFallbackConfigRecord, ManualBulkheadConfigRecord
 
 
 def _parse_timeout_to_seconds(timeout_str: str) -> float | None:

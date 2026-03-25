@@ -10,8 +10,8 @@ Automation 维度 - CI/CD 流水线自动化分析器
 | release_management    | 4    | 具备版本打标、发布审批流、回滚机制的管理能力    |
 | pipeline_as_code      | 4    | 流水线定义存储在代码库中，随代码版本管理        |
 """
-from ...core.analyzer import Analyzer, ScoreResult
-from ...schema.codeup import (
+from sesora.core.analyzer import Analyzer, ScoreResult
+from sesora.schema.codeup import (
     CodeupPipelineRunRecord,
     CodeupPipelineStageRecord, CodeupRepoFileTreeRecord,
     CodeupRepoTagRecord, CodeupFileCommitRecord

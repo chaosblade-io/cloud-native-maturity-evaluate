@@ -9,9 +9,9 @@ Observability 维度 - 可视化与洞察 (Visualization) 分析器
 | dash_role_based     | 4    | 角色视图：按 folder 或 tag 隔离视图，或有丰富 templating 变量  |
 | dash_actionable     | 3    | 可行动性：仪表盘直接关联下钻分析或告警触发入口                 |
 """
-from ...core.analyzer import Analyzer, ScoreResult
-from ...schema import SlsLogstoreRecord
-from ...schema.grafana import GrafanaDashboardRecord, GrafanaDashboardAnalysisRecord, GrafanaFolderRecord
+from sesora.core.analyzer import Analyzer, ScoreResult
+from sesora.schema import SlsLogstoreRecord
+from sesora.schema.grafana import GrafanaDashboardRecord, GrafanaDashboardAnalysisRecord, GrafanaFolderRecord
 
 
 class DashDiversityAnalyzer(Analyzer):

@@ -8,10 +8,10 @@ Resilience 维度 - 灾难恢复 (Disaster Recovery) 分析器
 | dr_rto_rpo_defined        | 5    | RTO/RPO 定义：为关键业务系统定义了明确的 RTO 和 RPO            |
 | dr_recovery_testing       | 9    | 恢复演练：过去 6 个月内进行过真实的灾难恢复演练                |
 """
-from ...core.analyzer import Analyzer, ScoreResult
-from ...schema.k8s import K8sCronJobRecord
-from ...schema.rds_oss import RdsBackupPolicyRecord, OssBucketLifecycleRecord
-from ...schema.manual import ManualDrPlanRecord, ManualRtoRpoRecord, ManualDrTestingRecord
+from sesora.core.analyzer import Analyzer, ScoreResult
+from sesora.schema.k8s import K8sCronJobRecord
+from sesora.schema.rds_oss import RdsBackupPolicyRecord, OssBucketLifecycleRecord
+from sesora.schema.manual import ManualDrPlanRecord, ManualRtoRpoRecord, ManualDrTestingRecord
 from datetime import datetime, timezone
 
 
