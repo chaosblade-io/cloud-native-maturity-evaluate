@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 分析器运行脚本
 
@@ -25,7 +24,6 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-# 添加项目根目录到路径
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 

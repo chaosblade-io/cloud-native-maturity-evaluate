@@ -13,8 +13,8 @@ from typing import Any, Union
 
 from dacite import from_dict, Config
 
-from ..core.dataitem import DataItem, DataSource
-from ..schema.registry import get_record_type
+from sesora.core.dataitem import DataItem, DataSource
+from sesora.schema.registry import get_record_type
 
 
 class DataStore(ABC):

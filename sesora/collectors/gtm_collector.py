@@ -1,8 +1,7 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import List
 
 from alibabacloud_alidns20150109.client import Client as AlidnsClient
-from alibabacloud_credentials.client import Client as CredentialClient
 from alibabacloud_tea_openapi import models as open_api_models
 from alibabacloud_alidns20150109 import models as alidns_models
 

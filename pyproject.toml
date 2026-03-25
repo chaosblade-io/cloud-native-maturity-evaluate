@@ -48,6 +48,7 @@ dependencies = [
     "aliyun-python-sdk-cms>=7.0.0",
     "alibabacloud-cms20190101>=2.0.0",
     "aliyun-python-sdk-arms>=2.0.0",
+    "alibabacloud_r_kvstore20150101>=6.2.2",
     "alibabacloud-arms20190808>=10.0.0",
     "alibabacloud-cr20181201>=1.0.0",
     "alibabacloud_fc20230330>=1.0.0",
@@ -57,6 +58,8 @@ dependencies = [
     "alibabacloud-ecs20140526>=7.6.0",
     "alibabacloud-devops20210625>=5.0.3",
     "alibabacloud-sls20201230>=5.12.1",
+    "alibabacloud_eventbridge20200401>=8.0.6",
+    "alibabacloud_alidns20150109>=4.3.1",
     # Kubernetes 客户端
     "kubernetes>=28.0.0",
     # HTTP 客户端

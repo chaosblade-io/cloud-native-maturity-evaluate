@@ -6,8 +6,8 @@ DataItem 名称 → Record 类型的映射
 """
 from typing import Optional
 
-from . import RosStackRecord, RosStackDriftRecord
-from .k8s import (
+from sesora.schema import RosStackRecord, RosStackDriftRecord
+from sesora.schema.k8s import (
     K8sDeploymentRecord,
     K8sStatefulSetRecord,
     K8sPodRecord,

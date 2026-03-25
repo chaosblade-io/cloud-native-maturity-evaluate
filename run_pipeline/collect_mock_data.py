@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Mock 数据采集器
 

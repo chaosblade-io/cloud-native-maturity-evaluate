@@ -17,7 +17,6 @@ from sesora.schema.apm import (
     ApmExternalDatabaseRecord,
     ApmServiceDbMappingRecord,
     ApmExternalMessageRecord,
-    ApmCoverageAnalysisRecord,
 )
 
 

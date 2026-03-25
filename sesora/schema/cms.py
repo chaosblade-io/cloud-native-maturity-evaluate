@@ -30,10 +30,10 @@ class CmsContactRecord:
     """CMS 联系人记录"""
     contact_name: str
     channels: list[str] = field(default_factory=list)  # SMS/Email/DingTalk
-    phone: str = ""
-    email: str = ""
+    phone: Optional[str] = None
+    email: Optional[str] = None
     dingtalk_webhook: str = ""
-    desc: str = ""
+    desc: Optional[str] = None
 
 
 @dataclass

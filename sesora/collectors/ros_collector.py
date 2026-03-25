@@ -1,7 +1,6 @@
 from datetime import datetime
 from typing import List
 
-from alibabacloud_ros20190910 import models as ros_models
 from alibabacloud_ros20190910.client import Client as RosClient
 from alibabacloud_tea_openapi import models as open_api_models
 

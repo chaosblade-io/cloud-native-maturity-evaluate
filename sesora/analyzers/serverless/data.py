@@ -11,7 +11,7 @@ Serverless 维度 - 无服务器数据 (Serverless Data) 分析器
 """
 from sesora.core.analyzer import Analyzer, ScoreResult
 from sesora.schema.rds_oss import RdsInstanceRecord, OssBucketRecord, OssBucketLifecycleRecord, RdsProxyRecord
-from sesora.schema.cloud_storage import CloudStorageProductRecord, RdsInstanceModeRecord, TairInstanceModeRecord
+from sesora.schema.rds_oss import TairInstanceModeRecord
 from sesora.schema.manual import ManualConsistencyModelRecord
 
 

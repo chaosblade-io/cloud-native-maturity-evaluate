@@ -4,7 +4,7 @@ FC (函数计算) 相关 DataItem Record 类型定义
 """
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Literal, Optional
+from typing import Optional
 
 
 @dataclass
