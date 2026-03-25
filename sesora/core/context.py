@@ -22,7 +22,6 @@ class AssessmentContext:
         aliyun_credentials: 阿里云凭证
         codeup_org_id: 云效组织 ID
         codeup_repo_ids: 云效仓库 ID 列表
-        fc_service_names: 函数计算服务名列表
         sls_region: SLS 所在地域
     """
     # 基础信息
@@ -88,12 +87,11 @@ class AssessmentContext:
     kubeconfig_paths: list[str] = field(default_factory=list)  # 多 kubeconfig 路径
     kubeconfig_context: str = ""
     
-    # ArgoCD
-    argocd_server: str = ""
-    argocd_token: str = ""
-    
     # ECS
     ecs_region: str = ""
+
+    # Tair/Redis
+    tair_instance_ids: list[str] = field(default_factory=list)
     
     def get_namespace_filter(self) -> list[str]:
         """获取命名空间过滤器，空列表表示不过滤"""

@@ -15,8 +15,8 @@ class FcFunctionRecord:
     handler: str
     memory_size: int = 512  # MB
     timeout: int = 60  # 秒
-    disk_size: int = 512  # MB
-    cpu: float = 0.5
+    disk_size: Optional[int] = None  # MB，部分函数可能不返回此字段
+    cpu: Optional[float] = None  # 部分函数可能不返回此字段
     gpu_memory_size: int = 0
     environment_variables: dict[str, str] = field(default_factory=dict)
     layers: list[str] = field(default_factory=list)

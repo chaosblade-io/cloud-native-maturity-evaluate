@@ -15,11 +15,15 @@ from sesora.collectors.arms_collector import ARMSCollector
 from sesora.collectors.cms_collector import CMSCollector
 from sesora.collectors.codeup_collector import CodeupCollector
 from sesora.collectors.ecs_collector import ECSCollector
+from sesora.collectors.eventbridge_collector import EventBridgeCollector
 from sesora.collectors.fc_collector import FCCollector
+from sesora.collectors.grafana_collector import GrafanaCollector
+from sesora.collectors.gtm_collector import GTMCollector
 from sesora.collectors.rds_collector import RDSCollector
 from sesora.collectors.oss_collector import OSSCollector
 from sesora.collectors.ros_collector import ROSCollector
 from sesora.collectors.sls_collector import SLSCollector
+from sesora.collectors.tair_collector import TairCollector
 
 PROJECT_ROOT = Path(__file__).parent.parent
 env_path = PROJECT_ROOT / ".env"
@@ -32,6 +36,7 @@ from sesora.core.context import AssessmentContext
 from sesora.core.dataitem import DataSource
 from sesora.store.sqlite_store import SQLiteDataStore
 from sesora.schema import CodeupFileCommitRecord
+
 
 def parse_env_list(env_value: str) -> list:
     """从环境变量解析列表（JSON格式）"""
@@ -56,7 +61,7 @@ def validate_config() -> dict:
         'region': os.getenv('ALIBABA_CLOUD_REGION', 'cn-hongkong'),
         'ak': os.getenv('ALIBABA_CLOUD_ACCESS_KEY_ID', ''),
         'sk': os.getenv('ALIBABA_CLOUD_ACCESS_KEY_SECRET', ''),
-        
+
         # 阿里云凭证
         'aliyun_credentials': {
             'access_key_id': os.getenv('ALIBABA_CLOUD_ACCESS_KEY_ID', ''),
@@ -65,68 +70,70 @@ def validate_config() -> dict:
             'security_token': os.getenv('ALIBABA_CLOUD_SECURITY_TOKEN', ''),
             'region': os.getenv('ALIBABA_CLOUD_REGION', 'cn-hongkong'),
         },
-        
+
         # ACK 配置
         'cluster_id': os.getenv('ACK_CLUSTER_ID', ''),
         'namespaces': parse_env_list(os.getenv('ACK_NAMESPACES', '')),
         'kubeconfig_path': os.getenv('KUBECONFIG_PATH', ''),
         'kubeconfig_paths': parse_env_list(os.getenv('KUBECONFIG_PATHS', '')),
         'kubeconfig_context': os.getenv('KUBECONFIG_CONTEXT', ''),
-        
+
         # ARMS 配置
         'arms_workspace_id': os.getenv('ARMS_WORKSPACE_ID', ''),
-        
+
         # ROS 配置
         'ros_stack_name': parse_env_list(os.getenv('ROS_STACK_NAME', '')),
         'ros_region': os.getenv('ROS_REGION', os.getenv('ALIBABA_CLOUD_REGION', 'cn-hongkong')),
-        
+
         # SLS 配置
         'sls_project': os.getenv('SLS_PROJECT', ''),
         'sls_logstores': parse_env_list(os.getenv('SLS_LOGSTORES', '')),
         'sls_region': os.getenv('SLS_REGION', os.getenv('ALIBABA_CLOUD_REGION', 'cn-hongkong')),
-        
+
         # Codeup 配置
         'yunxiao_token': os.getenv('YUNXIAO_TOKEN', ''),
         'codeup_org_id': os.getenv('CODEUP_ORG_ID', ''),
         'codeup_repo_ids': parse_env_list(os.getenv('CODEUP_REPO_IDS', '')),
         'codeup_pipeline_ids': parse_env_list(os.getenv('CODEUP_PIPELINE_IDS', '')),
         'codeup_project_name': os.getenv('CODEUP_PROJECT_NAME', ''),
-        
+
         # FC 配置
         'fc_function_names': parse_env_list(os.getenv('FC_FUNCTION_NAMES', '')),
-        
+
         # EventBridge 配置
         'eventbridge_bus_names': parse_env_list(os.getenv('EVENTBRIDGE_BUS_NAMES', '')),
-        
+
         # RDS 配置
         'rds_instance_ids': parse_env_list(os.getenv('RDS_INSTANCE_IDS', '')),
         'rds_region': os.getenv('RDS_REGION', os.getenv('ALIBABA_CLOUD_REGION', 'cn-hongkong')),
-        
+
         # OSS 配置
         'oss_bucket_names': parse_env_list(os.getenv('OSS_BUCKET_NAMES', '')),
         'oss_region': os.getenv('OSS_REGION', os.getenv('ALIBABA_CLOUD_REGION', 'cn-hongkong')),
-        
+
         # ACR 配置
         'acr_instance_ids': parse_env_list(os.getenv('ACR_INSTANCE_IDS', '')),
         'otel_only': os.getenv('ACR_OTEL_ONLY', 'true').lower() == 'true',
-        
+
         # ALB 配置
         'alb_load_balancer_ids': parse_env_list(os.getenv('ALB_LOAD_BALANCER_IDS', '')),
-        
+
         # GTM 配置
         'gtm_instance_id': os.getenv('GTM_INSTANCE_ID', ''),
-        
-        # Grafana 配置
-        'grafana_workspace_id': os.getenv('GRAFANA_WORKSPACE_ID', ''),
-        
-        # ArgoCD 配置
-        'argocd_server': os.getenv('ARGOCD_SERVER', ''),
-        'argocd_token': os.getenv('ARGOCD_TOKEN', ''),
-        
         # ECS 配置
         'ecs_region': os.getenv('ECS_REGION', os.getenv('ALIBABA_CLOUD_REGION', 'cn-hongkong')),
+
+        # Grafana 配置
+        'grafana_workspace_id': os.getenv('GRAFANA_WORKSPACE_ID', ''),
+        'grafana_url': os.getenv('GRAFANA_URL', ''),
+        'grafana_api_token': os.getenv('GRAFANA_API_TOKEN', ''),
+        'grafana_folder_ids': parse_env_list(os.getenv('GRAFANA_FOLDER_IDS', '')),
+        'grafana_tags': parse_env_list(os.getenv('GRAFANA_TAGS', '')),
+
+        # Tair/Redis 配置
+        'tair_instance_ids': parse_env_list(os.getenv('TAIR_INSTANCE_IDS', '')),
     }
-    
+
     return config
 
 
@@ -136,72 +143,75 @@ def create_context(config: dict) -> AssessmentContext:
     """
     # 创建阿里云凭证
     aliyun_credentials = CredentialClient()
-    
+
     return AssessmentContext(
         # 基础信息
         region=config['region'],
         cluster_id=config.get('cluster_id', ''),
         namespaces=config.get('namespaces', []),
-        
+
         # ARMS
         arms_workspace_id=config.get('arms_workspace_id', ''),
-        
+
         # ROS
         ros_stack_name=config.get('ros_stack_name') or None,
         ros_region=config.get('ros_region', ''),
-        
+
         # SLS
         sls_project=config.get('sls_project', ''),
         sls_logstores=config.get('sls_logstores', []),
         sls_region=config.get('sls_region', ''),
-        
+
         # Codeup
         codeup_org_id=config.get('codeup_org_id', ''),
         codeup_repo_ids=config.get('codeup_repo_ids', []),
         codeup_pipeline_ids=config.get('codeup_pipeline_ids', []),
         yunxiao_token=config.get('yunxiao_token', ''),
         codeup_project_name=config.get('codeup_project_name', ''),
-        
+
         # FC
         fc_function_names=config.get('fc_function_names', []),
-        
+
         # EventBridge
         eventbridge_bus_names=config.get('eventbridge_bus_names', []),
-        
+
         # RDS
         rds_instance_ids=config.get('rds_instance_ids', []),
         rds_region=config.get('rds_region', ''),
-        
+
         # OSS
         oss_bucket_names=config.get('oss_bucket_names', []),
         oss_region=config.get('oss_region', ''),
-        
+
         # ACR
         acr_instance_ids=config.get('acr_instance_ids', []),
         otel_only=config.get('otel_only', True),
-        
+
         # ALB
         alb_load_balancer_ids=config.get('alb_load_balancer_ids', []),
-        
+
         # GTM
         gtm_instance_id=config.get('gtm_instance_id', ''),
-        
+
         # Grafana
         grafana_workspace_id=config.get('grafana_workspace_id', ''),
-        
+        grafana_url=config.get('grafana_url', ''),
+        grafana_api_token=config.get('grafana_api_token', ''),
+        grafana_folder_ids=config.get('grafana_folder_ids', []),
+        grafana_tags=config.get('grafana_tags', []),
+
         # 凭证
         aliyun_credentials=aliyun_credentials,
-        
+
         # K8s 配置
         kubeconfig_paths=config.get('kubeconfig_paths', []),
         kubeconfig_context=config.get('kubeconfig_context', ''),
-        
-        # ArgoCD
-        argocd_server=config.get('argocd_server', ''),
-        argocd_token=config.get('argocd_token', ''),
-        
+
         # ECS
         ecs_region=config.get('ecs_region', ''),
+
+        # Tair/Redis
+        tair_instance_ids=config.get('tair_instance_ids', []),
     )
 
 
@@ -215,7 +225,7 @@ def save_to_database(data_source: DataSource, db_path: Path, source_type: str) -
         source_type: 数据源类型 ('codeup' 或 'fc')
     """
     type_mapping = {}
-    
+
     if source_type == 'codeup':
         from sesora.schema.codeup import (
             CodeupPipelineRecord,
@@ -406,19 +416,53 @@ def save_to_database(data_source: DataSource, db_path: Path, source_type: str) -
             EcsSecurityGroupRecord: "ecs.security_group.list",
             EcsSecurityGroupRuleRecord: "ecs.security_group_rule.list",
         }
-    
+    elif source_type == 'eventbridge':
+        from sesora.schema.eventbridge import (
+            EventBridgeEventSourceRecord,
+            EventBridgeEventBusRecord,
+            EbEventRuleRecord,
+            EbEventTargetRecord,
+        )
+        type_mapping = {
+            EventBridgeEventSourceRecord: "eventbridge.event_source.list",
+            EventBridgeEventBusRecord: "eventbridge.event_bus.list",
+            EbEventRuleRecord: "eventbridge.rule.list",
+            EbEventTargetRecord: "eventbridge.target.list",
+        }
+    elif source_type == 'grafana':
+        from sesora.schema.grafana import (
+            GrafanaDashboardRecord,
+            GrafanaFolderRecord,
+            GrafanaDashboardAnalysisRecord,
+        )
+        type_mapping = {
+            GrafanaDashboardRecord: "grafana.dashboard.list",
+            GrafanaFolderRecord: "grafana.folder.list",
+            GrafanaDashboardAnalysisRecord: "grafana.dashboard.analysis",
+        }
+    elif source_type == 'gtm':
+        from sesora.schema.rds_oss import GtmAddressPoolRecord
+        type_mapping = {
+            GtmAddressPoolRecord: "gtm.address_pool.list",
+        }
+    elif source_type == 'tair':
+        from sesora.schema.rds_oss import TairInstanceModeRecord
+        type_mapping = {
+            TairInstanceModeRecord: "tair.instance.list",
+        }
+
     grouped_records: dict[str, list] = {name: [] for name in type_mapping.values()}
-    
+
     for record in data_source.records:
         for record_type, item_name in type_mapping.items():
             if isinstance(record, record_type):
                 grouped_records[item_name].append(record)
                 break
-    
+
     # 保存到数据库
     with SQLiteDataStore(db_path) as store:
         saved_count = 0
-        
+
         for item_name, records in grouped_records.items():
             if records:
                 source = DataSource(
@@ -430,7 +474,7 @@ def save_to_database(data_source: DataSource, db_path: Path, source_type: str) -
                 store.put(item_name, source)
                 saved_count += len(records)
                 print(f"  保存 {item_name}: {len(records)} 条记录")
-        
+
         print(f"  {source_type} 总计保存 {saved_count} 条记录")
 
 
@@ -447,17 +491,17 @@ def collect_codeup(context: AssessmentContext, db_path: Path) -> bool:
     print("开始采集 Codeup 数据...")
     print("=" * 60)
 
-    collector=CodeupCollector(context)
-    
+    collector = CodeupCollector(context)
+
     start_time = datetime.now()
     data_source = collector.collect()
     elapsed = (datetime.now() - start_time).total_seconds()
-    
+
     print(f"\n采集完成! 耗时: {elapsed:.1f} 秒")
     print(f"状态: {data_source.status}")
-    
+
     print_summary(data_source, 'codeup')
-    
+
     if data_source.status == "ok" and data_source.records:
         save_to_database(data_source, db_path, 'codeup')
         return True
@@ -471,18 +515,18 @@ def collect_fc(context: AssessmentContext, db_path: Path) -> bool:
     print("\n" + "=" * 60)
     print("开始采集 FC 数据...")
     print("=" * 60)
-    
+
     collector = FCCollector(context)
-    
+
     start_time = datetime.now()
     data_source = collector.collect()
     elapsed = (datetime.now() - start_time).total_seconds()
-    
+
     print(f"\n采集完成! 耗时: {elapsed:.1f} 秒")
     print(f"状态: {data_source.status}")
-    
+
     print_summary(data_source, 'fc')
-    
+
     if data_source.status == "ok" and data_source.records:
         save_to_database(data_source, db_path, 'fc')
         return True
@@ -496,18 +540,18 @@ def collect_ack(context: AssessmentContext, db_path: Path) -> bool:
     print("\n" + "=" * 60)
     print("开始采集 ACK 数据...")
     print("=" * 60)
-    
+
     collector = ACKCollector(context)
-    
+
     start_time = datetime.now()
     data_source = collector.collect()
     elapsed = (datetime.now() - start_time).total_seconds()
-    
+
     print(f"\n采集完成! 耗时: {elapsed:.1f} 秒")
     print(f"状态: {data_source.status}")
-    
+
     print_summary(data_source, 'ack')
-    
+
     if data_source.status == "ok" and data_source.records:
         save_to_database(data_source, db_path, 'ack')
         return True
@@ -521,18 +565,18 @@ def collect_sls(context: AssessmentContext, db_path: Path) -> bool:
     print("\n" + "=" * 60)
     print("开始采集 SLS 数据...")
     print("=" * 60)
-    
+
     collector = SLSCollector(context)
-    
+
     start_time = datetime.now()
     data_source = collector.collect()
     elapsed = (datetime.now() - start_time).total_seconds()
-    
+
     print(f"\n采集完成! 耗时: {elapsed:.1f} 秒")
     print(f"状态: {data_source.status}")
-    
+
     print_summary(data_source, 'sls')
-    
+
     if data_source.status == "ok" and data_source.records:
         save_to_database(data_source, db_path, 'sls')
         return True
@@ -546,18 +590,18 @@ def collect_rds(context: AssessmentContext, db_path: Path) -> bool:
     print("\n" + "=" * 60)
     print("开始采集 RDS 数据...")
     print("=" * 60)
-    
+
     collector = RDSCollector(context)
-    
+
     start_time = datetime.now()
     data_source = collector.collect()
     elapsed = (datetime.now() - start_time).total_seconds()
-    
+
     print(f"\n采集完成! 耗时: {elapsed:.1f} 秒")
     print(f"状态: {data_source.status}")
-    
+
     print_summary(data_source, 'rds')
-    
+
     if data_source.status == "ok" and data_source.records:
         save_to_database(data_source, db_path, 'rds')
         return True
@@ -571,18 +615,18 @@ def collect_cms(context: AssessmentContext, db_path: Path) -> bool:
     print("\n" + "=" * 60)
     print("开始采集 CMS 数据...")
     print("=" * 60)
-    
+
     collector = CMSCollector(context)
-    
+
     start_time = datetime.now()
     data_source = collector.collect()
     elapsed = (datetime.now() - start_time).total_seconds()
-    
+
     print(f"\n采集完成! 耗时: {elapsed:.1f} 秒")
     print(f"状态: {data_source.status}")
-    
+
     print_summary(data_source, 'cms')
-    
+
     if data_source.status == "ok" and data_source.records:
         save_to_database(data_source, db_path, 'cms')
         return True
@@ -596,18 +640,18 @@ def collect_ros(context: AssessmentContext, db_path: Path) -> bool:
     print("\n" + "=" * 60)
     print("开始采集 ROS 数据...")
     print("=" * 60)
-    
+
     collector = ROSCollector(context)
-    
+
     start_time = datetime.now()
     data_source = collector.collect()
     elapsed = (datetime.now() - start_time).total_seconds()
-    
+
     print(f"\n采集完成! 耗时: {elapsed:.1f} 秒")
     print(f"状态: {data_source.status}")
-    
+
     print_summary(data_source, 'ros')
-    
+
     if data_source.status == "ok" and data_source.records:
         save_to_database(data_source, db_path, 'ros')
         return True
@@ -621,18 +665,18 @@ def collect_oss(context: AssessmentContext, db_path: Path) -> bool:
     print("\n" + "=" * 60)
     print("开始采集 OSS 数据...")
     print("=" * 60)
-    
+
     collector = OSSCollector(context)
-    
+
     start_time = datetime.now()
     data_source = collector.collect()
     elapsed = (datetime.now() - start_time).total_seconds()
-    
+
     print(f"\n采集完成! 耗时: {elapsed:.1f} 秒")
     print(f"状态: {data_source.status}")
-    
+
     print_summary(data_source, 'oss')
-    
+
     if data_source.status == "ok" and data_source.records:
         save_to_database(data_source, db_path, 'oss')
         return True
@@ -646,18 +690,18 @@ def collect_arms(context: AssessmentContext, db_path: Path) -> bool:
     print("\n" + "=" * 60)
     print("开始采集 ARMS APM 数据...")
     print("=" * 60)
-    
+
     collector = ARMSCollector(context)
-    
+
     start_time = datetime.now()
     data_source = collector.collect()
     elapsed = (datetime.now() - start_time).total_seconds()
-    
+
     print(f"\n采集完成! 耗时: {elapsed:.1f} 秒")
     print(f"状态: {data_source.status}")
-    
+
     print_summary(data_source, 'arms')
-    
+
     if data_source.status == "ok" and data_source.records:
         save_to_database(data_source, db_path, 'arms')
         return True
@@ -671,18 +715,18 @@ def collect_acr(context: AssessmentContext, db_path: Path) -> bool:
     print("\n" + "=" * 60)
     print("开始采集 ACR 容器镜像服务数据...")
     print("=" * 60)
-    
+
     collector = ACRCollector(context)
-    
+
     start_time = datetime.now()
     data_source = collector.collect()
     elapsed = (datetime.now() - start_time).total_seconds()
-    
+
     print(f"\n采集完成! 耗时: {elapsed:.1f} 秒")
     print(f"状态: {data_source.status}")
-    
+
     print_summary(data_source, 'acr')
-    
+
     if data_source.status == "ok" and data_source.records:
         save_to_database(data_source, db_path, 'acr')
         return True
@@ -696,18 +740,18 @@ def collect_alb(context: AssessmentContext, db_path: Path) -> bool:
     print("\n" + "=" * 60)
     print("开始采集 ALB 应用负载均衡数据...")
     print("=" * 60)
-    
+
     collector = ALBCollector(context, load_balancer_ids=context.alb_load_balancer_ids)
-    
+
     start_time = datetime.now()
     data_source = collector.collect()
     elapsed = (datetime.now() - start_time).total_seconds()
-    
+
     print(f"\n采集完成! 耗时: {elapsed:.1f} 秒")
     print(f"状态: {data_source.status}")
-    
+
     print_summary(data_source, 'alb')
-    
+
     if data_source.status == "ok" and data_source.records:
         save_to_database(data_source, db_path, 'alb')
         return True
@@ -727,20 +771,128 @@ def collect_ecs(context: AssessmentContext, db_path: Path) -> bool:
     print("\n" + "=" * 60)
     print("开始采集 ECS 云服务器数据...")
     print("=" * 60)
-    
+
     collector = ECSCollector(context)
-    
+
     start_time = datetime.now()
     data_source = collector.collect()
     elapsed = (datetime.now() - start_time).total_seconds()
-    
+
     print(f"\n采集完成! 耗时: {elapsed:.1f} 秒")
     print(f"状态: {data_source.status}")
-    
+
     print_summary(data_source, 'ecs')
-    
+
     if data_source.status == "ok" and data_source.records:
         save_to_database(data_source, db_path, 'ecs')
+        return True
+    else:
+        print("采集失败或无数据")
+        return False
+
+
+def collect_eventbridge(context: AssessmentContext, db_path: Path) -> bool:
+    """采集 EventBridge 事件总线数据"""
+    print("\n" + "=" * 60)
+    print("开始采集 EventBridge 事件总线数据...")
+    print("=" * 60)
+
+    collector = EventBridgeCollector(context)
+
+    start_time = datetime.now()
+    data_source = collector.collect()
+    elapsed = (datetime.now() - start_time).total_seconds()
+
+    print(f"\n采集完成! 耗时: {elapsed:.1f} 秒")
+    print(f"状态: {data_source.status}")
+
+    print_summary(data_source, 'eventbridge')
+
+    if data_source.status == "ok" and data_source.records:
+        save_to_database(data_source, db_path, 'eventbridge')
+        return True
+    else:
+        print("采集失败或无数据")
+        return False
+
+
+def collect_grafana(context: AssessmentContext, db_path: Path) -> bool:
+    """采集 Grafana 仪表盘数据"""
+    print("\n" + "=" * 60)
+    print("开始采集 Grafana 仪表盘数据...")
+    print("=" * 60)
+
+    # 检查必要的配置
+    if not context.grafana_url and not context.grafana_workspace_id:
+        print("跳过 Grafana 采集: 未配置 GRAFANA_URL 或 GRAFANA_WORKSPACE_ID")
+        return False
+    if not context.grafana_api_token:
+        print("跳过 Grafana 采集: 未配置 GRAFANA_API_TOKEN")
+        return False
+
+    collector = GrafanaCollector(context)
+
+    start_time = datetime.now()
+    data_source = collector.collect()
+    elapsed = (datetime.now() - start_time).total_seconds()
+
+    print(f"\n采集完成! 耗时: {elapsed:.1f} 秒")
+    print(f"状态: {data_source.status}")
+
+    print_summary(data_source, 'grafana')
+
+    if data_source.status == "ok" and data_source.records:
+        save_to_database(data_source, db_path, 'grafana')
+        return True
+    else:
+        print("采集失败或无数据")
+        return False
+
+
+def collect_gtm(context: AssessmentContext, db_path: Path) -> bool:
+    """采集 GTM 全局流量管理数据"""
+    print("\n" + "=" * 60)
+    print("开始采集 GTM 全局流量管理数据...")
+    print("=" * 60)
+
+    collector = GTMCollector(context)
+
+    start_time = datetime.now()
+    data_source = collector.collect()
+    elapsed = (datetime.now() - start_time).total_seconds()
+
+    print(f"\n采集完成! 耗时: {elapsed:.1f} 秒")
+    print(f"状态: {data_source.status}")
+
+    print_summary(data_source, 'gtm')
+
+    if data_source.status == "ok" and data_source.records:
+        save_to_database(data_source, db_path, 'gtm')
+        return True
+    else:
+        print("采集失败或无数据")
+        return False
+
+
+def collect_tair(context: AssessmentContext, db_path: Path) -> bool:
+    """采集 Tair/Redis 数据"""
+    print("\n" + "=" * 60)
+    print("开始采集 Tair/Redis 数据...")
+    print("=" * 60)
+
+    collector = TairCollector(context)
+
+    start_time = datetime.now()
+    data_source = collector.collect()
+    elapsed = (datetime.now() - start_time).total_seconds()
+
+    print(f"\n采集完成! 耗时: {elapsed:.1f} 秒")
+    print(f"状态: {data_source.status}")
+
+    print_summary(data_source, 'tair')
+
+    if data_source.status == "ok" and data_source.records:
+        save_to_database(data_source, db_path, 'tair')
         return True
     else:
         print("采集失败或无数据")
@@ -750,7 +902,7 @@ def collect_ecs(context: AssessmentContext, db_path: Path) -> bool:
 def main():
     """主函数"""
     parser = argparse.ArgumentParser(
-        description="SESORA 数据采集器（支持 Codeup、FC、ACK、SLS、RDS、CMS、ROS）",
+        description="SESORA 数据采集器（支持 Codeup、FC、ACK、SLS、RDS、CMS、ROS、EventBridge、Grafana、GTM、Tair）",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("--codeup", action="store_true", help="采集云效 Codeup 数据")
@@ -766,10 +918,14 @@ def main():
     parser.add_argument("--alb", action="store_true", help="采集 ALB 应用负载均衡数据")
     parser.add_argument("--istio", action="store_true", help="采集 Istio 服务网格数据")
     parser.add_argument("--ecs", action="store_true", help="采集 ECS 云服务器数据")
+    parser.add_argument("--eventbridge", action="store_true", help="采集 EventBridge 事件总线数据")
+    parser.add_argument("--grafana", action="store_true", help="采集 Grafana 仪表盘数据")
+    parser.add_argument("--gtm", action="store_true", help="采集 GTM 全局流量管理数据")
+    parser.add_argument("--tair", action="store_true", help="采集 Tair/Redis 数据")
     parser.add_argument("--db", type=str, default="sesora.db", help="数据库文件名")
-    
+
     args = parser.parse_args()
-    
+
     # 如果没有指定采集类型，默认采集全部
     collect_codeup_flag = args.codeup
     collect_fc_flag = args.fc
@@ -784,7 +940,11 @@ def main():
     collect_alb_flag = args.alb
     collect_istio_flag = args.istio
     collect_ecs_flag = args.ecs
-    if not collect_codeup_flag and not collect_fc_flag and not collect_ack_flag and not collect_sls_flag and not collect_rds_flag and not collect_cms_flag and not collect_ros_flag and not collect_oss_flag and not collect_arms_flag and not collect_acr_flag and not collect_alb_flag and not collect_istio_flag and not collect_ecs_flag:
+    collect_eventbridge_flag = args.eventbridge
+    collect_grafana_flag = args.grafana
+    collect_gtm_flag = args.gtm
+    collect_tair_flag = args.tair
+    if not collect_codeup_flag and not collect_fc_flag and not collect_ack_flag and not collect_sls_flag and not collect_rds_flag and not collect_cms_flag and not collect_ros_flag and not collect_oss_flag and not collect_arms_flag and not collect_acr_flag and not collect_alb_flag and not collect_istio_flag and not collect_ecs_flag and not collect_eventbridge_flag and not collect_grafana_flag and not collect_gtm_flag and not collect_tair_flag:
         collect_codeup_flag = True
         collect_fc_flag = True
         collect_ack_flag = True
@@ -798,98 +958,123 @@ def main():
         collect_alb_flag = True
         collect_istio_flag = True
         collect_ecs_flag = True
-    
+        collect_eventbridge_flag = True
+        collect_grafana_flag = True
+        collect_gtm_flag = True
+        collect_tair_flag = True
+
     print("=" * 60)
     print("SESORA 数据采集器")
     print("=" * 60)
-    
+
     # 验证配置
     config = validate_config()
 
     context = create_context(config)
-    
+
     # 数据库路径
     db_dir = PROJECT_ROOT / "data"
     db_dir.mkdir(exist_ok=True)
     db_path = db_dir / args.db
-    
+
     print(f"\n数据库: {db_path}")
-    
+
     success_count = 0
-    
+
     # 采集 Codeup
     if collect_codeup_flag:
         if collect_codeup(context, db_path):
             success_count += 1
-    
+
     # 采集 FC
     if collect_fc_flag:
         if collect_fc(context, db_path):
             success_count += 1
-    
+
     # 采集 ACK
     if collect_ack_flag:
         if collect_ack(context, db_path):
             success_count += 1
-    
+
     # 采集 SLS
     if collect_sls_flag:
         if collect_sls(context, db_path):
             success_count += 1
-    
+
     # 采集 RDS
     if collect_rds_flag:
         if collect_rds(context, db_path):
             success_count += 1
-    
+
     # 采集 CMS
     if collect_cms_flag:
         if collect_cms(context, db_path):
             success_count += 1
-    
+
     # 采集 ROS
     if collect_ros_flag:
         if collect_ros(context, db_path):
             success_count += 1
-    
+
     # 采集 OSS
     if collect_oss_flag:
         if collect_oss(context, db_path):
             success_count += 1
-    
+
     # 采集 ARMS
     if collect_arms_flag:
         if collect_arms(context, db_path):
             success_count += 1
-    
+
     # 采集 ACR
     if collect_acr_flag:
         if collect_acr(context, db_path):
             success_count += 1
-    
+
     # 采集 ALB
     if collect_alb_flag:
         if collect_alb(context, db_path):
             success_count += 1
-    
+
     # 采集 Istio
     if collect_istio_flag:
         if collect_istio(context, db_path):
             success_count += 1
-    
+
     # 采集 ECS
     if collect_ecs_flag:
         if collect_ecs(context, db_path):
             success_count += 1
-    
+
+    # 采集 EventBridge
+    if collect_eventbridge_flag:
+        if collect_eventbridge(context, db_path):
+            success_count += 1
+
+    # 采集 Grafana
+    if collect_grafana_flag:
+        if collect_grafana(context, db_path):
+            success_count += 1
+
+    # 采集 GTM
+    if collect_gtm_flag:
+        if collect_gtm(context, db_path):
+            success_count += 1
+
+    # 采集 Tair/Redis
+    if collect_tair_flag:
+        if collect_tair(context, db_path):
+            success_count += 1
+
     print("\n" + "=" * 60)
     print(f"全部完成! 成功采集: {success_count} 个数据源")
     print("=" * 60)
-    
+
     return 0
 
 
 if __name__ == '__main__':
     import logging
+
     logging.getLogger('apscheduler').setLevel(logging.CRITICAL)
     sys.exit(main())
