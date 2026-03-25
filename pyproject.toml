@@ -1,0 +1,103 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sesora"
+version = "0.1.0"
+description = "云原生架构成熟度评估系统 - 基于 SESORA 六维度模型"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+keywords = [
+    "cloud-native",
+    "maturity",
+    "assessment",
+    "aliyun",
+    "kubernetes",
+    "serverless",
+    "observability",
+    "resilience",
+    "automation",
+    "elasticity",
+]
+authors = [
+  { name = "SESORA Team" },
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    # 数据类反序列化
+    "dacite>=1.8.0",
+    # 阿里云 SDK
+    "aliyun-python-sdk-core>=2.13.0",
+    "alibabacloud-rds20140815>=15.0.0",
+    "oss2>=2.18.0",
+    "aliyun-log-python-sdk>=0.7.0",
+    "aliyun-python-sdk-cms>=7.0.0",
+    "alibabacloud-cms20190101>=2.0.0",
+    "aliyun-python-sdk-arms>=2.0.0",
+    "alibabacloud-arms20190808>=10.0.0",
+    "alibabacloud-cr20181201>=1.0.0",
+    "alibabacloud_fc20230330>=1.0.0",
+    "alibabacloud-ros20190910>=1.0.0",
+    "alibabacloud-alb20200616>=1.0.0",
+    "alibabacloud-cs20151215>=6.6.0",
+    "alibabacloud-ecs20140526>=7.6.0",
+    "alibabacloud-devops20210625>=5.0.3",
+    "alibabacloud-sls20201230>=5.12.1",
+    # Kubernetes 客户端
+    "kubernetes>=28.0.0",
+    # HTTP 客户端
+    "aiohttp>=3.8.0",
+    "requests>=2.31.0",
+    # YAML 解析
+    "PyYAML>=6.0.1",
+    # 环境变量管理
+    "python-dotenv>=1.0.0",
+]
+
+[project.urls]
+Documentation = "https://github.com/chaosblade-io/cloud-native-maturity-evaluate#readme"
+Issues = "https://github.com/chaosblade-io/cloud-native-maturity-evaluate/issues"
+Source = "https://github.com/chaosblade-io/cloud-native-maturity-evaluate"
+
+[tool.hatch.version]
+path = "sesora/__init__.py"
+
+[tool.hatch.envs.types]
+extra-dependencies = [
+  "mypy>=1.0.0",
+]
+[tool.hatch.envs.types.scripts]
+check = "mypy --install-types --non-interactive {args:src/sesora tests}"
+
+[tool.coverage.run]
+source_pkgs = ["sesora", "tests"]
+branch = true
+parallel = true
+omit = [
+  "src/sesora/__about__.py",
+]
+
+[tool.coverage.paths]
+sesora = ["src/sesora", "*/sesora/src/sesora"]
+tests = ["tests", "*/sesora/tests"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]
