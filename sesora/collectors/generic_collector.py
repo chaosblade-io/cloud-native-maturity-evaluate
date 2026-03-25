@@ -21,7 +21,11 @@ class GenericCollector:
                 record = from_dict(
                     data_class=record_class,
                     data=data,
-                    config=Config(strict=False, cast=[int, float, bool, str]),
+                    config=Config(
+                        strict=False,
+                        cast=[int, float, bool, str],
+                        type_hooks={datetime: datetime.fromisoformat},
+                    ),
                 )
                 records.append(record)
         return DataSource(
