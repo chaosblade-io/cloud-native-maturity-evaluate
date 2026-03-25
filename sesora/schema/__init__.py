@@ -18,7 +18,6 @@ from .chaos import *
 from .policy import *
 from .grafana import *
 from .manual import *
-from .cloud_storage import *
 from .ros import *
 from .ecs import *
 from .registry import DATAITEM_SCHEMA_REGISTRY, get_record_type, register_record_type
@@ -116,7 +115,6 @@ __all__ = [
     "EbEventRuleRecord",
     "EbEventTargetRecord",
     "EventBridgeSchemaRecord",
-    "RocketMqTopicRecord",
     
     # ==================== RDS/OSS ====================
     "RdsInstanceRecord",
@@ -151,10 +149,7 @@ __all__ = [
     # ==================== Grafana ====================
     "GrafanaDashboardRecord",
     "GrafanaFolderRecord",
-    "GrafanaPanelRecord",
-    "GrafanaAlertRuleRecord",
     "GrafanaDashboardAnalysisRecord",
-    "MetricIntervalRecord",
     
     # ==================== Manual/Questionnaire ====================
     "ManualQuestionnaireRecord",
@@ -167,12 +162,6 @@ __all__ = [
     "ManualDataOwnershipRecord",
     "ManualDataMigrationRecord",
     "ManualConfigManagementRecord",
-    
-    # ==================== Cloud Storage ====================
-    "CloudStorageProductRecord",
-    "CloudStorageSummaryRecord",
-    "RdsInstanceModeRecord",
-    "TairInstanceModeRecord",
     
     # ==================== ROS ====================
     "RosStackRecord",

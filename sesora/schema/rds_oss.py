@@ -4,7 +4,7 @@ RDS/OSS/PolarDB/ROS 相关 DataItem Record 类型定义
 """
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Literal, Optional, Union
+from typing import Literal, Optional
 
 
 @dataclass
@@ -40,8 +40,8 @@ class RdsBackupPolicyRecord:
     preferred_backup_period: list[str] = field(default_factory=list)  # Monday/Tuesday/etc.
     backup_method: str = "Physical"  # Physical/Snapshot
     enable_backup_log: bool = False
-    log_backup_retention_period: Optional[Union[int, str]] = None  # API返回可能是字符串
-    cross_backup_region: Optional[str] = None  # 跨地域备份区域
+    log_backup_retention_period: int = 7
+    cross_backup_region: Optional[str] = ""  # 跨地域备份区域
     cross_backup_enabled: bool = False
 
 
@@ -70,7 +70,6 @@ class GtmAddressPoolRecord:
     min_available_addr_num: int = 1
     addresses: list[dict] = field(default_factory=list)
     monitor_status: str = ""  # OPEN/CLOSE
-    monitor_config: dict = field(default_factory=dict)
     lb_strategy: str = "all_rr"  # 负载均衡策略
 
 
@@ -115,3 +114,16 @@ class OssBucketLifecycleRecord:
     def has_expiration(self) -> bool:
         """是否有过期删除规则"""
         return self.expiration_days > 0 or self.noncurrent_version_expiration_days > 0
+
+
+@dataclass
+class TairInstanceModeRecord:
+    """Tair/Redis 实例模式记录"""
+    instance_id: str
+    instance_name: str
+    architecture_type: str  # cluster/standard/rwsplit
+    is_serverless: bool = False
+    pay_type: str = ""
+    memory_size: int = 0  # MB
+    has_ttl_config: bool = False  # 是否配置了 TTL
+    region: str = ""

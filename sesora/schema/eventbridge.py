@@ -13,8 +13,12 @@ class EventBridgeEventSourceRecord:
     event_source_name: str
     event_bus_name: str
     description: str = ""
-    event_source_type: str = ""  # AliyunService/Custom/HTTP/Scheduled
-    source_type: str = ""  # 别名，事件源类型
+    event_source_type: str = ""  # 事件源种类，例如 AliyunOfficial/UserDefined
+    source_type: str = ""  # 用于分类的事件源标识，例如 acs.ecs
+    full_name: str = ""
+    arn: str = ""
+    status: str = ""
+    event_types: list[dict] = field(default_factory=list)
     config: dict = field(default_factory=dict)
     create_time: Optional[datetime] = None
     update_time: Optional[datetime] = None
@@ -73,6 +77,7 @@ class EbEventTargetRecord:
     transform_config: dict = field(default_factory=dict)
 
 
+# TODO: EventBridge API：ListSchemas 未提供
 @dataclass
 class EventBridgeSchemaRecord:
     """EventBridge Schema 记录"""
@@ -88,14 +93,3 @@ class EventBridgeSchemaRecord:
 
 # Alias
 EbSchemaRecord = EventBridgeSchemaRecord
-
-
-@dataclass
-class RocketMqTopicRecord:
-    """RocketMQ Topic 记录"""
-    instance_id: str
-    topic_name: str
-    message_type: str  # NORMAL/FIFO/DELAY/TRANSACTION
-    region: str = ""
-    create_time: Optional[datetime] = None
-    update_time: Optional[datetime] = None

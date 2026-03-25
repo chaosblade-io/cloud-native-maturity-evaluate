@@ -925,9 +925,9 @@ class MonCoverageGapAnalyzer(Analyzer):
                     any(kw in (r.metric_name or "").lower() for kw in error_kw) for r in active
                 )
                 signals_via_alarm = sum([has_latency_rule, has_error_rule])
-                evidence.append(f"无覆盖分析数据，通过告警规则间接评估: "
-                                f"延迟规则{'\u2713' if has_latency_rule else '\u2717'} | "
-                                f"错误规则{'\u2713' if has_error_rule else '\u2717'}")
+                # evidence.append(f"无覆盖分析数据，通过告警规则间接评估: "
+                #                 f"延迟规则{'\u2713' if has_latency_rule else '\u2717'} | "
+                #                 f"错误规则{'\u2713' if has_error_rule else '\u2717'}")
                 signal_score = signals_via_alarm * 1.0
                 score += signal_score
             else:

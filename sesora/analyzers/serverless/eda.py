@@ -246,7 +246,7 @@ class EdaEventBusAnalyzer(Analyzer):
 
         return self._scored(final_score, status_msg, evidence)
 
-
+# TODO: EventBridge API：ListSchemas 未提供
 class EdaSchemaRegistryAnalyzer(Analyzer):
     """
     事件模式定义分析器

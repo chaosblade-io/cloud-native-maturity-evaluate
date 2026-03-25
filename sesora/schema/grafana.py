@@ -4,7 +4,7 @@ Grafana 可视化相关 DataItem Record 类型定义
 """
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 
 
 @dataclass
@@ -42,34 +42,6 @@ class GrafanaFolderRecord:
 
 
 @dataclass
-class GrafanaPanelRecord:
-    """Grafana 面板记录"""
-    dashboard_uid: str
-    panel_id: int
-    title: str
-    panel_type: str  # graph/stat/table/heatmap/etc.
-    datasource: str = ""
-    targets: list[dict] = field(default_factory=list)  # 查询目标
-    has_alert: bool = False
-    links: list[dict] = field(default_factory=list)  # 下钻链接
-
-
-@dataclass
-class GrafanaAlertRuleRecord:
-    """Grafana 告警规则记录"""
-    uid: str
-    title: str
-    folder_uid: str
-    condition: str = ""
-    for_duration: str = ""  # 持续时间触发
-    annotations: dict = field(default_factory=dict)
-    labels: dict = field(default_factory=dict)
-    notification_channels: list[str] = field(default_factory=list)
-    state: str = ""  # OK/Alerting/Pending/NoData
-    create_time: Optional[datetime] = None
-
-
-@dataclass
 class GrafanaDashboardAnalysisRecord:
     """Grafana 仪表盘分析汇总记录"""
     total_dashboards: int = 0
@@ -81,13 +53,3 @@ class GrafanaDashboardAnalysisRecord:
     dashboards_with_alerts: int = 0  # 有告警的仪表盘
     dashboards_with_drilldown: int = 0  # 有下钻的仪表盘
     folders_count: int = 0  # 文件夹数量（角色隔离）
-
-
-@dataclass
-class MetricIntervalRecord:
-    """指标采集间隔记录"""
-    metric_source: str  # prometheus/arms/cms
-    metric_name: str
-    interval_seconds: int = 60  # 采集间隔（秒）
-    retention_days: int = 15  # 保留天数
-    is_realtime: bool = False  # 是否实时（<= 15s）

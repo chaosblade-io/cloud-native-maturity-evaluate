@@ -909,8 +909,7 @@ class CodeupCollector:
 
         return False
 
-    @staticmethod
-    def _has_manual_gate(stage: dict) -> bool:
+    def _has_manual_gate(self, stage: dict) -> bool:
         """
         检查阶段是否包含人工审批
 

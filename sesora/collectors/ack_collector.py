@@ -34,6 +34,22 @@ from sesora.schema.k8s import (
     K8sVpaRecord,
     IstioDestinationRuleRecord,
     IstioVirtualServiceRecord,
+    ArgoCdApplicationRecord,
+    K8sGatekeeperConstraintRecord,
+    K8sKyvernoPolicyRecord,
+)
+from sesora.schema.chaos import (
+    ChaosExperimentRecord,
+    ChaosExperimentRunRecord,
+    ChaosScheduleRecord,
+    ChaosWorkflowRecord,
+)
+from sesora.schema.policy import (
+    KyvernoPolicyRecord,
+    KyvernoPolicyViolationRecord,
+    OpaConstraintTemplateRecord,
+    OpaConstraintRecord,
+    OpaViolationRecord,
 )
 
 
@@ -331,6 +347,131 @@ class ACKCollector:
         for vs in vs_list:
             record = self._parse_virtual_service(vs)
             records.append(record)
+
+        # ArgoCD Application (GitOps CRD)
+        argocd_app_list = self._list_custom_ns(
+            group="argoproj.io",
+            version="v1alpha1",
+            plural="applications",
+        )
+        for app in argocd_app_list:
+            record = self._parse_argocd_application(app)
+            records.append(record)
+
+        # Chaos Mesh - 各种类型的混沌实验
+        chaos_types = [
+            "podchaos", "networkchaos", "iochaos", "stresschaos",
+            "timechaos", "kernelchaos", "dnschaos", "httpchaos"
+        ]
+        for chaos_type in chaos_types:
+            chaos_list = self._list_custom_ns(
+                group="chaos-mesh.org",
+                version="v1alpha1",
+                plural=chaos_type,
+            )
+            for chaos_obj in chaos_list:
+                # 解析实验配置
+                experiment_record = self._parse_chaos_experiment(chaos_obj, chaos_type)
+                records.append(experiment_record)
+                
+                # 从实验 status 中提取执行记录
+                run_records = self._parse_chaos_experiment_runs(chaos_obj)
+                records.extend(run_records)
+
+        # Chaos Mesh Schedule (调度记录)
+        schedule_list = self._list_custom_ns(
+            group="chaos-mesh.org",
+            version="v1alpha1",
+            plural="schedules",
+        )
+        for schedule_obj in schedule_list:
+            record = self._parse_chaos_schedule(schedule_obj)
+            records.append(record)
+
+        # Chaos Mesh Workflow (工作流)
+        workflow_list = self._list_custom_ns(
+            group="chaos-mesh.org",
+            version="v1alpha1",
+            plural="workflows",
+        )
+        for workflow_obj in workflow_list:
+            record = self._parse_chaos_workflow(workflow_obj)
+            records.append(record)
+
+        # Kyverno ClusterPolicy
+        kyverno_cluster_policies = self._list_custom_ns(
+            group="kyverno.io",
+            version="v1",
+            plural="clusterpolicies",
+        )
+        for policy_obj in kyverno_cluster_policies:
+            # 详细版（policy schema）
+            record = self._parse_kyverno_policy(policy_obj, is_cluster_policy=True)
+            records.append(record)
+            # 简化版（k8s schema，保持兼容性）
+            simple_record = self._parse_kyverno_policy_simplified(policy_obj, is_cluster_policy=True)
+            records.append(simple_record)
+
+        # Kyverno Policy (命名空间级别)
+        kyverno_policies = self._list_custom_ns(
+            group="kyverno.io",
+            version="v1",
+            plural="policies",
+        )
+        for policy_obj in kyverno_policies:
+            # 详细版（policy schema）
+            record = self._parse_kyverno_policy(policy_obj, is_cluster_policy=False)
+            records.append(record)
+            # 简化版（k8s schema，保持兼容性）
+            simple_record = self._parse_kyverno_policy_simplified(policy_obj, is_cluster_policy=False)
+            records.append(simple_record)
+
+        # Kyverno PolicyReport (违规记录)
+        policy_reports = self._list_custom_ns(
+            group="wgpolicyk8s.io",
+            version="v1alpha2",
+            plural="policyreports",
+        )
+        for report_obj in policy_reports:
+            violation_records = self._parse_kyverno_policy_violations(report_obj)
+            records.extend(violation_records)
+
+        # OPA Gatekeeper ConstraintTemplates
+        constraint_templates = self._list_custom_ns(
+            group="templates.gatekeeper.sh",
+            version="v1",
+            plural="constrainttemplates",
+        )
+        template_kinds = []
+        for template_obj in constraint_templates:
+            record = self._parse_opa_constraint_template(template_obj)
+            records.append(record)
+            # 收集 ConstraintTemplate 的 kind 名称，用于查询对应的 Constraints
+            template_kinds.append(record.crd_kind)
+
+        # OPA Gatekeeper Constraints (动态查询各种类型)
+        for kind in template_kinds:
+            # Constraint 资源的 plural 通常是 kind 的小写复数形式
+            plural = kind.lower() + "s" if not kind.lower().endswith("s") else kind.lower()
+            try:
+                constraints = self._list_custom_ns(
+                    group="constraints.gatekeeper.sh",
+                    version="v1beta1",
+                    plural=plural,
+                )
+                for constraint_obj in constraints:
+                    # 详细版 Constraint（policy schema）
+                    record = self._parse_opa_constraint(constraint_obj, kind)
+                    records.append(record)
+                    # 简化版 Constraint（k8s schema，保持兼容性）
+                    simple_record = self._parse_opa_constraint_simplified(constraint_obj, kind)
+                    records.append(simple_record)
+                    # 从 Constraint 的 status 中提取违规记录
+                    violation_records = self._parse_opa_violations(constraint_obj, kind)
+                    records.extend(violation_records)
+            except Exception as e:
+                print(f"  查询 Constraint {kind} 失败: {e}")
+                continue
 
         return records
 
@@ -1138,4 +1279,633 @@ class ACKCollector:
             gateways=gateways,
             http_routes=http_routes,
             tcp_routes=tcp_routes,
+        )
+
+    @staticmethod
+    def _parse_argocd_application(app: dict) -> ArgoCdApplicationRecord:
+        metadata = app.get("metadata", {})
+        spec = app.get("spec", {})
+        status = app.get("status", {})
+
+        # 解析 source
+        source = spec.get("source", {})
+        repo_url = source.get("repoURL", "")
+        target_revision = source.get("targetRevision", "HEAD")
+        path = source.get("path", "")
+
+        # 解析 destination
+        destination = spec.get("destination", {})
+        destination_server = destination.get("server", "")
+        destination_namespace = destination.get("namespace", "")
+
+        # 解析 syncPolicy
+        sync_policy = spec.get("syncPolicy", {})
+        auto_sync_enabled = sync_policy.get("automated") is not None
+        auto_prune_enabled = False
+        self_heal_enabled = False
+        if auto_sync_enabled:
+            automated = sync_policy.get("automated", {})
+            auto_prune_enabled = automated.get("prune", False)
+            self_heal_enabled = automated.get("selfHeal", False)
+
+        # 解析 status
+        sync_status = ""
+        health_status = ""
+        if status:
+            sync_result = status.get("sync", {})
+            sync_status = sync_result.get("status", "Unknown")
+            health_result = status.get("health", {})
+            health_status = health_result.get("status", "Unknown")
+
+        return ArgoCdApplicationRecord(
+            name=metadata.get("name", ""),
+            namespace=metadata.get("namespace", "argocd"),
+            repo_url=repo_url,
+            target_revision=target_revision,
+            path=path,
+            destination_server=destination_server,
+            destination_namespace=destination_namespace,
+            sync_status=sync_status,
+            health_status=health_status,
+            sync_policy=sync_policy,
+            auto_sync=auto_sync_enabled,
+            auto_sync_enabled=auto_sync_enabled,
+            auto_prune_enabled=auto_prune_enabled,
+            self_heal_enabled=self_heal_enabled,
+        )
+
+    @staticmethod
+    def _parse_chaos_experiment(chaos_obj: dict, chaos_type: str) -> ChaosExperimentRecord:
+        """解析 Chaos Mesh 混沌实验"""
+        metadata = chaos_obj.get("metadata", {})
+        spec = chaos_obj.get("spec", {})
+        status = chaos_obj.get("status", {})
+
+        # 将 plural 形式转换为 CamelCase 类型名
+        type_mapping = {
+            "podchaos": "PodChaos",
+            "networkchaos": "NetworkChaos",
+            "iochaos": "IOChaos",
+            "stresschaos": "StressChaos",
+            "timechaos": "TimeChaos",
+            "kernelchaos": "KernelChaos",
+            "dnschaos": "DNSChaos",
+            "httpchaos": "HTTPChaos",
+        }
+        experiment_type = type_mapping.get(chaos_type, "PodChaos")
+
+        # 解析 selector (target_selector)
+        selector = spec.get("selector", {})
+        target_selector = {}
+        if selector:
+            target_selector = {
+                "namespaces": selector.get("namespaces", []),
+                "labelSelectors": selector.get("labelSelectors", {}),
+                "expressionSelectors": selector.get("expressionSelectors", []),
+            }
+
+        # 解析 action
+        action = spec.get("action", "")
+
+        # 解析 duration
+        duration = spec.get("duration", "")
+
+        # 解析 schedule (如果有)
+        schedule = spec.get("scheduler", {}).get("cron", "")
+
+        # 解析 status
+        experiment_status = status.get("experiment", {}).get("phase", "")
+        if not experiment_status:
+            # 兼容不同版本的 status 结构
+            experiment_status = status.get("conditions", [{}])[-1].get("type", "") if status.get("conditions") else ""
+
+        # 解析时间戳
+        create_time = None
+        if metadata.get("creationTimestamp"):
+            create_time = datetime.fromisoformat(metadata["creationTimestamp"].replace("Z", "+00:00"))
+
+        last_run_time = None
+        if status.get("experiment", {}).get("startTime"):
+            last_run_time = datetime.fromisoformat(status["experiment"]["startTime"].replace("Z", "+00:00"))
+
+        return ChaosExperimentRecord(
+            experiment_id=metadata.get("uid", ""),
+            experiment_name=metadata.get("name", ""),
+            experiment_type=experiment_type,
+            namespace=metadata.get("namespace", ""),
+            target_selector=target_selector,
+            action=action,
+            duration=duration,
+            schedule=schedule,
+            status=experiment_status,
+            create_time=create_time,
+            last_run_time=last_run_time,
+        )
+
+    @staticmethod
+    def _parse_chaos_schedule(schedule_obj: dict) -> ChaosScheduleRecord:
+        """解析 Chaos Mesh 调度记录"""
+        metadata = schedule_obj.get("metadata", {})
+        spec = schedule_obj.get("spec", {})
+        status = schedule_obj.get("status", {})
+
+        # 解析 schedule 类型和 cron 表达式
+        schedule_type = spec.get("type", "Cron")
+        cron_expression = spec.get("schedule", "")
+
+        # 解析关联的实验
+        experiments = []
+        if spec.get("type") in ["PodChaos", "NetworkChaos", "IOChaos", "StressChaos", 
+                                "TimeChaos", "KernelChaos", "DNSChaos", "HTTPChaos"]:
+            experiments.append({
+                "type": spec.get("type", ""),
+                "spec": spec.get(spec.get("type", "").lower(), {}),
+            })
+
+        # 解析是否启用
+        enabled = not spec.get("paused", False)
+
+        # 解析创建时间
+        create_time = None
+        if metadata.get("creationTimestamp"):
+            create_time = datetime.fromisoformat(metadata["creationTimestamp"].replace("Z", "+00:00"))
+
+        return ChaosScheduleRecord(
+            schedule_id=metadata.get("uid", ""),
+            schedule_name=metadata.get("name", ""),
+            namespace=metadata.get("namespace", ""),
+            schedule_type=schedule_type,
+            cron_expression=cron_expression,
+            experiments=experiments,
+            enabled=enabled,
+            create_time=create_time,
+        )
+
+    @staticmethod
+    def _parse_chaos_workflow(workflow_obj: dict) -> ChaosWorkflowRecord:
+        """解析 Chaos Mesh 工作流"""
+        metadata = workflow_obj.get("metadata", {})
+        spec = workflow_obj.get("spec", {})
+        status = workflow_obj.get("status", {})
+
+        # 解析 entry 节点
+        entry = spec.get("entry", "")
+
+        # 解析 templates
+        templates = spec.get("templates", [])
+
+        # 解析 status
+        workflow_status = status.get("phase", "")
+        if not workflow_status:
+            workflow_status = status.get("conditions", [{}])[-1].get("type", "") if status.get("conditions") else ""
+
+        # 解析时间戳
+        create_time = None
+        if metadata.get("creationTimestamp"):
+            create_time = datetime.fromisoformat(metadata["creationTimestamp"].replace("Z", "+00:00"))
+
+        last_run_time = None
+        if status.get("startTime"):
+            last_run_time = datetime.fromisoformat(status["startTime"].replace("Z", "+00:00"))
+
+        return ChaosWorkflowRecord(
+            workflow_id=metadata.get("uid", ""),
+            workflow_name=metadata.get("name", ""),
+            namespace=metadata.get("namespace", ""),
+            entry=entry,
+            templates=templates,
+            status=workflow_status,
+            create_time=create_time,
+            last_run_time=last_run_time,
+        )
+
+    @staticmethod
+    def _parse_chaos_experiment_runs(chaos_obj: dict) -> list[ChaosExperimentRunRecord]:
+        """
+        从混沌实验对象的 status 中提取执行记录
+        
+        Chaos Mesh 会在实验对象的 status 中记录执行历史和当前状态
+        """
+        metadata = chaos_obj.get("metadata", {})
+        status = chaos_obj.get("status", {})
+        
+        runs = []
+        experiment_id = metadata.get("uid", "")
+        
+        # 提取当前执行状态（如果正在运行）
+        experiment_status = status.get("experiment", {})
+        if experiment_status:
+            phase = experiment_status.get("phase", "")
+            
+            # 如果有当前执行状态，创建一个执行记录
+            if phase:
+                start_time = None
+                if experiment_status.get("startTime"):
+                    start_time = datetime.fromisoformat(
+                        experiment_status["startTime"].replace("Z", "+00:00")
+                    )
+                
+                end_time = None
+                if experiment_status.get("endTime"):
+                    end_time = datetime.fromisoformat(
+                        experiment_status["endTime"].replace("Z", "+00:00")
+                    )
+                
+                # 提取受影响的 Pods
+                affected_pods = []
+                records = experiment_status.get("records", [])
+                for record in records:
+                    pod_name = record.get("id", "")
+                    if pod_name:
+                        affected_pods.append(pod_name)
+                
+                # 构建事件列表
+                events = []
+                conditions = status.get("conditions", [])
+                for condition in conditions:
+                    events.append({
+                        "type": condition.get("type", ""),
+                        "status": condition.get("status", ""),
+                        "reason": condition.get("reason", ""),
+                        "message": condition.get("message", ""),
+                        "time": condition.get("lastTransitionTime", ""),
+                    })
+                
+                # 生成 run_id (使用实验ID + 时间戳)
+                run_id = f"{experiment_id}-{start_time.timestamp() if start_time else 'current'}"
+                
+                # 状态映射
+                status_mapping = {
+                    "Running": "Running",
+                    "Paused": "Paused",
+                    "Failed": "Failed",
+                    "Finished": "Finished",
+                }
+                run_status = status_mapping.get(phase, phase)
+                
+                # 生成结果摘要
+                result_summary = ""
+                if run_status == "Finished":
+                    result_summary = f"实验成功完成，影响了 {len(affected_pods)} 个 Pod"
+                elif run_status == "Failed":
+                    result_summary = f"实验失败，影响了 {len(affected_pods)} 个 Pod"
+                elif run_status == "Running":
+                    result_summary = f"实验正在执行中，当前影响 {len(affected_pods)} 个 Pod"
+                
+                run_record = ChaosExperimentRunRecord(
+                    experiment_id=experiment_id,
+                    run_id=run_id,
+                    status=run_status,
+                    start_time=start_time,
+                    end_time=end_time,
+                    affected_pods=affected_pods,
+                    events=events,
+                    result_summary=result_summary,
+                )
+                runs.append(run_record)
+        
+        # Note: Chaos Mesh 不会在 CRD 中保留完整的历史执行记录
+        # 完整的历史记录需要：
+        # 1. 查询 Kubernetes Events (已有的 Event 收集会包含部分信息)
+        # 2. 或者通过 Chaos Dashboard API 获取
+        # 3. 或者从监控/日志系统中聚合
+        
+        return runs
+
+    @staticmethod
+    def _parse_kyverno_policy(policy_obj: dict, is_cluster_policy: bool) -> KyvernoPolicyRecord:
+        """解析 Kyverno Policy 或 ClusterPolicy"""
+        metadata = policy_obj.get("metadata", {})
+        spec = policy_obj.get("spec", {})
+        status = policy_obj.get("status", {})
+
+        # 解析基本信息
+        name = metadata.get("name", "")
+        namespace = metadata.get("namespace", "") if not is_cluster_policy else ""
+        policy_type = "ClusterPolicy" if is_cluster_policy else "Policy"
+
+        # 解析运行模式
+        background = spec.get("background", True)
+
+        # 解析失败动作
+        validation_failure_action = spec.get("validationFailureAction", "Audit")
+
+        # 解析规则列表
+        rules = []
+        for rule in spec.get("rules", []):
+            rule_info = {
+                "name": rule.get("name", ""),
+                "match": rule.get("match", {}),
+                "exclude": rule.get("exclude", {}),
+            }
+            # 规则类型：validation/mutation/generation
+            if rule.get("validate"):
+                rule_info["type"] = "validation"
+                rule_info["validate"] = rule.get("validate")
+            elif rule.get("mutate"):
+                rule_info["type"] = "mutation"
+            elif rule.get("generate"):
+                rule_info["type"] = "generation"
+            rules.append(rule_info)
+
+        # 解析状态
+        policy_status = ""
+        ready = False
+        if status:
+            ready = status.get("ready", False)
+            policy_status = "Ready" if ready else "Not Ready"
+
+        # 解析违规计数（从 status 中获取）
+        violations_count = 0
+        if status.get("rulecount", {}).get("validate"):
+            # 某些版本的 Kyverno 会在 status 中记录违规统计
+            violations_count = status.get("rulecount", {}).get("fail", 0)
+
+        # 解析创建时间
+        create_time = None
+        if metadata.get("creationTimestamp"):
+            create_time = datetime.fromisoformat(
+                metadata["creationTimestamp"].replace("Z", "+00:00")
+            )
+
+        return KyvernoPolicyRecord(
+            name=name,
+            policy_type=policy_type,
+            namespace=namespace,
+            background=background,
+            validation_failure_action=validation_failure_action,
+            rules=rules,
+            status=policy_status,
+            violations_count=violations_count,
+            create_time=create_time,
+        )
+
+    @staticmethod
+    def _parse_kyverno_policy_violations(report_obj: dict) -> list[KyvernoPolicyViolationRecord]:
+        """从 Kyverno PolicyReport 中提取违规记录"""
+        metadata = report_obj.get("metadata", {})
+        results = report_obj.get("results", [])
+
+        violations = []
+        for result in results:
+            # 只记录失败的结果（违规）
+            if result.get("result") not in ["fail", "error"]:
+                continue
+
+            # 解析资源信息
+            resources = result.get("resources", [])
+            for resource in resources:
+                # 解析时间戳
+                timestamp = None
+                if result.get("timestamp"):
+                    try:
+                        timestamp = datetime.fromisoformat(
+                            result["timestamp"].replace("Z", "+00:00")
+                        )
+                    except:
+                        pass
+
+                violation = KyvernoPolicyViolationRecord(
+                    policy_name=result.get("policy", ""),
+                    rule_name=result.get("rule", ""),
+                    resource_kind=resource.get("kind", ""),
+                    resource_namespace=resource.get("namespace", ""),
+                    resource_name=resource.get("name", ""),
+                    message=result.get("message", ""),
+                    action=result.get("result", "").upper(),  # FAIL/ERROR -> Blocked
+                    timestamp=timestamp,
+                )
+                violations.append(violation)
+
+        return violations
+
+    @staticmethod
+    def _parse_opa_constraint_template(template_obj: dict) -> OpaConstraintTemplateRecord:
+        """解析 OPA Gatekeeper ConstraintTemplate"""
+        metadata = template_obj.get("metadata", {})
+        spec = template_obj.get("spec", {})
+        status = template_obj.get("status", {})
+
+        # 解析基本信息
+        name = metadata.get("name", "")
+
+        # 解析 CRD 定义
+        crd = spec.get("crd", {})
+        crd_spec = crd.get("spec", {})
+        crd_names = crd_spec.get("names", {})
+        crd_kind = crd_names.get("kind", "")
+
+        # 解析 Rego 代码
+        rego_code = ""
+        targets = spec.get("targets", [])
+        if targets:
+            # 通常只有一个 target (admission.k8s.gatekeeper.sh)
+            first_target = targets[0]
+            rego = first_target.get("rego", "")
+            rego_code = rego
+
+        # 解析状态
+        template_status = ""
+        if status:
+            created = status.get("created", False)
+            template_status = "Ready" if created else "Not Ready"
+
+        # 解析创建时间
+        create_time = None
+        if metadata.get("creationTimestamp"):
+            create_time = datetime.fromisoformat(
+                metadata["creationTimestamp"].replace("Z", "+00:00")
+            )
+
+        return OpaConstraintTemplateRecord(
+            name=name,
+            crd_kind=crd_kind,
+            rego_code=rego_code,
+            targets=targets,
+            status=template_status,
+            create_time=create_time,
+        )
+
+    @staticmethod
+    def _parse_opa_constraint(constraint_obj: dict, constraint_kind: str) -> OpaConstraintRecord:
+        """解析 OPA Gatekeeper Constraint"""
+        metadata = constraint_obj.get("metadata", {})
+        spec = constraint_obj.get("spec", {})
+        status = constraint_obj.get("status", {})
+
+        # 解析基本信息
+        name = metadata.get("name", "")
+
+        # 解析执行动作
+        enforcement_action = spec.get("enforcementAction", "deny")
+
+        # 解析匹配规则
+        match = spec.get("match", {})
+
+        # 解析参数
+        parameters = spec.get("parameters", {})
+
+        # 解析违规计数
+        violations_count = 0
+        if status.get("violations"):
+            violations_count = len(status.get("violations", []))
+        elif status.get("totalViolations"):
+            violations_count = status.get("totalViolations", 0)
+
+        # 解析状态
+        constraint_status = ""
+        if status:
+            # 检查是否有 byPod 状态（表示已同步）
+            by_pod = status.get("byPod", [])
+            if by_pod:
+                constraint_status = "Synced"
+            else:
+                constraint_status = "NotSynced"
+
+        # 解析创建时间
+        create_time = None
+        if metadata.get("creationTimestamp"):
+            create_time = datetime.fromisoformat(
+                metadata["creationTimestamp"].replace("Z", "+00:00")
+            )
+
+        return OpaConstraintRecord(
+            name=name,
+            constraint_kind=constraint_kind,
+            enforcement_action=enforcement_action,
+            match=match,
+            parameters=parameters,
+            violations_count=violations_count,
+            status=constraint_status,
+            create_time=create_time,
+        )
+
+    @staticmethod
+    def _parse_opa_violations(constraint_obj: dict, constraint_kind: str) -> list[OpaViolationRecord]:
+        """从 OPA Gatekeeper Constraint 的 status 中提取违规记录"""
+        metadata = constraint_obj.get("metadata", {})
+        spec = constraint_obj.get("spec", {})
+        status = constraint_obj.get("status", {})
+
+        constraint_name = metadata.get("name", "")
+        enforcement_action = spec.get("enforcementAction", "deny")
+
+        violations = []
+        violation_list = status.get("violations", [])
+
+        for violation in violation_list:
+            # 解析时间戳
+            timestamp = None
+            # OPA Gatekeeper 的违规记录通常没有时间戳，使用当前时间
+            timestamp = datetime.now()
+
+            violation_record = OpaViolationRecord(
+                constraint_name=constraint_name,
+                constraint_kind=constraint_kind,
+                resource_kind=violation.get("kind", ""),
+                resource_namespace=violation.get("namespace", ""),
+                resource_name=violation.get("name", ""),
+                message=violation.get("message", ""),
+                enforcement_action=enforcement_action,
+                timestamp=timestamp,
+            )
+            violations.append(violation_record)
+
+        return violations
+
+    @staticmethod
+    def _parse_kyverno_policy_simplified(policy_obj: dict, is_cluster_policy: bool) -> K8sKyvernoPolicyRecord:
+        """解析 Kyverno Policy 或 ClusterPolicy（简化版，用于 k8s schema）"""
+        metadata = policy_obj.get("metadata", {})
+        spec = policy_obj.get("spec", {})
+        status = policy_obj.get("status", {})
+
+        # 解析基本信息
+        name = metadata.get("name", "")
+        namespace = metadata.get("namespace", "") if not is_cluster_policy else ""
+        policy_type = "ClusterPolicy" if is_cluster_policy else "Policy"
+
+        # 解析运行模式
+        background = spec.get("background", True)
+
+        # 解析失败动作
+        validation_failure_action = spec.get("validationFailureAction", "audit")
+
+        # 解析规则列表（简化版，只保留基本信息）
+        rules = []
+        for rule in spec.get("rules", []):
+            rule_info = {
+                "name": rule.get("name", ""),
+                "match": rule.get("match", {}),
+            }
+            rules.append(rule_info)
+
+        # 解析状态
+        ready = False
+        message = ""
+        if status:
+            ready = status.get("ready", False)
+            # 从 conditions 中提取消息
+            conditions = status.get("conditions", [])
+            if conditions:
+                message = conditions[0].get("message", "")
+
+        return K8sKyvernoPolicyRecord(
+            namespace=namespace,
+            name=name,
+            policy_type=policy_type,
+            validation_failure_action=validation_failure_action,
+            background=background,
+            rules=rules,
+            ready=ready,
+            message=message,
+        )
+
+    @staticmethod
+    def _parse_opa_constraint_simplified(constraint_obj: dict, constraint_kind: str) -> K8sGatekeeperConstraintRecord:
+        """解析 OPA Gatekeeper Constraint（简化版，用于 k8s schema）"""
+        metadata = constraint_obj.get("metadata", {})
+        spec = constraint_obj.get("spec", {})
+        status = constraint_obj.get("status", {})
+
+        # 解析基本信息
+        name = metadata.get("name", "")
+        # OPA Gatekeeper Constraint 通常是集群级别资源，但可能在某些命名空间中
+        namespace = metadata.get("namespace", "")
+
+        # 解析执行动作
+        enforcement_action = spec.get("enforcementAction", "deny")
+
+        # 解析匹配规则
+        match = spec.get("match", {})
+
+        # 解析参数
+        parameters = spec.get("parameters", {})
+
+        # 解析违规计数
+        violations_count = 0
+        if status.get("violations"):
+            violations_count = len(status.get("violations", []))
+        elif status.get("totalViolations"):
+            violations_count = status.get("totalViolations", 0)
+
+        # 解析状态
+        constraint_status = ""
+        if status:
+            # 检查是否有 byPod 状态（表示已同步）
+            by_pod = status.get("byPod", [])
+            if by_pod:
+                constraint_status = "Synced"
+            else:
+                constraint_status = "NotSynced"
+
+        return K8sGatekeeperConstraintRecord(
+            namespace=namespace,
+            name=name,
+            kind=constraint_kind,
+            enforcement_action=enforcement_action,
+            match=match,
+            parameters=parameters,
+            violations_count=violations_count,
+            status=constraint_status,
         )

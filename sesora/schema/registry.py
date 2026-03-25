@@ -6,8 +6,8 @@ DataItem 名称 → Record 类型的映射
 """
 from typing import Optional
 
-from sesora.schema import RosStackRecord, RosStackDriftRecord
-from sesora.schema.k8s import (
+from . import RosStackRecord, RosStackDriftRecord
+from .k8s import (
     K8sDeploymentRecord,
     K8sStatefulSetRecord,
     K8sPodRecord,
@@ -33,7 +33,7 @@ from sesora.schema.k8s import (
     ArgoCdApplicationRecord,
     FluxKustomizationRecord,
 )
-from sesora.schema.apm import (
+from .apm import (
     ApmServiceRecord,
     ApmServiceDependencyRecord,
     ApmTopologyMetricsRecord,
@@ -43,7 +43,7 @@ from sesora.schema.apm import (
     ApmServiceDbMappingRecord,
     ApmCoverageAnalysisRecord, ApmTraceRecord,
 )
-from sesora.schema.cms import (
+from .cms import (
     CmsAlarmRuleRecord,
     CmsContactRecord,
     CmsContactGroupRecord,
@@ -52,7 +52,7 @@ from sesora.schema.cms import (
     CmsAlarmHistoryRecord,
     CmsEventTriggerRecord,
 )
-from sesora.schema.sls import (
+from .sls import (
     SlsLogstoreRecord,
     SlsLogSampleRecord,
     SlsLogStructureAnalysisRecord,
@@ -60,7 +60,9 @@ from sesora.schema.sls import (
     SlsQueryCapabilityRecord,
     SlsArchiveConfigRecord,
 )
-from sesora.schema.codeup import (
+from .codeup import (
+    CodeupPipelineRecord,
+    CodeupRepoRecord,
     CodeupPipelineRunRecord,
     CodeupRepoFileTreeRecord,
     CodeupCommitRecord,
@@ -70,7 +72,7 @@ from sesora.schema.codeup import (
     CodeupBranchRecord,
     CodeupFileCommitRecord, CodeupPipelineRecord, CodeupPipelineMetricsRecord, CodeupRepoRecord,
 )
-from sesora.schema.fc import (
+from .fc import (
     FcFunctionRecord,
     FcAliasRecord,
     FcVersionRecord,
@@ -80,15 +82,14 @@ from sesora.schema.fc import (
     FcUsageSummaryRecord,
     FcFunctionStatisticsRecord,
 )
-from sesora.schema.eventbridge import (
+from .eventbridge import (
     EventBridgeEventSourceRecord,
     EventBridgeEventBusRecord,
     EventBridgeSchemaRecord,
     EbEventRuleRecord,
     EbEventTargetRecord,
-    RocketMqTopicRecord,
 )
-from sesora.schema.rds_oss import (
+from .rds_oss import (
     RdsInstanceRecord,
     RdsBackupPolicyRecord,
     RdsProxyRecord,
@@ -97,18 +98,18 @@ from sesora.schema.rds_oss import (
     AlbListenerRecord,
     GtmAddressPoolRecord,
 )
-from sesora.schema.acr import (
+from .acr import (
     AcrRepositoryRecord,
     AcrImageRecord,
     AcrScanResultRecord,
 )
-from sesora.schema.chaos import (
+from .chaos import (
     ChaosExperimentRecord,
     ChaosExperimentRunRecord,
     ChaosScheduleRecord,
     ChaosWorkflowRecord,
 )
-from sesora.schema.policy import (
+from .policy import (
     KyvernoPolicyRecord,
     KyvernoPolicyViolationRecord,
     OpaConstraintTemplateRecord,
@@ -116,15 +117,12 @@ from sesora.schema.policy import (
     OpaViolationRecord,
     PolicyEnforcementSummaryRecord,
 )
-from sesora.schema.grafana import (
+from .grafana import (
     GrafanaDashboardRecord,
     GrafanaFolderRecord,
-    GrafanaPanelRecord,
-    GrafanaAlertRuleRecord,
     GrafanaDashboardAnalysisRecord,
-    MetricIntervalRecord,
 )
-from sesora.schema.manual import (
+from .manual import (
     ManualQuestionnaireRecord,
     ManualFallbackConfigRecord,
     ManualBulkheadConfigRecord,
@@ -137,13 +135,7 @@ from sesora.schema.manual import (
     ManualConfigManagementRecord,
     ManualConsistencyModelRecord,
 )
-from sesora.schema.cloud_storage import (
-    CloudStorageProductRecord,
-    CloudStorageSummaryRecord,
-    RdsInstanceModeRecord,
-    TairInstanceModeRecord,
-)
-from sesora.schema.ecs import (
+from .ecs import (
     EcsInstanceRecord,
     EcsSecurityGroupRecord,
     EcsSecurityGroupRuleRecord,
@@ -248,7 +240,6 @@ DATAITEM_SCHEMA_REGISTRY: dict[str, type] = {
     "eventbridge.schema.list": EventBridgeSchemaRecord,
     "eventbridge.rule.list": EbEventRuleRecord,
     "eventbridge.target.list": EbEventTargetRecord,
-    "rocketmq.topic.list": RocketMqTopicRecord,
 
     # ==================== RDS/OSS ====================
     "rds.instance.list": RdsInstanceRecord,
@@ -286,10 +277,7 @@ DATAITEM_SCHEMA_REGISTRY: dict[str, type] = {
     # ==================== Grafana ====================
     "grafana.dashboard.list": GrafanaDashboardRecord,
     "grafana.folder.list": GrafanaFolderRecord,
-    "grafana.panel.list": GrafanaPanelRecord,
-    "grafana.alert_rule.list": GrafanaAlertRuleRecord,
     "grafana.dashboard.analysis": GrafanaDashboardAnalysisRecord,
-    "metric.interval.config": MetricIntervalRecord,
 
     # ==================== Manual/Questionnaire ====================
     "manual.questionnaire": ManualQuestionnaireRecord,
@@ -308,15 +296,6 @@ DATAITEM_SCHEMA_REGISTRY: dict[str, type] = {
     "ecs.instance.list": EcsInstanceRecord,
     "ecs.security_group.list": EcsSecurityGroupRecord,
     "ecs.security_group_rule.list": EcsSecurityGroupRuleRecord,
-    
-    # ==================== Cloud Storage ====================
-    "cloud.storage.product.list": CloudStorageProductRecord,
-    "cloud.storage.summary": CloudStorageSummaryRecord,
-    "cloud.storage.products": CloudStorageProductRecord,
-    "rds.instance.mode.list": RdsInstanceModeRecord,
-    "tair.instance.mode.list": TairInstanceModeRecord,
-    "rds.instance.mode": RdsInstanceModeRecord,
-    "tair.instance.mode": TairInstanceModeRecord,
 }
 
 

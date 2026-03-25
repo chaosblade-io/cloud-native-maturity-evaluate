@@ -75,7 +75,11 @@ class AssessmentContext:
     gtm_instance_id: str = ""
     
     # Grafana
-    grafana_workspace_id: str = ""
+    grafana_workspace_id: str = ""  # ARMS Grafana 工作空间 ID（阿里云）
+    grafana_url: str = ""  # Grafana URL（自建/第三方）
+    grafana_api_token: str = ""  # Grafana API Token
+    grafana_folder_ids: list[int] = field(default_factory=list)  # 指定采集的文件夹 ID
+    grafana_tags: list[str] = field(default_factory=list)  # 指定采集的标签
     
     # 凭证
     aliyun_credentials: Optional[CredentialClient] = None

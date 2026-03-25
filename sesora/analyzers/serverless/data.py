@@ -85,64 +85,6 @@ class SdStorageTypesAnalyzer(Analyzer):
                     traditional_storage_types.add("RDS")
                     evidence.append(f"ℹ️ 传统 RDS: {len(traditional_rds)} 个（非 Serverless）")
 
-        if store.available("cloud.storage.products"):
-            products: list[CloudStorageProductRecord] = store.get("cloud.storage.products")
-            for p in products:
-                ptype = p.product_type.lower()
-                is_serverless = p.is_serverless or p.pay_type.lower() == "serverless"
-
-                if "oss" in ptype:
-                    if is_serverless:
-                        serverless_storage_types.add("对象存储(OSS)")
-                        evidence.append("✓ OSS 对象存储(Serverless): 已使用")
-                    else:
-                        traditional_storage_types.add("对象存储(OSS)")
-                        evidence.append("ℹ️ OSS 对象存储(非 Serverless): 已使用")
-
-                elif "tablestore" in ptype or "ots" in ptype or "lindorm" in ptype:
-                    if is_serverless:
-                        serverless_storage_types.add("NoSQL(表格存储)")
-                        evidence.append("✓ 表格存储(Serverless): 已使用")
-                    else:
-                        traditional_storage_types.add("NoSQL(表格存储)")
-                        evidence.append("ℹ️ 表格存储(非 Serverless): 已使用")
-
-                elif "redis" in ptype or "tair" in ptype or "cache" in ptype:
-                    if is_serverless:
-                        serverless_storage_types.add("Serverless 缓存")
-                        evidence.append("✓ Serverless 缓存: 已使用")
-                    else:
-                        traditional_storage_types.add("缓存")
-                        evidence.append("ℹ️ 传统缓存: 已使用（非 Serverless）")
-
-                elif "elasticsearch" in ptype or "opensearch" in ptype or "search" in ptype:
-                    if is_serverless:
-                        serverless_storage_types.add("搜索服务")
-                        evidence.append("✓ 搜索服务(Serverless): 已使用")
-                    else:
-                        traditional_storage_types.add("搜索服务")
-                        evidence.append("ℹ️ 搜索服务(非 Serverless): 已使用")
-
-                elif "mongodb" in ptype or "mongo" in ptype:
-                    if is_serverless:
-                        serverless_storage_types.add("NoSQL(MongoDB)")
-                        evidence.append("✓ Serverless MongoDB: 已使用")
-                    else:
-                        traditional_storage_types.add("MongoDB")
-                        evidence.append("ℹ️ MongoDB: 已使用")
-
-                elif "rds" in ptype or "polardb" in ptype:
-                    if is_serverless:
-                        serverless_storage_types.add("Serverless RDS")
-                        evidence.append("✓ Serverless RDS(通过 CloudStorage): 已使用")
-                    else:
-                        traditional_storage_types.add("RDS/PolarDB")
-                        evidence.append("ℹ️ 关系型数据库(非 Serverless): 已使用")
-
-                else:
-                    traditional_storage_types.add(p.product_type)
-                    evidence.append(f"ℹ️ 其他存储产品: {p.product_type} 已使用")
-
         serverless_count = len(serverless_storage_types)
 
         if serverless_count == 0 and len(traditional_storage_types) == 0:
@@ -275,7 +217,9 @@ class SdUsageLevelAnalyzer(Analyzer):
         evidence: list[str] = []
         warnings: list[str] = []
 
-        rds_modes: list[RdsInstanceModeRecord] = store.get("rds.instance.mode.list") or []
+        # TODO: use RdsInstanceRecord
+        # rds_modes: list[RdsInstanceModeRecord] = store.get("rds.instance.mode.list") or []
+        rds_modes: list = []
         if not rds_modes:
             evidence.append("ℹ️ 未获取到 RDS 模式数据")
 

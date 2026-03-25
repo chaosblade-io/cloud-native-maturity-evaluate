@@ -4,7 +4,7 @@ FC (函数计算) 相关 DataItem Record 类型定义
 """
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 
 
 @dataclass
@@ -15,8 +15,8 @@ class FcFunctionRecord:
     handler: str
     memory_size: int = 512  # MB
     timeout: int = 60  # 秒
-    disk_size: Optional[int] = None  # MB
-    cpu: Optional[float] = None
+    disk_size: int = 512  # MB
+    cpu: float = 0.5
     gpu_memory_size: int = 0
     environment_variables: dict[str, str] = field(default_factory=dict)
     layers: list[str] = field(default_factory=list)

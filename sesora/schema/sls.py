@@ -13,7 +13,7 @@ class SlsLogstoreRecord:
     project_name: str
     logstore_name: str
     ttl: int  # 数据保存时间(天)
-    hot_ttl: Optional[int] = None  # 热存储保留时间(天)，None表示不区分冷热存储
+    hot_ttl: int = 0  # 热存储保留时间(天)，0表示不区分冷热存储
     shard_count: int = 1
     auto_split: bool = True
     max_split_shard: int = 64

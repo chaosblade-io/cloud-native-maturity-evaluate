@@ -410,6 +410,7 @@ class FluxKustomizationRecord:
 
 # ==================== 策略引擎 ====================
 
+# TODO: Remove this, use policy.py instead
 @dataclass
 class K8sGatekeeperConstraintRecord:
     """OPA Gatekeeper Constraint 记录"""
@@ -423,6 +424,7 @@ class K8sGatekeeperConstraintRecord:
     status: str = ""  # Synced/NotSynced
 
 
+# TODO: Remove this, use policy.py instead
 @dataclass
 class K8sKyvernoPolicyRecord:
     """Kyverno Policy 记录"""
