@@ -1,638 +1,87 @@
 {
-  "apm.external.database": [
-    {
-      "service_name": "otel-demo-checkout",
-      "db_type": "MySQL",
-      "db_instance": "otel-mysql-001",
-      "call_count": 15000,
-      "error_count": 12,
-      "avg_rt": 3.5,
-      "p99_rt": 15.2,
-      "is_connection_pooled": true,
-      "pool_config": {"max_size": 50, "min_size": 10}
-    },
-    {
-      "service_name": "otel-demo-cart",
-      "db_type": "Redis",
-      "db_instance": "otel-redis-001",
-      "call_count": 50000,
-      "error_count": 5,
-      "avg_rt": 0.8,
-      "p99_rt": 2.1,
-      "is_connection_pooled": true,
-      "pool_config": {"max_size": 100}
-    },
-    {
-      "service_name": "otel-demo-product",
-      "db_type": "PostgreSQL",
-      "db_instance": "otel-pg-001",
-      "call_count": 8000,
-      "error_count": 3,
-      "avg_rt": 4.2,
-      "p99_rt": 18.5,
-      "is_connection_pooled": true,
-      "pool_config": {}
-    }
+  "apm.coverage.analysis": [
+    {"service_name": "otel-demo-checkout", "coverage_percent": 85.2, "uncovered_endpoints": ["/api/checkout/submit", "/api/checkout/cancel"], "test_cases": 120, "covered_cases": 102},
+    {"service_name": "otel-demo-cart", "coverage_percent": 92.5, "uncovered_endpoints": ["/api/cart/add"], "test_cases": 80, "covered_cases": 74},
+    {"service_name": "otel-demo-product", "coverage_percent": 78.0, "uncovered_endpoints": ["/api/product/list", "/api/product/detail"], "test_cases": 60, "covered_cases": 47},
+    {"service_name": "otel-demo-payment", "coverage_percent": 88.8, "uncovered_endpoints": ["/api/payment/initiate"], "test_cases": 90, "covered_cases": 80},
+    {"service_name": "otel-demo-recommendation", "coverage_percent": 95.0, "uncovered_endpoints": [], "test_cases": 50, "covered_cases": 50}
   ],
-  "apm.service.db.mapping": [
-    {
-      "service_name": "otel-demo-checkout",
-      "database_name": "checkout_db",
-      "db_type": "MySQL",
-      "db_instance": "otel-mysql-001",
-      "access_type": "read_write",
-      "is_shared": false,
-      "shared_with": []
-    },
-    {
-      "service_name": "otel-demo-cart",
-      "database_name": "cart_cache",
-      "db_type": "Redis",
-      "db_instance": "otel-redis-001",
-      "access_type": "read_write",
-      "is_shared": true,
-      "shared_with": ["otel-demo-frontend"]
-    },
-    {
-      "service_name": "otel-demo-product",
-      "database_name": "product_db",
-      "db_type": "PostgreSQL",
-      "db_instance": "otel-pg-001",
-      "access_type": "read_only",
-      "is_shared": false,
-      "shared_with": []
-    }
-  ],
-  "chaos.experiment.list": [
-    {
-      "experiment_id": "chaos-exp-001",
-      "experiment_name": "pod-kill-checkout",
-      "experiment_type": "PodChaos",
-      "namespace": "otel-demo",
-      "target_selector": {"app": "checkout"},
-      "action": "pod-kill",
-      "duration": "30s",
-      "schedule": "0 3 * * 1",
-      "status": "Finished"
-    },
-    {
-      "experiment_id": "chaos-exp-002",
-      "experiment_name": "network-delay-frontend",
-      "experiment_type": "NetworkChaos",
-      "namespace": "otel-demo",
-      "target_selector": {"app": "frontend"},
-      "action": "delay",
-      "duration": "60s",
-      "schedule": "",
-      "status": "Paused"
-    },
-    {
-      "experiment_id": "chaos-exp-003",
-      "experiment_name": "stress-cpu-cart",
-      "experiment_type": "StressChaos",
-      "namespace": "otel-demo",
-      "target_selector": {"app": "cart"},
-      "action": "stress-cpu",
-      "duration": "120s",
-      "schedule": "",
-      "status": "Running"
-    }
-  ],
-  "eventbridge.bus.list": [
-    {
-      "event_bus_name": "otel-demo-bus",
-      "description": "OTEL Demo 事件总线",
-      "event_bus_type": "Custom",
-      "bus_type": "Custom",
-      "rule_count": 5
-    },
-    {
-      "event_bus_name": "default",
-      "description": "默认云服务事件总线",
-      "event_bus_type": "CloudService",
-      "bus_type": "CloudService",
-      "rule_count": 12
-    }
+  "cms.alarm_rule.slo_analysis": [
+    {"rule_id": "rule-slo-003", "rule_name": "Backend SLO Error Rate", "is_slo_based": true, "has_multi_window": false, "has_burn_rate": true, "expression_type": "slo", "has_predictive": false},
+    {"rule_id": "rule-slo-004", "rule_name": "Frontend Latency SLO", "is_slo_based": true, "has_multi_window": true, "has_burn_rate": false, "expression_type": "slo", "has_predictive": true},
+    {"rule_id": "rule-threshold-002", "rule_name": "Memory Usage Alert", "is_slo_based": false, "has_multi_window": false, "has_burn_rate": false, "expression_type": "threshold", "has_predictive": false},
+    {"rule_id": "rule-slo-005", "rule_name": "API Error Rate SLO", "is_slo_based": true, "has_multi_window": true, "has_burn_rate": true, "expression_type": "slo", "has_predictive": false},
+    {"rule_id": "rule-threshold-003", "rule_name": "Disk Usage Alert", "is_slo_based": false, "has_multi_window": false, "has_burn_rate": false, "expression_type": "threshold", "has_predictive": false}
   ],
   "eventbridge.schema.list": [
-    {
-      "schema_name": "OrderCreatedEvent",
-      "event_bus_name": "otel-demo-bus",
-      "description": "订单创建事件 Schema",
-      "schema_content": "{\"type\":\"object\",\"properties\":{\"orderId\":{\"type\":\"string\"},\"userId\":{\"type\":\"string\"},\"amount\":{\"type\":\"number\"}}}",
-      "schema_format": "JSONSchema",
-      "version_count": 3
-    },
-    {
-      "schema_name": "PaymentCompletedEvent",
-      "event_bus_name": "otel-demo-bus",
-      "description": "支付完成事件 Schema",
-      "schema_content": "{\"type\":\"object\",\"properties\":{\"paymentId\":{\"type\":\"string\"},\"orderId\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"}}}",
-      "schema_format": "JSONSchema",
-      "version_count": 2
-    }
-  ],
-  "eventbridge.source.list": [
-    {
-      "event_source_name": "otel.checkout.order",
-      "event_bus_name": "otel-demo-bus",
-      "description": "Checkout 服务订单事件源",
-      "event_source_type": "Custom",
-      "source_type": "Custom",
-      "config": {}
-    },
-    {
-      "event_source_name": "otel.payment.transaction",
-      "event_bus_name": "otel-demo-bus",
-      "description": "Payment 服务交易事件源",
-      "event_source_type": "Custom",
-      "source_type": "Custom",
-      "config": {}
-    },
-    {
-      "event_source_name": "acs.ecs",
-      "event_bus_name": "default",
-      "description": "ECS 云服务事件源",
-      "event_source_type": "AliyunService",
-      "source_type": "AliyunService",
-      "config": {}
-    }
-  ],
-  "eventbridge.target.list": [
-    {
-      "target_id": "target-fc-001",
-      "rule_name": "order-created-rule",
-      "event_bus_name": "otel-demo-bus",
-      "target_type": "FC",
-      "target_endpoint": "acs:fc:cn-hangzhou:xxx:services/otel-notification/functions/sendNotification",
-      "retry_strategy": {"max_retry_attempts": 3},
-      "dead_letter_queue": {"arn": "acs:mns:cn-hangzhou:xxx:queues/dlq-orders"},
-      "transform_config": {}
-    },
-    {
-      "target_id": "target-mq-001",
-      "rule_name": "payment-completed-rule",
-      "event_bus_name": "otel-demo-bus",
-      "target_type": "RocketMQ",
-      "target_endpoint": "acs:mq:cn-hangzhou:xxx:topic/payment-events",
-      "retry_strategy": {"max_retry_attempts": 5},
-      "dead_letter_queue": {},
-      "transform_config": {}
-    }
-  ],
-  "fc.function.list": [
-    {
-      "function_name": "otel-notification-sender",
-      "runtime": "python3.10",
-      "handler": "index.handler",
-      "memory_size": 512,
-      "timeout": 60,
-      "disk_size": 512,
-      "cpu": 0.5,
-      "gpu_memory_size": 0,
-      "environment_variables": {"NOTIFY_ENDPOINT": "https://notify.example.com"},
-      "layers": [],
-      "instance_concurrency": 10,
-      "triggers": [{"type": "eventbridge", "config": {}}],
-      "reserved_instances": 0,
-      "log_config": {"project": "otel-logs", "logstore": "fc-logs"},
-      "trace_config": {"type": "ARMS"},
-      "custom_container_config": {}
-    },
-    {
-      "function_name": "otel-image-processor",
-      "runtime": "nodejs18",
-      "handler": "index.handler",
-      "memory_size": 1024,
-      "timeout": 120,
-      "disk_size": 1024,
-      "cpu": 1.0,
-      "gpu_memory_size": 0,
-      "environment_variables": {},
-      "layers": ["sharp-layer"],
-      "instance_concurrency": 5,
-      "triggers": [{"type": "oss", "config": {"bucket": "otel-images"}}],
-      "reserved_instances": 2,
-      "log_config": {"project": "otel-logs", "logstore": "fc-logs"},
-      "trace_config": {},
-      "custom_container_config": {}
-    },
-    {
-      "function_name": "otel-data-sync",
-      "runtime": "java11",
-      "handler": "com.example.Handler::handleRequest",
-      "memory_size": 2048,
-      "timeout": 300,
-      "disk_size": 512,
-      "cpu": 2.0,
-      "gpu_memory_size": 0,
-      "environment_variables": {"DB_HOST": "mysql.example.com"},
-      "layers": [],
-      "instance_concurrency": 1,
-      "triggers": [{"type": "timer", "config": {"cron": "0 0 * * * *"}}],
-      "reserved_instances": 0,
-      "log_config": {"project": "otel-logs", "logstore": "fc-logs"},
-      "trace_config": {"type": "ARMS"},
-      "custom_container_config": {}
-    }
-  ],
-  "fc.alias.list": [
-    {
-      "alias_name": "prod",
-      "version_id": "3",
-      "description": "生产环境别名",
-      "additional_version_weight": {"2": 0.1}
-    },
-    {
-      "alias_name": "staging",
-      "version_id": "4",
-      "description": "预发环境别名",
-      "additional_version_weight": {}
-    }
+    {"schema_name": "UserRegisteredEvent", "event_bus_name": "otel-demo-bus", "description": "用户注册事件 Schema", "schema_content": "{\"type\":\"object\",\"properties\":{\"userId\":{\"type\":\"string\"}}}", "schema_format": "JSONSchema", "version_count": 1},
+    {"schema_name": "OrderCreatedEvent", "event_bus_name": "otel-demo-bus", "description": "订单创建事件 Schema", "schema_content": "{\"type\":\"object\",\"properties\":{\"orderId\":{\"type\":\"string\"}}}", "schema_format": "JSONSchema", "version_count": 2},
+    {"schema_name": "PaymentCompletedEvent", "event_bus_name": "otel-demo-bus", "description": "支付完成事件 Schema", "schema_content": "{\"type\":\"object\",\"properties\":{\"paymentId\":{\"type\":\"string\"}}}", "schema_format": "JSONSchema", "version_count": 1},
+    {"schema_name": "OrderCancelledEvent", "event_bus_name": "otel-demo-bus", "description": "订单取消事件 Schema", "schema_content": "{\"type\":\"object\",\"properties\":{\"orderId\":{\"type\":\"string\"}}}", "schema_format": "JSONSchema", "version_count": 1},
+    {"schema_name": "RefundProcessedEvent", "event_bus_name": "otel-demo-bus", "description": "退款处理事件 Schema", "schema_content": "{\"type\":\"object\",\"properties\":{\"refundId\":{\"type\":\"string\"}}}", "schema_format": "JSONSchema", "version_count": 1}
   ],
   "fc.cold_start_metrics": [
-    {
-      "function_name": "otel-notification-sender",
-      "avg_cold_start_ms": 450.5,
-      "p99_cold_start_ms": 1200.0,
-      "total_invocations": 50000,
-      "time_range_hours": 24
-    },
-    {
-      "function_name": "otel-image-processor",
-      "avg_cold_start_ms": 680.2,
-      "p99_cold_start_ms": 1800.0,
-      "total_invocations": 12000,
-      "time_range_hours": 24
-    },
-    {
-      "function_name": "otel-data-sync",
-      "avg_cold_start_ms": 2500.0,
-      "p99_cold_start_ms": 5000.0,
-      "total_invocations": 24,
-      "time_range_hours": 24
-    }
+    {"function_name": "otel-image-processor", "avg_cold_start_ms": 700.0, "p99_cold_start_ms": 2000.0, "total_invocations": 10000, "time_range_hours": 24},
+    {"function_name": "otel-notification-sender", "avg_cold_start_ms": 450.5, "p99_cold_start_ms": 1200.0, "total_invocations": 50000, "time_range_hours": 24},
+    {"function_name": "otel-data-sync", "avg_cold_start_ms": 2500.0, "p99_cold_start_ms": 5000.0, "total_invocations": 24, "time_range_hours": 24},
+    {"function_name": "otel-demo-extra", "avg_cold_start_ms": 900.0, "p99_cold_start_ms": 2500.0, "total_invocations": 3000, "time_range_hours": 24},
+    {"function_name": "otel-demo-legacy", "avg_cold_start_ms": 1200.0, "p99_cold_start_ms": 3000.0, "total_invocations": 100, "time_range_hours": 24}
   ],
   "fc.function.statistics": [
-    {
-      "function_name": "otel-notification-sender",
-      "invocation_count": 50000,
-      "error_count": 120,
-      "avg_duration_ms": 85.5,
-      "p99_duration_ms": 350.0,
-      "concurrent_executions": 15,
-      "time_range_hours": 24
-    },
-    {
-      "function_name": "otel-image-processor",
-      "invocation_count": 12000,
-      "error_count": 45,
-      "avg_duration_ms": 520.0,
-      "p99_duration_ms": 1500.0,
-      "concurrent_executions": 8,
-      "time_range_hours": 24
-    }
+    {"function_name": "otel-data-sync", "invocation_count": 1000, "error_count": 10, "avg_duration_ms": 300.0, "p99_duration_ms": 1200.0, "concurrent_executions": 2, "time_range_hours": 24},
+    {"function_name": "otel-image-processor", "invocation_count": 12000, "error_count": 45, "avg_duration_ms": 520.0, "p99_duration_ms": 1500.0, "concurrent_executions": 8, "time_range_hours": 24},
+    {"function_name": "otel-notification-sender", "invocation_count": 50000, "error_count": 120, "avg_duration_ms": 85.5, "p99_duration_ms": 350.0, "concurrent_executions": 15, "time_range_hours": 24},
+    {"function_name": "otel-demo-extra", "invocation_count": 2000, "error_count": 5, "avg_duration_ms": 400.0, "p99_duration_ms": 1100.0, "concurrent_executions": 3, "time_range_hours": 24},
+    {"function_name": "otel-demo-legacy", "invocation_count": 50, "error_count": 0, "avg_duration_ms": 1000.0, "p99_duration_ms": 2000.0, "concurrent_executions": 1, "time_range_hours": 24}
   ],
-  "grafana.dashboard.list": [
-    {
-      "uid": "otel-overview",
-      "title": "OTEL Demo Overview",
-      "folder_id": 1,
-      "folder_title": "OTEL Demo",
-      "tags": ["otel", "overview"],
-      "panels_count": 12,
-      "refresh_interval": "10s",
-      "time_range": "now-1h",
-      "has_templating": true,
-      "templating_vars": ["namespace", "service"],
-      "variable_count": 2,
-      "has_alerts": true,
-      "alert_rules_count": 5,
-      "alert_count": 5,
-      "has_drill_down": true,
-      "has_links": true
-    },
-    {
-      "uid": "otel-services",
-      "title": "Services Performance",
-      "folder_id": 1,
-      "folder_title": "OTEL Demo",
-      "tags": ["otel", "services", "performance"],
-      "panels_count": 20,
-      "refresh_interval": "15s",
-      "time_range": "now-6h",
-      "has_templating": true,
-      "templating_vars": ["service"],
-      "variable_count": 1,
-      "has_alerts": true,
-      "alert_rules_count": 8,
-      "alert_count": 8,
-      "has_drill_down": true,
-      "has_links": true
-    },
-    {
-      "uid": "k8s-cluster",
-      "title": "Kubernetes Cluster Metrics",
-      "folder_id": 2,
-      "folder_title": "Infrastructure",
-      "tags": ["k8s", "infrastructure"],
-      "panels_count": 15,
-      "refresh_interval": "30s",
-      "time_range": "now-24h",
-      "has_templating": true,
-      "templating_vars": ["cluster", "namespace"],
-      "variable_count": 2,
-      "has_alerts": false,
-      "alert_rules_count": 0,
-      "alert_count": 0,
-      "has_drill_down": false,
-      "has_links": false
-    }
+  "fc.observability.config": [
+    {"function_name": "otel-notification-sender", "log_project": "otel-logs", "log_store": "fc-logs", "trace_type": "ARMS"},
+    {"function_name": "otel-image-processor", "log_project": "otel-logs", "log_store": "fc-logs", "trace_type": "ARMS"},
+    {"function_name": "otel-data-sync", "log_project": "otel-logs", "log_store": "fc-logs", "trace_type": "ARMS"},
+    {"function_name": "otel-demo-extra", "log_project": "otel-logs", "log_store": "fc-logs", "trace_type": "ARMS"},
+    {"function_name": "otel-demo-legacy", "log_project": "otel-logs", "log_store": "fc-logs", "trace_type": "ARMS"}
   ],
-  "gtm.address_pool.list": [
-    {
-      "pool_id": "pool-001",
-      "pool_name": "otel-demo-primary",
-      "instance_id": "gtm-instance-001",
-      "type": "IPv4",
-      "min_available_addr_num": 1,
-      "addresses": [
-        {"address": "1.2.3.4", "mode": "online", "weight": 100},
-        {"address": "5.6.7.8", "mode": "online", "weight": 100}
-      ],
-      "monitor_status": "OPEN",
-      "monitor_config": {"protocol": "HTTP", "interval": 60},
-      "lb_strategy": "round_robin"
-    },
-    {
-      "pool_id": "pool-002",
-      "pool_name": "otel-demo-dr",
-      "instance_id": "gtm-instance-001",
-      "type": "IPv4",
-      "min_available_addr_num": 1,
-      "addresses": [
-        {"address": "10.20.30.40", "mode": "standby", "weight": 100}
-      ],
-      "monitor_status": "OPEN",
-      "monitor_config": {"protocol": "HTTP", "interval": 60},
-      "lb_strategy": "all_rr"
-    }
+  "fc.provisioned_concurrency.config": [
+    {"function_name": "otel-image-processor", "qualifier": "LATEST", "provisioned_concurrency": 2, "reserved_instances": 2},
+    {"function_name": "otel-notification-sender", "qualifier": "v1", "provisioned_concurrency": 1, "reserved_instances": 1},
+    {"function_name": "otel-data-sync", "qualifier": "v2", "provisioned_concurrency": 0, "reserved_instances": 0},
+    {"function_name": "otel-demo-extra", "qualifier": "v3", "provisioned_concurrency": 3, "reserved_instances": 3},
+    {"function_name": "otel-demo-legacy", "qualifier": "v0", "provisioned_concurrency": 0, "reserved_instances": 0}
   ],
-  "k8s.argocd.app.list": [
-    {
-      "name": "otel-demo",
-      "namespace": "argocd",
-      "repo_url": "https://github.com/open-telemetry/opentelemetry-demo.git",
-      "target_revision": "main",
-      "path": "kubernetes",
-      "destination_server": "https://kubernetes.default.svc",
-      "destination_namespace": "otel-demo",
-      "sync_status": "Synced",
-      "health_status": "Healthy",
-      "sync_policy": {"automated": {"prune": true, "selfHeal": true}},
-      "auto_sync": true,
-      "auto_sync_enabled": true,
-      "auto_prune_enabled": true,
-      "self_heal_enabled": true
-    },
-    {
-      "name": "monitoring-stack",
-      "namespace": "argocd",
-      "repo_url": "https://github.com/example/monitoring.git",
-      "target_revision": "v1.2.0",
-      "path": "helm",
-      "destination_server": "https://kubernetes.default.svc",
-      "destination_namespace": "monitoring",
-      "sync_status": "Synced",
-      "health_status": "Healthy",
-      "sync_policy": {},
-      "auto_sync": false,
-      "auto_sync_enabled": false,
-      "auto_prune_enabled": false,
-      "self_heal_enabled": false
-    }
+  "k8s.istio.gateway.list": [
+    {"namespace": "otel-demo", "name": "otel-demo-gateway", "servers": [{"port": {"number": 443, "name": "https", "protocol": "HTTPS"}, "hosts": ["otel-demo.example.com"], "tls": {"mode": "SIMPLE", "credentialName": "otel-demo-cert"}}], "selector": {"istio": "ingressgateway"}},
+    {"namespace": "otel-demo", "name": "otel-demo-gateway-2", "servers": [{"port": {"number": 80, "name": "http", "protocol": "HTTP"}, "hosts": ["otel-demo.example.com"]}], "selector": {"istio": "ingressgateway"}},
+    {"namespace": "otel-demo", "name": "otel-demo-gateway-3", "servers": [{"port": {"number": 8080, "name": "custom", "protocol": "TCP"}, "hosts": ["otel-demo.example.com"]}], "selector": {"istio": "ingressgateway"}}
   ],
-  "k8s.istio.destination_rule.list": [
-    {
-      "namespace": "otel-demo",
-      "name": "checkout-dr",
-      "host": "checkout.otel-demo.svc.cluster.local",
-      "traffic_policy": {
-        "connectionPool": {"tcp": {"maxConnections": 100}, "http": {"h2UpgradePolicy": "UPGRADE"}},
-        "outlierDetection": {"consecutive5xxErrors": 5, "interval": "30s", "baseEjectionTime": "30s"}
-      },
-      "subsets": [
-        {"name": "v1", "labels": {"version": "v1"}},
-        {"name": "v2", "labels": {"version": "v2"}}
-      ]
-    },
-    {
-      "namespace": "otel-demo",
-      "name": "frontend-dr",
-      "host": "frontend.otel-demo.svc.cluster.local",
-      "traffic_policy": {
-        "loadBalancer": {"simple": "ROUND_ROBIN"},
-        "outlierDetection": {"consecutive5xxErrors": 3, "interval": "10s"}
-      },
-      "subsets": []
-    }
-  ],
-  "k8s.istio.virtual_service.list": [
-    {
-      "namespace": "otel-demo",
-      "name": "checkout-vs",
-      "hosts": ["checkout.otel-demo.svc.cluster.local"],
-      "gateways": [],
-      "http_routes": [
-        {
-          "match": [{"headers": {"x-canary": {"exact": "true"}}}],
-          "route": [{"destination": {"host": "checkout", "subset": "v2"}, "weight": 100}]
-        },
-        {
-          "route": [
-            {"destination": {"host": "checkout", "subset": "v1"}, "weight": 90},
-            {"destination": {"host": "checkout", "subset": "v2"}, "weight": 10}
-          ]
-        }
-      ],
-      "tcp_routes": []
-    },
-    {
-      "namespace": "otel-demo",
-      "name": "frontend-vs",
-      "hosts": ["otel-demo.example.com"],
-      "gateways": ["otel-demo-gateway"],
-      "http_routes": [
-        {
-          "route": [{"destination": {"host": "frontend", "port": {"number": 8080}}}],
-          "timeout": "30s",
-          "retries": {"attempts": 3, "perTryTimeout": "10s"}
-        }
-      ],
-      "tcp_routes": []
-    }
-  ],
-  "k8s.networkpolicy.list": [
-    {
-      "namespace": "otel-demo",
-      "name": "default-deny-ingress",
-      "pod_selector": {},
-      "policy_types": ["Ingress"],
-      "ingress_rules": [],
-      "egress_rules": []
-    },
-    {
-      "namespace": "otel-demo",
-      "name": "allow-frontend-to-backend",
-      "pod_selector": {"app": "backend"},
-      "policy_types": ["Ingress"],
-      "ingress_rules": [
-        {"from": [{"podSelector": {"matchLabels": {"app": "frontend"}}}], "ports": [{"protocol": "TCP", "port": 8080}]}
-      ],
-      "egress_rules": []
-    },
-    {
-      "namespace": "otel-demo",
-      "name": "allow-egress-to-db",
-      "pod_selector": {"tier": "backend"},
-      "policy_types": ["Egress"],
-      "ingress_rules": [],
-      "egress_rules": [
-        {"to": [{"namespaceSelector": {"matchLabels": {"name": "database"}}}], "ports": [{"protocol": "TCP", "port": 3306}]}
-      ]
-    }
-  ],
-  "k8s.resourcequota.list": [
-    {
-      "namespace": "otel-demo",
-      "name": "otel-demo-quota",
-      "hard": {"requests.cpu": "10", "requests.memory": "20Gi", "limits.cpu": "20", "limits.memory": "40Gi", "pods": "50"},
-      "used": {"requests.cpu": "5", "requests.memory": "10Gi", "limits.cpu": "10", "limits.memory": "20Gi", "pods": "25"}
-    },
-    {
-      "namespace": "monitoring",
-      "name": "monitoring-quota",
-      "hard": {"requests.cpu": "8", "requests.memory": "16Gi", "pods": "30"},
-      "used": {"requests.cpu": "4", "requests.memory": "8Gi", "pods": "15"}
-    }
-  ],
-  "k8s.vpa.list": [
-    {
-      "namespace": "otel-demo",
-      "name": "checkout-vpa",
-      "target_kind": "Deployment",
-      "target_name": "checkout",
-      "update_mode": "Auto",
-      "controlled_resources": ["cpu", "memory"],
-      "recommendation": {"containerRecommendations": [{"containerName": "checkout", "target": {"cpu": "500m", "memory": "512Mi"}}]}
-    },
-    {
-      "namespace": "otel-demo",
-      "name": "frontend-vpa",
-      "target_kind": "Deployment",
-      "target_name": "frontend",
-      "update_mode": "Off",
-      "controlled_resources": ["cpu", "memory"],
-      "recommendation": {"containerRecommendations": [{"containerName": "frontend", "target": {"cpu": "200m", "memory": "256Mi"}}]}
-    }
-  ],
-  "manual.fallback.config": [
-    {
-      "service_name": "otel-demo-checkout",
-      "has_fallback": true,
-      "fallback_type": "cache",
-      "fallback_description": "当支付服务不可用时，使用本地缓存的支付配置",
-      "dependencies_covered": ["payment-service", "inventory-service"],
-      "evidence": "代码中实现了 PaymentFallbackHandler"
-    },
-    {
-      "service_name": "otel-demo-frontend",
-      "has_fallback": true,
-      "fallback_type": "default_value",
-      "fallback_description": "当推荐服务不可用时，返回默认推荐列表",
-      "dependencies_covered": ["recommendation-service"],
-      "evidence": "实现了静态推荐列表作为降级"
-    },
-    {
-      "service_name": "otel-demo-cart",
-      "has_fallback": false,
-      "fallback_type": "",
-      "fallback_description": "",
-      "dependencies_covered": [],
-      "evidence": ""
-    }
+  "k8s.audit_log.recent": [
+    {"namespace": "otel-demo", "name": "audit-log-001", "timestamp": "2026-03-25 10:00:00", "user": "system:serviceaccount:kube-system:replicaset-controller", "verb": "create", "resource": "pods", "response_status": 200},
+    {"namespace": "otel-demo", "name": "audit-log-002", "timestamp": "2026-03-25 11:00:00", "user": "system:serviceaccount:kube-system:deployment-controller", "verb": "update", "resource": "deployments", "response_status": 200},
+    {"namespace": "otel-demo", "name": "audit-log-003", "timestamp": "2026-03-25 12:00:00", "user": "system:serviceaccount:kube-system:job-controller", "verb": "delete", "resource": "jobs", "response_status": 403},
+    {"namespace": "otel-demo", "name": "audit-log-004", "timestamp": "2026-03-25 13:00:00", "user": "system:serviceaccount:kube-system:cronjob-controller", "verb": "patch", "resource": "cronjobs", "response_status": 200},
+    {"namespace": "otel-demo", "name": "audit-log-005", "timestamp": "2026-03-25 14:00:00", "user": "system:serviceaccount:kube-system:statefulset-controller", "verb": "get", "resource": "statefulsets", "response_status": 200}
   ],
   "manual.bulkhead.config": [
     {
-      "service_name": "otel-demo-checkout",
+      "service_name": "otel-demo-payment",
       "has_bulkhead": true,
       "thread_pool_isolation": true,
-      "connection_pool_isolation": true,
-      "semaphore_isolation": false,
-      "isolation_description": "支付和库存调用使用独立线程池，数据库连接池隔离",
-      "evidence": "配置了 HikariCP 连接池和 Hystrix 线程池隔离"
-    },
-    {
-      "service_name": "otel-demo-frontend",
-      "has_bulkhead": true,
-      "thread_pool_isolation": false,
       "connection_pool_isolation": false,
-      "semaphore_isolation": true,
-      "isolation_description": "使用信号量限制并发请求数",
-      "evidence": "实现了 Semaphore 限流"
+      "semaphore_isolation": false,
+      "isolation_description": "支付服务使用独立线程池隔离",
+      "evidence": "配置了 Hystrix 线程池"
     }
   ],
-  "manual.dr_plan": [
+  "manual.consistency_model": [
     {
-      "has_dr_plan": true,
-      "plan_document_url": "https://wiki.example.com/otel-demo/dr-plan",
-      "steps_defined": true,
-      "roles_assigned": true,
-      "communication_plan": true,
-      "evidence": "DR Plan v2.0 文档已审核通过"
-    }
-  ],
-  "manual.rto_rpo": [
-    {
-      "service_name": "otel-demo-checkout",
-      "rto_defined": true,
-      "rto_minutes": 30,
-      "rpo_defined": true,
-      "rpo_minutes": 5,
-      "architecture_supports": true,
-      "evidence": "使用 RDS 跨可用区部署，备份间隔 5 分钟"
-    },
-    {
-      "service_name": "otel-demo-frontend",
-      "rto_defined": true,
-      "rto_minutes": 15,
-      "rpo_defined": false,
-      "rpo_minutes": 0,
-      "architecture_supports": true,
-      "evidence": "无状态服务，多副本部署"
-    }
-  ],
-  "manual.dr_testing": [
-    {
-      "has_testing": true,
-      "test_type": "partial",
-      "test_scope": "数据库故障切换演练",
-      "issues_found": 2,
-      "issues_resolved": 2,
-      "improvement_report": true,
-      "evidence": "2024-Q4 DR 演练报告"
+      "has_assessment": true,
+      "strong_consistency_scenarios": ["支付确认"],
+      "eventual_consistency_handled": true,
+      "consistent_read_configured": true,
+      "data_risk_identified": false,
+      "evidence": "一致性评估报告已完成"
     }
   ],
   "manual.data_consistency": [
-    {
-      "service_name": "otel-demo-checkout",
-      "consistency_model": "eventual",
-      "uses_saga": true,
-      "uses_tcc": false,
-      "uses_distributed_lock": true,
-      "consistency_description": "订单服务使用 Saga 模式处理分布式事务",
-      "evidence": "实现了 OrderSagaOrchestrator"
-    },
     {
       "service_name": "otel-demo-payment",
       "consistency_model": "strong",
@@ -643,332 +92,65 @@
       "evidence": "实现了 PaymentTccService"
     }
   ],
-  "manual.data_ownership": [
-    {
-      "table_or_collection": "orders",
-      "owner_service": "otel-demo-checkout",
-      "read_only_services": ["otel-demo-analytics", "otel-demo-notification"],
-      "access_via_api": true,
-      "evidence": "orders 表仅由 checkout 服务写入，其他服务通过 API 查询"
-    },
-    {
-      "table_or_collection": "products",
-      "owner_service": "otel-demo-product",
-      "read_only_services": ["otel-demo-frontend", "otel-demo-recommendation"],
-      "access_via_api": true,
-      "evidence": "产品数据由 product 服务维护"
-    }
-  ],
   "manual.data_migration": [
     {
       "has_capability": true,
-      "supports_dual_write": true,
+      "supports_dual_write": false,
       "supports_grayscale": true,
       "supports_online_ddl": true,
-      "tools_used": ["gh-ost", "pt-online-schema-change"],
-      "evidence": "已使用 gh-ost 完成过在线 DDL 变更"
+      "tools_used": ["pt-online-schema-change"],
+      "evidence": "已完成在线 DDL 变更"
     }
   ],
-  "manual.consistency_model": [
+  "manual.data_ownership": [
     {
-      "has_assessment": true,
-      "strong_consistency_scenarios": ["支付确认", "库存扣减"],
-      "eventual_consistency_handled": true,
-      "consistent_read_configured": true,
-      "data_risk_identified": true,
-      "evidence": "完成了数据一致性场景评估报告"
+      "table_or_collection": "payments",
+      "owner_service": "otel-demo-payment",
+      "read_only_services": ["otel-demo-analytics"],
+      "access_via_api": true,
+      "evidence": "payments 表仅由 payment 服务写入"
     }
   ],
-  "oss.bucket.lifecycle": [
+  "manual.dr_plan": [
     {
-      "bucket_name": "otel-demo-logs",
-      "rule_id": "archive-old-logs",
-      "status": "Enabled",
-      "prefix": "logs/",
-      "expiration_days": 365,
-      "transitions": [
-        {"days": 30, "storage_class": "IA"},
-        {"days": 90, "storage_class": "Archive"}
-      ],
-      "abort_multipart_upload_days": 7,
-      "noncurrent_version_expiration_days": 30
-    },
-    {
-      "bucket_name": "otel-demo-backups",
-      "rule_id": "cleanup-old-backups",
-      "status": "Enabled",
-      "prefix": "",
-      "expiration_days": 90,
-      "transitions": [
-        {"days": 30, "storage_class": "IA"}
-      ],
-      "abort_multipart_upload_days": 3,
-      "noncurrent_version_expiration_days": 7
+      "has_dr_plan": true,
+      "plan_document_url": "https://wiki.example.com/otel-demo/dr-plan-payment",
+      "steps_defined": true,
+      "roles_assigned": true,
+      "communication_plan": true,
+      "evidence": "DR Plan v2.1 文档已审核"
     }
   ],
-  "k8s.statefulset.list": [
+  "manual.dr_testing": [
     {
-      "namespace": "otel-demo",
-      "name": "redis",
-      "replicas": 3,
-      "ready_replicas": 3,
-      "service_name": "redis-headless",
-      "labels": {"app": "redis"},
-      "volume_claim_templates": [{"name": "data", "spec": {"accessModes": ["ReadWriteOnce"], "resources": {"requests": {"storage": "10Gi"}}}}]
+      "has_testing": true,
+      "test_type": "full",
+      "test_scope": "支付服务故障切换演练",
+      "issues_found": 1,
+      "issues_resolved": 1,
+      "improvement_report": true,
+      "evidence": "2025-Q1 DR 演练报告"
     }
   ],
-  "k8s.cronjob.list": [
+  "manual.fallback.config": [
     {
-      "namespace": "otel-demo",
-      "name": "cleanup-job",
-      "schedule": "0 2 * * *",
-      "suspend": false,
-      "concurrency_policy": "Forbid",
-      "successful_job_history_limit": 3,
-      "failed_job_history_limit": 1
-    },
-    {
-      "namespace": "otel-demo",
-      "name": "report-generator",
-      "schedule": "0 6 * * 1",
-      "suspend": false,
-      "concurrency_policy": "Allow",
-      "successful_job_history_limit": 5,
-      "failed_job_history_limit": 3
+      "service_name": "otel-demo-payment",
+      "has_fallback": true,
+      "fallback_type": "default_value",
+      "fallback_description": "支付服务不可用时返回默认支付状态",
+      "dependencies_covered": ["order-service"],
+      "evidence": "实现了 PaymentFallbackHandler"
     }
   ],
-  "grafana.folder.list": [
+  "manual.rto_rpo": [
     {
-      "id": 1,
-      "uid": "otel-demo-folder",
-      "title": "OTEL Demo",
-      "dashboard_count": 5,
-      "permissions": [{"role": "Editor", "permission": "Edit"}]
-    },
-    {
-      "id": 2,
-      "uid": "infra-folder",
-      "title": "Infrastructure",
-      "dashboard_count": 8,
-      "permissions": [{"role": "Viewer", "permission": "View"}]
-    }
-  ],
-  "grafana.dashboard.analysis": [
-    {
-      "total_dashboards": 15,
-      "system_dashboards": 5,
-      "app_dashboards": 6,
-      "business_dashboards": 3,
-      "ux_dashboards": 1,
-      "realtime_dashboards": 4,
-      "dashboards_with_alerts": 8,
-      "dashboards_with_drilldown": 6,
-      "folders_count": 4
-    }
-  ],
-  "k8s.istio.gateway.list": [
-    {
-      "namespace": "otel-demo",
-      "name": "otel-demo-gateway",
-      "servers": [
-        {"port": {"number": 80, "name": "http", "protocol": "HTTP"}, "hosts": ["otel-demo.example.com"]},
-        {"port": {"number": 443, "name": "https", "protocol": "HTTPS"}, "hosts": ["otel-demo.example.com"], "tls": {"mode": "SIMPLE", "credentialName": "otel-demo-cert"}}
-      ],
-      "selector": {"istio": "ingressgateway"}
-    }
-  ],
-  "chaos.experiment_run.list": [
-    {
-      "experiment_id": "chaos-exp-001",
-      "run_id": "run-001",
-      "status": "Finished",
-      "affected_pods": ["checkout-5d8f9c7b6-abc12", "checkout-5d8f9c7b6-def34"],
-      "events": [{"type": "Normal", "reason": "PodKilled", "message": "Pod killed successfully"}],
-      "result_summary": "服务在 30 秒内恢复正常"
-    }
-  ],
-  "k8s.ahpa.metrics": [
-    {
-      "namespace": "otel-demo",
-      "name": "checkout-ahpa",
-      "prediction_enabled": true,
-      "prediction_config": {"algorithm": "DSP", "lookback_period": "7d"},
-      "mode": "Active"
-    }
-  ],
-  "cloud.storage.products": [
-    {
-      "product_type": "RDS",
-      "instance_id": "rm-bp1xxxxx",
-      "instance_name": "otel-mysql",
-      "region": "cn-hangzhou",
-      "pay_type": "Postpaid",
-      "is_serverless": false,
-      "engine": "MySQL",
-      "engine_version": "8.0"
-    },
-    {
-      "product_type": "Redis",
-      "instance_id": "r-bp1xxxxx",
-      "instance_name": "otel-redis",
-      "region": "cn-hangzhou",
-      "pay_type": "Postpaid",
-      "is_serverless": false,
-      "engine": "Redis",
-      "engine_version": "7.0"
-    },
-    {
-      "product_type": "OSS",
-      "instance_id": "otel-demo-bucket",
-      "instance_name": "otel-demo-bucket",
-      "region": "cn-hangzhou",
-      "pay_type": "Postpaid",
-      "is_serverless": true,
-      "engine": "OSS",
-      "engine_version": ""
-    },
-    {
-      "product_type": "TableStore",
-      "instance_id": "otel-tablestore",
-      "instance_name": "otel-tablestore",
-      "region": "cn-hangzhou",
-      "pay_type": "Postpaid",
-      "is_serverless": true,
-      "engine": "TableStore",
-      "engine_version": ""
-    }
-  ],
-  "cms.alarm_rule.slo_analysis": [
-    {
-      "rule_id": "rule-slo-001",
-      "rule_name": "Checkout SLO Error Rate",
-      "is_slo_based": true,
-      "has_multi_window": true,
-      "has_burn_rate": true,
-      "expression_type": "slo",
-      "has_predictive": false
-    },
-    {
-      "rule_id": "rule-slo-002",
-      "rule_name": "Frontend Latency SLO",
-      "is_slo_based": true,
-      "has_multi_window": false,
-      "has_burn_rate": true,
-      "expression_type": "slo",
-      "has_predictive": true
-    },
-    {
-      "rule_id": "rule-threshold-001",
-      "rule_name": "CPU Usage Alert",
-      "is_slo_based": false,
-      "has_multi_window": false,
-      "has_burn_rate": false,
-      "expression_type": "threshold",
-      "has_predictive": false
-    }
-  ],
-  "eventbridge.rule.list": [
-    {
-      "rule_name": "order-created-rule",
-      "event_bus_name": "otel-demo-bus",
-      "description": "订单创建事件规则",
-      "filter_pattern": {"source": ["otel.checkout.order"], "type": ["OrderCreated"]},
-      "status": "ENABLE",
-      "targets": [{"id": "target-fc-001", "type": "FC"}]
-    },
-    {
-      "rule_name": "payment-completed-rule",
-      "event_bus_name": "otel-demo-bus",
-      "description": "支付完成事件规则",
-      "filter_pattern": {"source": ["otel.payment.transaction"], "type": ["PaymentCompleted"]},
-      "status": "ENABLE",
-      "targets": [{"id": "target-mq-001", "type": "RocketMQ"}]
-    }
-  ],
-  "k8s.gatekeeper.constraint.list": [
-    {
-      "namespace": "",
-      "name": "require-labels",
-      "kind": "K8sRequiredLabels",
-      "enforcement_action": "deny",
-      "match": {"kinds": [{"apiGroups": [""], "kinds": ["Pod", "Deployment"]}]},
-      "parameters": {"labels": ["app", "env"]},
-      "violations_count": 0,
-      "status": "Synced"
-    },
-    {
-      "namespace": "",
-      "name": "allowed-repos",
-      "kind": "K8sAllowedRepos",
-      "enforcement_action": "deny",
-      "match": {"kinds": [{"apiGroups": [""], "kinds": ["Pod"]}]},
-      "parameters": {"repos": ["registry.cn-hangzhou.aliyuncs.com/"]},
-      "violations_count": 2,
-      "status": "Synced"
-    },
-    {
-      "namespace": "",
-      "name": "container-limits",
-      "kind": "K8sContainerLimits",
-      "enforcement_action": "warn",
-      "match": {"kinds": [{"apiGroups": [""], "kinds": ["Pod"]}]},
-      "parameters": {"cpu": "2", "memory": "4Gi"},
-      "violations_count": 5,
-      "status": "Synced"
-    }
-  ],
-  "k8s.kyverno.policy.list": [
-    {
-      "name": "require-requests-limits",
-      "policy_type": "ClusterPolicy",
-      "namespace": "",
-      "background": true,
-      "validation_failure_action": "Enforce",
-      "rules": [{"name": "validate-resources", "match": {"resources": {"kinds": ["Pod"]}}}],
-      "status": "Ready",
-      "violations_count": 0
-    },
-    {
-      "name": "disallow-privileged",
-      "policy_type": "ClusterPolicy",
-      "namespace": "",
-      "background": true,
-      "validation_failure_action": "Enforce",
-      "rules": [{"name": "deny-privileged", "match": {"resources": {"kinds": ["Pod"]}}}],
-      "status": "Ready",
-      "violations_count": 0
-    },
-    {
-      "name": "add-default-securitycontext",
-      "policy_type": "ClusterPolicy",
-      "namespace": "",
-      "background": false,
-      "validation_failure_action": "Audit",
-      "rules": [{"name": "mutate-securitycontext", "match": {"resources": {"kinds": ["Pod"]}}}],
-      "status": "Ready",
-      "violations_count": 3
-    }
-  ],
-  "ros.stack.drift": [
-    {
-      "stack_id": "stack-001",
-      "stack_name": "otel-demo-infra",
-      "drift_status": "IN_SYNC",
-      "drifted_resources": [],
-      "total_resources": 15,
-      "drifted_count": 0,
-      "in_sync_count": 15
-    },
-    {
-      "stack_id": "stack-002",
-      "stack_name": "monitoring-stack",
-      "drift_status": "DRIFTED",
-      "drifted_resources": [
-        {"resource_type": "ALIYUN::ECS::SecurityGroup", "logical_resource_id": "sg-otel", "drift_status": "MODIFIED"}
-      ],
-      "total_resources": 8,
-      "drifted_count": 1,
-      "in_sync_count": 7
+      "service_name": "otel-demo-payment",
+      "rto_defined": true,
+      "rto_minutes": 10,
+      "rpo_defined": true,
+      "rpo_minutes": 2,
+      "architecture_supports": true,
+      "evidence": "多活部署，备份间隔 2 分钟"
     }
   ]
 }
