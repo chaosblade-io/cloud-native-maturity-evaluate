@@ -1,6 +1,15 @@
 # SESORA - 云原生架构成熟度评估系统
 
 <p align="center">
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.10+-blue.svg" alt="Python Version"></a>
+  <a href="https://github.com/chaosblade-io/cloud-native-maturity-evaluate/stargazers"><img src="https://img.shields.io/github/stars/chaosblade-io/cloud-native-maturity-evaluate?style=flat&logo=github" alt="GitHub Stars"></a>
+  <a href="https://github.com/chaosblade-io/cloud-native-maturity-evaluate/network/members"><img src="https://img.shields.io/github/forks/chaosblade-io/cloud-native-maturity-evaluate?style=flat&logo=github" alt="GitHub Forks"></a>
+  <a href="https://github.com/chaosblade-io/cloud-native-maturity-evaluate/issues"><img src="https://img.shields.io/github/issues/chaosblade-io/cloud-native-maturity-evaluate" alt="GitHub Issues"></a>
+  <a href="https://github.com/chaosblade-io/cloud-native-maturity-evaluate/commits/main"><img src="https://img.shields.io/github/last-commit/chaosblade-io/cloud-native-maturity-evaluate" alt="Last Commit"></a>
+  <a href="https://github.com/chaosblade-io/cloud-native-maturity-evaluate"><img src="https://img.shields.io/github/repo-size/chaosblade-io/cloud-native-maturity-evaluate" alt="Repo Size"></a>
+</p>
+
+<p align="center">
   <strong>Serverless | Elasticity | Service Architecture | Observability | Resilience | Automation</strong>
 </p>
 
