@@ -8,18 +8,6 @@ from typing import Literal, Optional
 
 
 @dataclass
-class ManualQuestionnaireRecord:
-    """人工问卷记录（通用）"""
-    question_key: str  # 对应评估项 Key
-    question_text: str  # 问题描述
-    answer: str = ""  # 回答内容
-    answer_type: str = "text"  # text/boolean/enum/number
-    evidence: str = ""  # 证据描述或链接
-    answered_by: str = ""  # 填写人
-    answered_at: Optional[datetime] = None
-
-
-@dataclass
 class ManualFallbackConfigRecord:
     """降级机制配置记录（ft_fallback）"""
     service_name: str
@@ -109,17 +97,6 @@ class ManualDataMigrationRecord:
     supports_grayscale: bool = False  # 支持灰度切换
     supports_online_ddl: bool = False  # 支持在线 DDL
     tools_used: list[str] = field(default_factory=list)  # 使用的工具
-    evidence: str = ""
-
-
-@dataclass
-class ManualConfigManagementRecord:
-    """配置管理工具记录（configuration_management）"""
-    has_config_mgmt: bool = False
-    tool_type: str = ""  # ansible/salt/puppet/chef
-    agent_installed: bool = False  # 是否安装 Agent
-    periodic_sync: bool = False  # 是否定期同步
-    servers_covered: int = 0  # 覆盖的服务器数量
     evidence: str = ""
 
 

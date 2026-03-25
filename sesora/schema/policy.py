@@ -69,15 +69,3 @@ class OpaViolationRecord:
     message: str = ""
     enforcement_action: str = ""
     timestamp: Optional[datetime] = None
-
-
-@dataclass
-class PolicyEnforcementSummaryRecord:
-    """策略执行汇总记录"""
-    policy_engine: Literal["Kyverno", "OPA", "Both", "None"]
-    total_policies: int = 0
-    active_policies: int = 0
-    total_violations: int = 0
-    blocked_count: int = 0  # 被阻断的操作数
-    warning_count: int = 0  # 警告数
-    last_violation_time: Optional[datetime] = None
