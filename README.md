@@ -270,7 +270,7 @@ SESORA 支持以下阿里云产品的数据自动采集：
 
 <p align="center">
   <img src="docs/images/report-sample-web.png" alt="评估报告网页端示例" width="800">
-  <img src="docs/images/report-sample-file.png" alt="评估报告文件示例" width="800">
+  <img src="docs/images/report-sample-file.png" alt="评估报告文件示例" width="500">
 </p>
 
 
