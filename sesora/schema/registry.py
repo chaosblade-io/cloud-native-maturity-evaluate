@@ -173,7 +173,6 @@ DATAITEM_SCHEMA_REGISTRY: dict[str, type] = {
     "k8s.argocd.app.list": ArgoCdApplicationRecord,
 
     "k8s.istio.gateway.list": IstioGatewayRecord,
-    "k8s.argocd.application.list": ArgoCdApplicationRecord,
     "k8s.flux.kustomization.list": FluxKustomizationRecord,
 
     # ==================== K8s 策略引擎 ====================
@@ -243,7 +242,6 @@ DATAITEM_SCHEMA_REGISTRY: dict[str, type] = {
     "rds.backup_policy.list": RdsBackupPolicyRecord,
     "rds.proxy.list": RdsProxyRecord,
     "oss.bucket.list": OssBucketRecord,
-    "oss.bucket.lifecycle.list": OssBucketLifecycleRecord,
     "oss.bucket.lifecycle": OssBucketLifecycleRecord,
     "ros.stack.list": RosStackRecord,
     "ros.stack.drift": RosStackDriftRecord,
