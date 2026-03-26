@@ -432,6 +432,18 @@ pip install -r requirements.txt
 
 欢迎提交 Issue 和 Pull Request！
 
+## Star History
+
+<div align="center">
+<a href="https://www.star-history.com/?repos=chaosblade-io%2Fcloud-native-maturity-evaluate&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/image?repos=chaosblade-io/cloud-native-maturity-evaluate&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/image?repos=chaosblade-io/cloud-native-maturity-evaluate&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/image?repos=chaosblade-io/cloud-native-maturity-evaluate&type=date&legend=top-left" />
+ </picture>
+</a>
+</div>
+
 ---
 
 **SESORA** - 让云原生架构评估更简单、更专业
