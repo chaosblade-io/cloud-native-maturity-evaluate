@@ -37,3 +37,10 @@ PyYAML>=6.0.1
 
 # 环境变量管理
 python-dotenv>=1.0.0
+
+# Web API 框架
+fastapi>=0.109.0
+uvicorn>=0.27.0
+python-multipart>=0.0.6
+pydantic>=2.12.5
+python-dotenv>=1.2.2
