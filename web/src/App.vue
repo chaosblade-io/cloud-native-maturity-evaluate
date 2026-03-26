@@ -85,7 +85,7 @@ import { useRouter } from 'vue-router'
 const router = useRouter()
 
 const openApiDocs = () => {
-  window.open('http://localhost:8000/api/docs', '_blank')
+  window.open('/api/docs', '_blank')
 }
 
 const refreshPage = () => {
