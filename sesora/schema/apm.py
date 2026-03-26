@@ -4,12 +4,13 @@ APM (应用性能监控) 相关 DataItem Record 类型定义
 """
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional
+from typing import ClassVar, Optional
 
 
 @dataclass
 class ApmServiceRecord:
     """APM 服务记录"""
+    DATAITEM_NAME: ClassVar[str] = "apm.service.list"
     service_name: str
     app_id: str = ""
     pid: str = ""
@@ -25,6 +26,7 @@ class ApmServiceRecord:
 @dataclass
 class ApmTraceRecord:
     """APM 链路记录"""
+    DATAITEM_NAME: ClassVar[str] = "apm.trace.list"
     trace_id: str
     service_name: str
     operation_name: str
@@ -38,6 +40,7 @@ class ApmTraceRecord:
 @dataclass
 class ApmServiceDependencyRecord:
     """APM 服务依赖关系记录"""
+    DATAITEM_NAME: ClassVar[str] = "apm.service.dependency"
     source_service: str
     target_service: str
     call_type: str = "HTTP"  # HTTP/Dubbo/gRPC/MySQL/Redis
@@ -47,6 +50,7 @@ class ApmServiceDependencyRecord:
 @dataclass
 class ApmTopologyMetricsRecord:
     """APM 拓扑指标记录"""
+    DATAITEM_NAME: ClassVar[str] = "apm.topology.metrics"
     source_service: str
     target_service: str
     call_type: str  # HTTP/Dubbo/MySQL/Redis/etc.
@@ -60,6 +64,7 @@ class ApmTopologyMetricsRecord:
 @dataclass
 class ApmExternalDatabaseRecord:
     """APM 外部数据库调用记录"""
+    DATAITEM_NAME: ClassVar[str] = "apm.external.database"
     service_name: str
     db_type: str  # MySQL/Redis/MongoDB/PostgreSQL/etc.
     db_instance: str
@@ -72,6 +77,7 @@ class ApmExternalDatabaseRecord:
 @dataclass
 class ApmExternalMessageRecord:
     """APM 外部消息队列调用记录"""
+    DATAITEM_NAME: ClassVar[str] = "apm.external.message"
     service_name: str
     mq_type: str  # RocketMQ/Kafka/RabbitMQ/etc.
     topic_or_queue: str
@@ -85,6 +91,7 @@ class ApmExternalMessageRecord:
 @dataclass
 class ApmServiceDbMappingRecord:
     """APM 服务-数据库映射记录（用于分析数据架构模式）"""
+    DATAITEM_NAME: ClassVar[str] = "apm.service.db.mapping"
     service_name: str
     database_name: str  # 数据库名
     db_type: str = "MySQL"  # MySQL/Redis/MongoDB/etc.
@@ -98,6 +105,7 @@ class ApmServiceDbMappingRecord:
 @dataclass
 class ApmCoverageAnalysisRecord:
     """APM 覆盖率分析记录"""
+    DATAITEM_NAME: ClassVar[str] = "apm.coverage.analysis"
     total_services: int = 0  # 总服务数
     total_deployments: int = 0  # K8s 中的 Deployment 数量
     covered_services: int = 0  # 接入 APM 的服务数量
@@ -117,6 +125,7 @@ class ApmCoverageAnalysisRecord:
 @dataclass
 class ApmSamplingConfigRecord:
     """APM 链路采样配置记录"""
+    DATAITEM_NAME: ClassVar[str] = "apm.sampling.config"
     app_id: str = ""
     strategy: str = "probabilistic"  # probabilistic/tail-based/fixed
     sample_rate: float = 0.1  # 正常请求采样率

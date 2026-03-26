@@ -4,12 +4,13 @@ Policy as Code (策略即代码) 相关 DataItem Record 类型定义
 """
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Literal, Optional
+from typing import ClassVar, Literal, Optional
 
 
 @dataclass
 class KyvernoPolicyRecord:
     """Kyverno 策略记录"""
+    DATAITEM_NAME: ClassVar[str] = "k8s.kyverno.policy.list"
     name: str
     policy_type: str = "ClusterPolicy"  # ClusterPolicy/Policy
     namespace: str = ""  # 为空表示 ClusterPolicy
@@ -24,6 +25,7 @@ class KyvernoPolicyRecord:
 @dataclass
 class KyvernoPolicyViolationRecord:
     """Kyverno 策略违规记录"""
+    DATAITEM_NAME: ClassVar[str] = "k8s.kyverno.violation.list"
     policy_name: str
     rule_name: str
     resource_kind: str
@@ -37,6 +39,7 @@ class KyvernoPolicyViolationRecord:
 @dataclass
 class OpaConstraintTemplateRecord:
     """OPA Gatekeeper ConstraintTemplate 记录"""
+    DATAITEM_NAME: ClassVar[str] = "k8s.opa.constraint_template.list"
     name: str
     crd_kind: str  # 生成的 CRD 类型名称
     rego_code: str = ""  # Rego 策略代码
@@ -48,6 +51,7 @@ class OpaConstraintTemplateRecord:
 @dataclass
 class OpaConstraintRecord:
     """OPA Gatekeeper Constraint 记录"""
+    DATAITEM_NAME: ClassVar[str] = "k8s.opa.constraint.list"
     name: str
     constraint_kind: str  # 对应的 ConstraintTemplate kind
     enforcement_action: str = "deny"  # deny/dryrun/warn
@@ -61,6 +65,7 @@ class OpaConstraintRecord:
 @dataclass
 class OpaViolationRecord:
     """OPA Gatekeeper 违规记录"""
+    DATAITEM_NAME: ClassVar[str] = "k8s.opa.violation.list"
     constraint_name: str
     constraint_kind: str
     resource_kind: str

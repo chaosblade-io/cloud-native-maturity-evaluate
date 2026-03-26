@@ -4,12 +4,13 @@ ECS (云服务器) 相关 DataItem Record 类型定义
 """
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Literal, Optional
+from typing import ClassVar, Literal, Optional
 
 
 @dataclass
 class EcsInstanceRecord:
     """ECS 实例记录"""
+    DATAITEM_NAME: ClassVar[str] = "ecs.instance.list"
     instance_id: str
     instance_name: str
     instance_type: str  # ecs.g7.xlarge 等
@@ -38,6 +39,7 @@ class EcsInstanceRecord:
 @dataclass
 class EcsSecurityGroupRecord:
     """ECS 安全组记录"""
+    DATAITEM_NAME: ClassVar[str] = "ecs.security_group.list"
     security_group_id: str
     security_group_name: str
     vpc_id: str = ""
@@ -50,6 +52,7 @@ class EcsSecurityGroupRecord:
 @dataclass
 class EcsSecurityGroupRuleRecord:
     """ECS 安全组规则记录"""
+    DATAITEM_NAME: ClassVar[str] = "ecs.security_group_rule.list"
     security_group_id: str
     direction: Literal["ingress", "egress"]
     ip_protocol: str  # TCP/UDP/ICMP/GRE/ALL

@@ -4,12 +4,13 @@
 """
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Literal, Optional
+from typing import ClassVar, Literal, Optional
 
 
 @dataclass
 class ManualFallbackConfigRecord:
     """降级机制配置记录（ft_fallback）"""
+    DATAITEM_NAME: ClassVar[str] = "manual.fallback.config"
     service_name: str
     has_fallback: bool = False
     fallback_type: str = ""  # cache/default_value/simplified_flow/circuit_breaker
@@ -21,6 +22,7 @@ class ManualFallbackConfigRecord:
 @dataclass
 class ManualBulkheadConfigRecord:
     """舱壁模式配置记录（ft_bulkhead）"""
+    DATAITEM_NAME: ClassVar[str] = "manual.bulkhead.config"
     service_name: str
     has_bulkhead: bool = False
     thread_pool_isolation: bool = False  # 线程池隔离
@@ -33,6 +35,7 @@ class ManualBulkheadConfigRecord:
 @dataclass
 class ManualDrPlanRecord:
     """灾难恢复计划记录（dr_recovery_plan）"""
+    DATAITEM_NAME: ClassVar[str] = "manual.dr_plan"
     has_dr_plan: bool = False
     plan_document_url: str = ""  # 计划文档链接
     last_updated: Optional[datetime] = None
@@ -45,6 +48,7 @@ class ManualDrPlanRecord:
 @dataclass
 class ManualRtoRpoRecord:
     """RTO/RPO 定义记录（dr_rto_rpo_defined）"""
+    DATAITEM_NAME: ClassVar[str] = "manual.rto_rpo"
     service_name: str
     rto_defined: bool = False
     rto_minutes: int = 0  # 恢复时间目标（分钟）
@@ -57,6 +61,7 @@ class ManualRtoRpoRecord:
 @dataclass
 class ManualDrTestingRecord:
     """灾难恢复演练记录（dr_recovery_testing）"""
+    DATAITEM_NAME: ClassVar[str] = "manual.dr_testing"
     has_testing: bool = False
     last_test_date: Optional[datetime] = None
     test_type: str = ""  # tabletop/partial/full
@@ -70,6 +75,7 @@ class ManualDrTestingRecord:
 @dataclass
 class ManualDataConsistencyRecord:
     """数据一致性模型记录（data_consistency_model）"""
+    DATAITEM_NAME: ClassVar[str] = "manual.data_consistency"
     service_name: str
     consistency_model: str = ""  # strong/eventual/mixed
     uses_saga: bool = False  # 是否使用 Saga 模式
@@ -82,6 +88,7 @@ class ManualDataConsistencyRecord:
 @dataclass
 class ManualDataOwnershipRecord:
     """数据所有权记录（data_ownership_clear）"""
+    DATAITEM_NAME: ClassVar[str] = "manual.data_ownership"
     table_or_collection: str
     owner_service: str  # 唯一写入者
     read_only_services: list[str] = field(default_factory=list)  # 只读服务
@@ -92,6 +99,7 @@ class ManualDataOwnershipRecord:
 @dataclass
 class ManualDataMigrationRecord:
     """在线数据迁移能力记录（data_migration_strategy）"""
+    DATAITEM_NAME: ClassVar[str] = "manual.data_migration"
     has_capability: bool = False
     supports_dual_write: bool = False  # 支持双写
     supports_grayscale: bool = False  # 支持灰度切换
@@ -103,6 +111,7 @@ class ManualDataMigrationRecord:
 @dataclass
 class ManualConsistencyModelRecord:
     """一致性模型适配记录（sd_consistency_model）"""
+    DATAITEM_NAME: ClassVar[str] = "manual.consistency_model"
     has_assessment: bool = False  # 是否进行过评估
     strong_consistency_scenarios: list[str] = field(default_factory=list)  # 强一致性场景
     eventual_consistency_handled: bool = False  # 最终一致性场景是否已处理

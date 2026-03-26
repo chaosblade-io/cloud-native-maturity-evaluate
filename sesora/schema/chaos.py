@@ -4,12 +4,13 @@ Chaos Engineering (混沌工程) 相关 DataItem Record 类型定义
 """
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Literal, Optional
+from typing import ClassVar, Literal, Optional
 
 
 @dataclass
 class ChaosExperimentRecord:
     """混沌实验记录"""
+    DATAITEM_NAME: ClassVar[str] = "chaos.experiment.list"
     experiment_id: str
     experiment_name: str
     experiment_type: Literal["PodChaos", "NetworkChaos", "IOChaos", "StressChaos", 
@@ -27,6 +28,7 @@ class ChaosExperimentRecord:
 @dataclass
 class ChaosExperimentRunRecord:
     """混沌实验执行记录"""
+    DATAITEM_NAME: ClassVar[str] = "chaos.experiment_run.list"
     experiment_id: str
     run_id: str
     status: str = ""  # Running/Finished/Failed/Paused
@@ -40,6 +42,7 @@ class ChaosExperimentRunRecord:
 @dataclass
 class ChaosScheduleRecord:
     """混沌实验调度记录"""
+    DATAITEM_NAME: ClassVar[str] = "chaos.schedule.list"
     schedule_id: str
     schedule_name: str
     namespace: str
@@ -53,6 +56,7 @@ class ChaosScheduleRecord:
 @dataclass
 class ChaosWorkflowRecord:
     """混沌工作流记录（多个实验组合）"""
+    DATAITEM_NAME: ClassVar[str] = "chaos.workflow.list"
     workflow_id: str
     workflow_name: str
     namespace: str

@@ -4,12 +4,13 @@ SLS (日志服务) 相关 DataItem Record 类型定义
 """
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional
+from typing import ClassVar, Optional
 
 
 @dataclass
 class SlsLogstoreRecord:
     """SLS Logstore 记录"""
+    DATAITEM_NAME: ClassVar[str] = "sls.logstore.list"
     project_name: str
     logstore_name: str
     ttl: int  # 数据保存时间(天)
@@ -29,6 +30,7 @@ class SlsLogstoreRecord:
 @dataclass
 class SlsLogSampleRecord:
     """SLS 日志样本记录"""
+    DATAITEM_NAME: ClassVar[str] = "sls.log_sample.recent"
     project_name: str
     logstore_name: str
     timestamp: datetime
@@ -40,6 +42,7 @@ class SlsLogSampleRecord:
 @dataclass
 class SlsLogStructureAnalysisRecord:
     """SLS 日志结构分析记录"""
+    DATAITEM_NAME: ClassVar[str] = "sls.log_structure_analysis"
     project_name: str
     logstore_name: str
     sample_count: int = 100  # 采样数量
@@ -62,6 +65,7 @@ class SlsLogStructureAnalysisRecord:
 @dataclass
 class SlsIndexConfigRecord:
     """SLS 索引配置记录"""
+    DATAITEM_NAME: ClassVar[str] = "sls.index_config.list"
     project_name: str
     logstore_name: str
     index_enabled: bool = False
@@ -74,6 +78,7 @@ class SlsIndexConfigRecord:
 @dataclass
 class SlsQueryCapabilityRecord:
     """SLS 查询能力记录"""
+    DATAITEM_NAME: ClassVar[str] = "sls.query.capability"
     project_name: str
     logstore_name: str
     supports_realtime_query: bool = True  # 支持实时查询
@@ -87,6 +92,7 @@ class SlsQueryCapabilityRecord:
 @dataclass
 class SlsArchiveConfigRecord:
     """SLS 日志归档配置记录"""
+    DATAITEM_NAME: ClassVar[str] = "sls.archive_config.list"
     project_name: str
     logstore_name: str
     hot_ttl_days: int = 0  # 热存储保留天数

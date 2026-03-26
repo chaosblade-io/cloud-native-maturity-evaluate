@@ -3,7 +3,7 @@ K8s 相关 DataItem Record 类型定义
 """
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Literal, Optional, Any
+from typing import Any, ClassVar, Literal, Optional
 
 
 # ==================== K8s 工作负载 ====================
@@ -11,6 +11,7 @@ from typing import Literal, Optional, Any
 @dataclass
 class K8sDeploymentRecord:
     """K8s Deployment 记录"""
+    DATAITEM_NAME: ClassVar[str] = "k8s.deployment.list"
     namespace: str
     name: str
     replicas: int
@@ -26,6 +27,7 @@ class K8sDeploymentRecord:
 @dataclass
 class K8sStatefulSetRecord:
     """K8s StatefulSet 记录"""
+    DATAITEM_NAME: ClassVar[str] = "k8s.statefulset.list"
     namespace: str
     name: str
     replicas: int
@@ -51,6 +53,7 @@ class ContainerProbeConfig:
 @dataclass
 class K8sPodRecord:
     """K8s Pod 记录"""
+    DATAITEM_NAME: ClassVar[str] = "k8s.pod.list"
     namespace: str
     name: str
     status: str  # Running/Pending/Succeeded/Failed/Unknown
@@ -72,6 +75,7 @@ class K8sPodRecord:
 @dataclass
 class K8sPodProbesRecord:
     """K8s Pod 探针配置记录"""
+    DATAITEM_NAME: ClassVar[str] = "k8s.pod.probes"
     namespace: str
     pod_name: str
     container_name: str
@@ -83,6 +87,7 @@ class K8sPodProbesRecord:
 @dataclass
 class K8sCronJobRecord:
     """K8s CronJob 记录"""
+    DATAITEM_NAME: ClassVar[str] = "k8s.cronjob.list"
     namespace: str
     name: str
     schedule: str
@@ -187,6 +192,7 @@ class HpaMetric:
 @dataclass
 class K8sHpaRecord:
     """K8s HPA 记录"""
+    DATAITEM_NAME: ClassVar[str] = "k8s.hpa.list"
     namespace: str
     name: str
     min_replicas: int
@@ -200,6 +206,7 @@ class K8sHpaRecord:
 @dataclass
 class K8sVpaRecord:
     """K8s VPA 记录"""
+    DATAITEM_NAME: ClassVar[str] = "k8s.vpa.list"
     namespace: str
     name: str
     target_kind: str
@@ -216,6 +223,7 @@ class K8sVpaRecord:
 @dataclass
 class K8sAhpaMetricsRecord:
     """K8s AHPA (Advanced Horizontal Pod Autoscaler) 指标记录"""
+    DATAITEM_NAME: ClassVar[str] = "k8s.ahpa.metrics"
     namespace: str
     name: str
     prediction_enabled: bool = False
@@ -228,6 +236,7 @@ class K8sAhpaMetricsRecord:
 @dataclass
 class K8sServiceRecord:
     """K8s Service 记录"""
+    DATAITEM_NAME: ClassVar[str] = "k8s.service.list"
     namespace: str
     name: str
     type: str  # ClusterIP/NodePort/LoadBalancer/ExternalName
@@ -240,6 +249,7 @@ class K8sServiceRecord:
 @dataclass
 class K8sIngressRecord:
     """K8s Ingress 记录"""
+    DATAITEM_NAME: ClassVar[str] = "k8s.ingress.list"
     namespace: str
     name: str
     rules: list[dict] = field(default_factory=list)
@@ -252,6 +262,7 @@ class K8sIngressRecord:
 @dataclass
 class K8sNetworkPolicyRecord:
     """K8s NetworkPolicy 记录"""
+    DATAITEM_NAME: ClassVar[str] = "k8s.networkpolicy.list"
     namespace: str
     name: str
     pod_selector: dict = field(default_factory=dict)
@@ -265,6 +276,7 @@ class K8sNetworkPolicyRecord:
 @dataclass
 class K8sNamespaceRecord:
     """K8s Namespace 记录"""
+    DATAITEM_NAME: ClassVar[str] = "k8s.namespace.list"
     name: str
     status: str = "Active"
     labels: dict[str, str] = field(default_factory=dict)
@@ -275,6 +287,7 @@ class K8sNamespaceRecord:
 @dataclass
 class K8sNodeRecord:
     """K8s Node 记录"""
+    DATAITEM_NAME: ClassVar[str] = "k8s.node.list"
     name: str
     status: str
     capacity: dict[str, str] = field(default_factory=dict)
@@ -290,6 +303,7 @@ class K8sNodeRecord:
 @dataclass
 class K8sResourceQuotaRecord:
     """K8s ResourceQuota 记录"""
+    DATAITEM_NAME: ClassVar[str] = "k8s.resourcequota.list"
     namespace: str
     name: str
     hard: dict[str, str] = field(default_factory=dict)
@@ -299,6 +313,7 @@ class K8sResourceQuotaRecord:
 @dataclass
 class K8sPvRecord:
     """K8s PersistentVolume 记录"""
+    DATAITEM_NAME: ClassVar[str] = "k8s.pv.list"
     name: str
     capacity: str
     access_modes: list[str] = field(default_factory=list)
@@ -312,6 +327,7 @@ class K8sPvRecord:
 @dataclass
 class K8sEventRecord:
     """K8s Event 记录"""
+    DATAITEM_NAME: ClassVar[str] = "k8s.event.list"
     namespace: str
     name: str
     reason: str
@@ -327,6 +343,7 @@ class K8sEventRecord:
 @dataclass
 class K8sAuditLogRecord:
     """K8s 审计日志记录"""
+    DATAITEM_NAME: ClassVar[str] = "k8s.audit_log.recent"
     timestamp: datetime
     verb: str  # create/update/delete/patch/get/list/watch
     resource: str
@@ -343,6 +360,7 @@ class K8sAuditLogRecord:
 @dataclass
 class IstioDestinationRuleRecord:
     """Istio DestinationRule 记录"""
+    DATAITEM_NAME: ClassVar[str] = "k8s.istio.destination_rule.list"
     namespace: str
     name: str
     host: str
@@ -353,6 +371,7 @@ class IstioDestinationRuleRecord:
 @dataclass
 class IstioVirtualServiceRecord:
     """Istio VirtualService 记录"""
+    DATAITEM_NAME: ClassVar[str] = "k8s.istio.virtual_service.list"
     namespace: str
     name: str
     hosts: list[str] = field(default_factory=list)
@@ -366,6 +385,7 @@ class IstioVirtualServiceRecord:
 @dataclass
 class ArgoCdApplicationRecord:
     """ArgoCD Application 记录"""
+    DATAITEM_NAME: ClassVar[str] = "k8s.argocd.app.list"
     name: str
     namespace: str = "argocd"
     repo_url: str = ""
@@ -389,6 +409,7 @@ ArgoAppRecord = ArgoCdApplicationRecord
 @dataclass
 class IstioGatewayRecord:
     """Istio Gateway 记录"""
+    DATAITEM_NAME: ClassVar[str] = "k8s.istio.gateway.list"
     namespace: str
     name: str
     servers: list[dict] = field(default_factory=list)
@@ -398,6 +419,7 @@ class IstioGatewayRecord:
 @dataclass
 class FluxKustomizationRecord:
     """Flux Kustomization 记录"""
+    DATAITEM_NAME: ClassVar[str] = "k8s.flux.kustomization.list"
     namespace: str
     name: str
     source_ref: dict = field(default_factory=dict)
@@ -414,6 +436,7 @@ class FluxKustomizationRecord:
 @dataclass
 class K8sGatekeeperConstraintRecord:
     """OPA Gatekeeper Constraint 记录"""
+    DATAITEM_NAME: ClassVar[str] = "k8s.gatekeeper.constraint.list"
     namespace: str
     name: str
     kind: str  # Constraint 类型
@@ -428,6 +451,7 @@ class K8sGatekeeperConstraintRecord:
 @dataclass
 class K8sKyvernoPolicyRecord:
     """Kyverno Policy 记录"""
+    DATAITEM_NAME: ClassVar[str] = "k8s.kyverno.policy.native.list"
     namespace: str
     name: str
     policy_type: str = "ClusterPolicy"  # Policy/ClusterPolicy

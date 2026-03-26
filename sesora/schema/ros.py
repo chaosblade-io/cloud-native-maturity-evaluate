@@ -4,11 +4,12 @@ ROS (资源编排服务) 相关 DataItem Record 类型定义
 """
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional
+from typing import ClassVar, Optional
 
 @dataclass
 class RosStackDriftRecord:
     """ROS 堆栈漂移检测记录"""
+    DATAITEM_NAME: ClassVar[str] = "ros.stack.drift"
     stack_id: str
     stack_name: str
     drift_status: str  # IN_SYNC/DRIFTED/NOT_CHECKED
@@ -21,6 +22,7 @@ class RosStackDriftRecord:
 @dataclass
 class RosStackRecord:
     """ROS (资源编排服务) 堆栈记录"""
+    DATAITEM_NAME: ClassVar[str] = "ros.stack.list"
     stack_id: str
     stack_name: str
     status: str  # CREATE_COMPLETE/UPDATE_COMPLETE/etc.

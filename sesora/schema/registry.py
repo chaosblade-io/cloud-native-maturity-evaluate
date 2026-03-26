@@ -97,6 +97,7 @@ from .rds_oss import (
     OssBucketLifecycleRecord,
     AlbListenerRecord,
     GtmAddressPoolRecord,
+    TairInstanceModeRecord,
 )
 from .acr import (
     AcrRepositoryRecord,
@@ -245,6 +246,7 @@ DATAITEM_SCHEMA_REGISTRY: dict[str, type] = {
     "oss.bucket.lifecycle": OssBucketLifecycleRecord,
     "ros.stack.list": RosStackRecord,
     "ros.stack.drift": RosStackDriftRecord,
+    "tair.instance.mode.list": TairInstanceModeRecord, 
     
     # ==================== ALB/GTM ====================
     "alb.listener.list": AlbListenerRecord,

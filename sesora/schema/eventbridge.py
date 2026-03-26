@@ -4,12 +4,13 @@ EventBridge (事件总线) 相关 DataItem Record 类型定义
 """
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional
+from typing import ClassVar, Optional
 
 
 @dataclass
 class EventBridgeEventSourceRecord:
     """EventBridge 事件源记录"""
+    DATAITEM_NAME: ClassVar[str] = "eventbridge.source.list"
     event_source_name: str
     event_bus_name: str
     description: str = ""
@@ -35,6 +36,7 @@ EbEventSourceRecord = EventBridgeEventSourceRecord
 @dataclass
 class EventBridgeEventBusRecord:
     """EventBridge 事件总线记录"""
+    DATAITEM_NAME: ClassVar[str] = "eventbridge.bus.list"
     event_bus_name: str
     description: str = ""
     event_bus_type: str = "CloudService"  # CloudService/Custom
@@ -55,6 +57,7 @@ EbEventBusRecord = EventBridgeEventBusRecord
 @dataclass
 class EbEventRuleRecord:
     """EventBridge 事件规则记录"""
+    DATAITEM_NAME: ClassVar[str] = "eventbridge.rule.list"
     rule_name: str
     event_bus_name: str
     description: str = ""
@@ -67,6 +70,7 @@ class EbEventRuleRecord:
 @dataclass
 class EbEventTargetRecord:
     """EventBridge 事件目标记录"""
+    DATAITEM_NAME: ClassVar[str] = "eventbridge.target.list"
     target_id: str
     rule_name: str
     event_bus_name: str
@@ -81,6 +85,7 @@ class EbEventTargetRecord:
 @dataclass
 class EventBridgeSchemaRecord:
     """EventBridge Schema 记录"""
+    DATAITEM_NAME: ClassVar[str] = "eventbridge.schema.list"
     schema_name: str
     event_bus_name: str
     description: str = ""

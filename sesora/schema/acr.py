@@ -1,11 +1,12 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
+from typing import ClassVar, Optional
 
 
 @dataclass
 class AcrRepositoryRecord:
     """ACR 镜像仓库记录"""
+    DATAITEM_NAME: ClassVar[str] = "acr.repository.list"
 
     instance_id: str
     repo_id: str
@@ -20,6 +21,7 @@ class AcrRepositoryRecord:
 @dataclass
 class AcrImageRecord:
     """ACR 镜像记录"""
+    DATAITEM_NAME: ClassVar[str] = "acr.image.list"
 
     instance_id: str
     repo_id: str
@@ -33,6 +35,7 @@ class AcrImageRecord:
 @dataclass
 class AcrScanResultRecord:
     """ACR 镜像扫描结果记录"""
+    DATAITEM_NAME: ClassVar[str] = "acr.image_scan.list"
     instance_id: str
     repo_id: str
     tag: str

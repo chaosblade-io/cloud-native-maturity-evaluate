@@ -4,12 +4,13 @@ FC (函数计算) 相关 DataItem Record 类型定义
 """
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional
+from typing import ClassVar, Optional
 
 
 @dataclass
 class FcFunctionRecord:
     """FC 函数记录"""
+    DATAITEM_NAME: ClassVar[str] = "fc.function.list"
     function_name: str
     runtime: str  # python3.10/nodejs18/java11/etc.
     handler: str
@@ -33,6 +34,7 @@ class FcFunctionRecord:
 @dataclass
 class FcAliasRecord:
     """FC 别名记录"""
+    DATAITEM_NAME: ClassVar[str] = "fc.alias.list"
     alias_name: str
     version_id: str
     description: str = ""
@@ -44,6 +46,7 @@ class FcAliasRecord:
 @dataclass
 class FcVersionRecord:
     """FC 版本记录"""
+    DATAITEM_NAME: ClassVar[str] = "fc.version.list"
     function_name: str
     version_id: str
     description: str = ""
@@ -53,6 +56,7 @@ class FcVersionRecord:
 @dataclass
 class FcColdStartMetricRecord:
     """FC 冷启动指标记录"""
+    DATAITEM_NAME: ClassVar[str] = "fc.cold_start_metrics"
     function_name: str
     avg_cold_start_ms: float = 0.0  # 平均冷启动时间
     p99_cold_start_ms: float = 0.0  # P99 冷启动时间
@@ -63,6 +67,7 @@ class FcColdStartMetricRecord:
 @dataclass
 class FcProvisionedConcurrencyRecord:
     """FC 预留并发配置记录"""
+    DATAITEM_NAME: ClassVar[str] = "fc.provisioned_concurrency.config"
     function_name: str
     qualifier: str  # 版本或别名
     target: int = 0  # 目标预留并发数
@@ -73,6 +78,7 @@ class FcProvisionedConcurrencyRecord:
 @dataclass
 class FcObservabilityConfigRecord:
     """FC 可观测性配置记录"""
+    DATAITEM_NAME: ClassVar[str] = "fc.observability.config"
     function_name: str
     log_enabled: bool = False  # 是否开启日志
     log_project: str = ""  # SLS Project
@@ -86,6 +92,7 @@ class FcObservabilityConfigRecord:
 @dataclass
 class FcUsageSummaryRecord:
     """FC 使用情况汇总记录"""
+    DATAITEM_NAME: ClassVar[str] = "fc.usage.summary"
     total_functions: int = 0
     total_invocations_30d: int = 0  # 近 30 天调用量
     trigger_types: list[str] = field(default_factory=list)  # 使用的触发器类型
@@ -99,6 +106,7 @@ class FcUsageSummaryRecord:
 @dataclass
 class FcFunctionStatisticsRecord:
     """FC 函数统计记录"""
+    DATAITEM_NAME: ClassVar[str] = "fc.function.statistics"
     function_name: str
     invocation_count: int = 0  # 调用次数
     error_count: int = 0  # 错误次数

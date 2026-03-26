@@ -4,12 +4,13 @@ RDS/OSS/PolarDB/ROS 相关 DataItem Record 类型定义
 """
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Literal, Optional, Union
+from typing import ClassVar, Literal, Optional, Union
 
 
 @dataclass
 class RdsInstanceRecord:
     """RDS 实例记录"""
+    DATAITEM_NAME: ClassVar[str] = "rds.instance.list"
     db_instance_id: str
     db_instance_description: Optional[str] = ""
     db_instance_type: str = "Primary"  # Primary/Readonly
@@ -33,6 +34,7 @@ class RdsInstanceRecord:
 @dataclass
 class RdsBackupPolicyRecord:
     """RDS 备份策略记录"""
+    DATAITEM_NAME: ClassVar[str] = "rds.backup_policy.list"
     instance_id: str
     instance_type: Literal["MySQL", "PostgreSQL", "SQLServer", "MariaDB"] = "MySQL"
     backup_retention_period: int = 7  # 备份保留天数
@@ -49,6 +51,7 @@ class RdsBackupPolicyRecord:
 @dataclass
 class AlbListenerRecord:
     """ALB 监听器记录"""
+    DATAITEM_NAME: ClassVar[str] = "alb.listener.list"
     listener_id: str
     load_balancer_id: str
     listener_protocol: str  # HTTP/HTTPS/QUIC
@@ -63,6 +66,7 @@ class AlbListenerRecord:
 @dataclass
 class GtmAddressPoolRecord:
     """GTM (全局流量管理) 地址池记录"""
+    DATAITEM_NAME: ClassVar[str] = "gtm.address_pool.list"
     pool_id: str
     pool_name: str
     instance_id: str
@@ -76,6 +80,7 @@ class GtmAddressPoolRecord:
 @dataclass
 class RdsProxyRecord:
     """RDS 代理记录"""
+    DATAITEM_NAME: ClassVar[str] = "rds.proxy.list"
     instance_id: str
     status: Optional[str] = "Running"  # Running/Stopped/Creating
 
@@ -83,6 +88,7 @@ class RdsProxyRecord:
 @dataclass
 class OssBucketRecord:
     """OSS Bucket 记录"""
+    DATAITEM_NAME: ClassVar[str] = "oss.bucket.list"
     bucket_name: str
     location: str = ""
     storage_class: str = "Standard"  # Standard/IA/Archive/ColdArchive
@@ -96,6 +102,7 @@ class OssBucketRecord:
 @dataclass
 class OssBucketLifecycleRecord:
     """OSS Bucket 生命周期规则记录"""
+    DATAITEM_NAME: ClassVar[str] = "oss.bucket.lifecycle"
     bucket_name: str
     rule_id: str
     status: Literal["Enabled", "Disabled"]
@@ -119,6 +126,7 @@ class OssBucketLifecycleRecord:
 @dataclass
 class TairInstanceModeRecord:
     """Tair/Redis 实例模式记录"""
+    DATAITEM_NAME: ClassVar[str] = "tair.instance_mode.list"
     instance_id: str
     instance_name: str
     architecture_type: str  # cluster/standard/rwsplit

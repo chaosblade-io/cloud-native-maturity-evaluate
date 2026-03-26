@@ -4,12 +4,13 @@ CMS (云监控) 相关 DataItem Record 类型定义
 """
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Literal, Optional
+from typing import ClassVar, Literal, Optional
 
 
 @dataclass
 class CmsAlarmRuleRecord:
     """CMS 告警规则记录"""
+    DATAITEM_NAME: ClassVar[str] = "cms.alarm_rule.list"
     rule_id: str
     rule_name: str
     namespace: str  # acs_ecs_dashboard/acs_rds_dashboard/etc.
@@ -28,6 +29,7 @@ class CmsAlarmRuleRecord:
 @dataclass
 class CmsContactRecord:
     """CMS 联系人记录"""
+    DATAITEM_NAME: ClassVar[str] = "cms.alarm_contact.list"
     contact_name: str
     channels: list[str] = field(default_factory=list)  # SMS/Email/DingTalk
     phone: Optional[str] = None
@@ -39,6 +41,7 @@ class CmsContactRecord:
 @dataclass
 class CmsContactGroupRecord:
     """CMS 联系组记录"""
+    DATAITEM_NAME: ClassVar[str] = "cms.contact_group.list"
     group_name: str
     contacts: list[str] = field(default_factory=list)  # 联系人名称列表
     enable_subscribed: bool = False
@@ -48,6 +51,7 @@ class CmsContactGroupRecord:
 @dataclass
 class CmsAlarmSloRecord:
     """CMS 告警规则 SLO 分析记录"""
+    DATAITEM_NAME: ClassVar[str] = "cms.alarm_rule.slo_analysis"
     rule_id: str
     rule_name: str
     is_slo_based: bool = False  # 是否基于 SLO
@@ -60,6 +64,7 @@ class CmsAlarmSloRecord:
 @dataclass
 class CmsAlarmChannelSummaryRecord:
     """CMS 告警通道汇总记录"""
+    DATAITEM_NAME: ClassVar[str] = "cms.alarm_channel.summary"
     total_contacts: int = 0
     channel_types: list[str] = field(default_factory=list)  # SMS/Email/DingTalk/Phone/Webhook
     channel_count: int = 0  # 通道类型数量
@@ -73,6 +78,7 @@ class CmsAlarmChannelSummaryRecord:
 @dataclass
 class CmsEventTriggerRecord:
     """云监控事件触发器记录"""
+    DATAITEM_NAME: ClassVar[str] = "cms.event_trigger.list"
     trigger_name: str
     enabled: bool = True
 
@@ -80,6 +86,7 @@ class CmsEventTriggerRecord:
 @dataclass
 class CmsAlarmHistoryRecord:
     """云监控告警历史记录"""
+    DATAITEM_NAME: ClassVar[str] = "cms.alarm.history"
     alarm_id: str
     alarm_name: str
     rule_id: str

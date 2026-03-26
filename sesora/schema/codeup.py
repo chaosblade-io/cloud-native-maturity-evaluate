@@ -4,12 +4,13 @@ Codeup (云效代码仓库) 相关 DataItem Record 类型定义
 """
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Literal, Optional
+from typing import ClassVar, Literal, Optional
 
 
 @dataclass
 class CodeupPipelineRecord:
     """Codeup 流水线记录"""
+    DATAITEM_NAME: ClassVar[str] = "codeup.pipeline.list"
     pipeline_id: str
     name: str
     repo_id: str
@@ -19,6 +20,7 @@ class CodeupPipelineRecord:
 @dataclass
 class CodeupRepoRecord:
     """Codeup 仓库记录"""
+    DATAITEM_NAME: ClassVar[str] = "codeup.repo.list"
     repo_id: str
     repo_name: str
     namespace: str = ""
@@ -30,6 +32,7 @@ class CodeupRepoRecord:
 @dataclass
 class CodeupPipelineMetricsRecord:
     """Codeup 流水线指标记录"""
+    DATAITEM_NAME: ClassVar[str] = "codeup.pipeline.metrics"
     pipeline_id: str
     pipeline_name: str
     run_count_30d: int = 0
@@ -42,6 +45,7 @@ class CodeupPipelineMetricsRecord:
 @dataclass
 class CodeupPipelineRunRecord:
     """Codeup 流水线运行记录"""
+    DATAITEM_NAME: ClassVar[str] = "codeup.pipeline.runs"
     pipeline_id: str
     pipeline_name: str
     run_id: str
@@ -56,6 +60,7 @@ class CodeupPipelineRunRecord:
 @dataclass
 class CodeupRepoFileTreeRecord:
     """Codeup 仓库文件树记录"""
+    DATAITEM_NAME: ClassVar[str] = "codeup.repo.file_tree"
     repo_id: str
     repo_name: str
     path: str
@@ -66,6 +71,7 @@ class CodeupRepoFileTreeRecord:
 @dataclass
 class CodeupCommitRecord:
     """Codeup 提交记录"""
+    DATAITEM_NAME: ClassVar[str] = "codeup.commit.list"
     repo_id: str
     commit_id: str
     message: str
@@ -82,6 +88,7 @@ class CodeupCommitRecord:
 @dataclass
 class CodeupPipelineConfigRecord:
     """Codeup 流水线配置记录"""
+    DATAITEM_NAME: ClassVar[str] = "codeup.pipeline.config"
     pipeline_id: str
     pipeline_name: str
     repo_id: str
@@ -96,6 +103,7 @@ class CodeupPipelineConfigRecord:
 @dataclass
 class CodeupFileCommitRecord:
     """Codeup 文件最近提交记录"""
+    DATAITEM_NAME: ClassVar[str] = "codeup.file.commits"
     repo_id: str
     file_path: str
     commit_id: str
@@ -109,6 +117,7 @@ class CodeupFileCommitRecord:
 @dataclass
 class CodeupPipelineStageRecord:
     """Codeup 流水线阶段记录"""
+    DATAITEM_NAME: ClassVar[str] = "codeup.pipeline.stages"
     pipeline_id: str
     stage_name: str
     stage_type: list[str]  # build/test/deploy/security_scan/manual_gate
@@ -124,6 +133,7 @@ class CodeupPipelineStageRecord:
 @dataclass
 class CodeupRepoTagRecord:
     """Codeup 仓库标签记录"""
+    DATAITEM_NAME: ClassVar[str] = "codeup.repo.tags"
     repo_id: str
     tag_name: str
     commit_id: str
@@ -136,6 +146,7 @@ class CodeupRepoTagRecord:
 @dataclass
 class CodeupBranchRecord:
     """Codeup 分支记录"""
+    DATAITEM_NAME: ClassVar[str] = "codeup.branch.list"
     repo_id: str
     branch_name: str
     is_protected: bool = False

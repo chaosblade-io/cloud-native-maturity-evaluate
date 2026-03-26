@@ -4,12 +4,13 @@ Grafana 可视化相关 DataItem Record 类型定义
 """
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Literal, Optional
+from typing import ClassVar, Literal, Optional
 
 
 @dataclass
 class GrafanaDashboardRecord:
     """Grafana 仪表盘记录"""
+    DATAITEM_NAME: ClassVar[str] = "grafana.dashboard.list"
     uid: str
     title: str
     folder_id: int = 0
@@ -33,6 +34,7 @@ class GrafanaDashboardRecord:
 @dataclass
 class GrafanaFolderRecord:
     """Grafana 文件夹记录（用于角色视图）"""
+    DATAITEM_NAME: ClassVar[str] = "grafana.folder.list"
     id: int
     uid: str
     title: str
@@ -44,6 +46,7 @@ class GrafanaFolderRecord:
 @dataclass
 class GrafanaDashboardAnalysisRecord:
     """Grafana 仪表盘分析汇总记录"""
+    DATAITEM_NAME: ClassVar[str] = "grafana.dashboard.analysis"
     total_dashboards: int = 0
     system_dashboards: int = 0  # 系统指标仪表盘
     app_dashboards: int = 0  # 应用指标仪表盘
