@@ -1,0 +1,86 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sesora
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sesora
+  namespace: sesora
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: sesora
+  template:
+    metadata:
+      labels:
+        app: sesora
+    spec:
+      containers:
+        - name: api
+          image: sesora-api:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - secretRef:
+                name: sesora-env
+          ports:
+            - containerPort: 8000
+              name: api-http
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: api-http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: api-http
+            initialDelaySeconds: 20
+            periodSeconds: 20
+        - name: web
+          image: sesora-web:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: BACKEND_HOST
+              value: 127.0.0.1
+            - name: BACKEND_PORT
+              value: "8000"
+          ports:
+            - containerPort: 80
+              name: web-http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: web-http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: web-http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sesora
+  namespace: sesora
+spec:
+  selector:
+    app: sesora
+  ports:
+    - name: http
+      port: 80
+      targetPort: web-http
