@@ -207,10 +207,12 @@ class SdUsageLevelAnalyzer(Analyzer):
         return 7
 
     def required_data(self) -> list[str]:
-        return ["rds.instance.mode.list"]
+        # return ["rds.instance.mode.list"]
+        return ["tair.instance.mode.list"]
 
     def optional_data(self) -> list[str]:
-        return ["tair.instance.mode.list"]
+        # return ["tair.instance.mode.list"]
+        return []
 
     def analyze(self, store) -> ScoreResult:
         score = 0.0
