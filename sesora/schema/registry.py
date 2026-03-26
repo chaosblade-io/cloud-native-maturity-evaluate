@@ -115,7 +115,6 @@ from .policy import (
     OpaConstraintTemplateRecord,
     OpaConstraintRecord,
     OpaViolationRecord,
-    PolicyEnforcementSummaryRecord,
 )
 from .grafana import (
     GrafanaDashboardRecord,
@@ -123,7 +122,6 @@ from .grafana import (
     GrafanaDashboardAnalysisRecord,
 )
 from .manual import (
-    ManualQuestionnaireRecord,
     ManualFallbackConfigRecord,
     ManualBulkheadConfigRecord,
     ManualDrPlanRecord,
@@ -132,7 +130,6 @@ from .manual import (
     ManualDataConsistencyRecord,
     ManualDataOwnershipRecord,
     ManualDataMigrationRecord,
-    ManualConfigManagementRecord,
     ManualConsistencyModelRecord,
 )
 from .ecs import (
@@ -267,7 +264,6 @@ DATAITEM_SCHEMA_REGISTRY: dict[str, type] = {
     "chaos.workflow.list": ChaosWorkflowRecord,
 
     # ==================== Policy as Code ====================
-    "policy.enforcement.summary": PolicyEnforcementSummaryRecord,
     "k8s.kyverno.policy.list": KyvernoPolicyRecord,
     "k8s.kyverno.violation.list": KyvernoPolicyViolationRecord,
     "k8s.opa.constraint_template.list": OpaConstraintTemplateRecord,
@@ -280,7 +276,6 @@ DATAITEM_SCHEMA_REGISTRY: dict[str, type] = {
     "grafana.dashboard.analysis": GrafanaDashboardAnalysisRecord,
 
     # ==================== Manual/Questionnaire ====================
-    "manual.questionnaire": ManualQuestionnaireRecord,
     "manual.fallback.config": ManualFallbackConfigRecord,
     "manual.bulkhead.config": ManualBulkheadConfigRecord,
     "manual.dr_plan": ManualDrPlanRecord,
@@ -289,7 +284,6 @@ DATAITEM_SCHEMA_REGISTRY: dict[str, type] = {
     "manual.data_consistency": ManualDataConsistencyRecord,
     "manual.data_ownership": ManualDataOwnershipRecord,
     "manual.data_migration": ManualDataMigrationRecord,
-    "manual.config_management": ManualConfigManagementRecord,
     "manual.consistency_model": ManualConsistencyModelRecord,
     
     # ==================== ECS ====================

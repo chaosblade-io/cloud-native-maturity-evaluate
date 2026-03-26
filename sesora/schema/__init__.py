@@ -144,7 +144,6 @@ __all__ = [
     "OpaConstraintTemplateRecord",
     "OpaConstraintRecord",
     "OpaViolationRecord",
-    "PolicyEnforcementSummaryRecord",
     
     # ==================== Grafana ====================
     "GrafanaDashboardRecord",
@@ -152,7 +151,6 @@ __all__ = [
     "GrafanaDashboardAnalysisRecord",
     
     # ==================== Manual/Questionnaire ====================
-    "ManualQuestionnaireRecord",
     "ManualFallbackConfigRecord",
     "ManualBulkheadConfigRecord",
     "ManualDrPlanRecord",
@@ -161,7 +159,6 @@ __all__ = [
     "ManualDataConsistencyRecord",
     "ManualDataOwnershipRecord",
     "ManualDataMigrationRecord",
-    "ManualConfigManagementRecord",
     
     # ==================== ROS ====================
     "RosStackRecord",
