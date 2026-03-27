@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Any, List
 from abc import ABC, abstractmethod
+from sesora.core.dataitem import SourceStatus
 from sesora.core.dataitem import DataSource
 
 
@@ -11,12 +12,12 @@ class CollectorBase(ABC):
         pass
 
     def collect(self) -> DataSource:
-        status = "ok"
+        status = SourceStatus.OK
         records = []
         try:
             records = self._collect()
         except Exception as e:
-            status = "error"
+            status = SourceStatus.ERROR
             print(f"Error collecting data for {self.name()}: {e}")
         return DataSource(
             collector=self.name(),

@@ -44,7 +44,7 @@ PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from sesora.collectors.generic_collector import GenericCollector
-from sesora.core.dataitem import DataSource
+from sesora.core.dataitem import DataSource, SourceStatus
 from sesora.store.sqlite_store import SQLiteDataStore
 
 
@@ -234,7 +234,7 @@ def save_to_database(data_source: DataSource, db_path: Path) -> None:
             source = DataSource(
                 collector=data_source.collector,
                 collected_at=data_source.collected_at,
-                status="ok",
+                status=SourceStatus.OK,
                 records=records,
             )
             store.put(item_name, source)
@@ -460,7 +460,7 @@ def main():
     print(f"总记录数: {len(data_source.records)}")
     
     # 保存到数据库
-    if data_source.status in ("ok", "partial"):
+    if data_source.status == SourceStatus.OK:
         save_to_database(data_source, db_path)
     else:
         print("\n采集失败，不保存数据")

@@ -33,7 +33,7 @@ load_dotenv(dotenv_path=env_path, override=True)
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from sesora.core.context import AssessmentContext
-from sesora.core.dataitem import DataSource
+from sesora.core.dataitem import DataSource, SourceStatus
 from sesora.store.sqlite_store import SQLiteDataStore
 from sesora.schema import CodeupFileCommitRecord
 
@@ -468,7 +468,7 @@ def save_to_database(data_source: DataSource, db_path: Path, source_type: str) -
                 source = DataSource(
                     collector=data_source.collector,
                     collected_at=data_source.collected_at,
-                    status="ok",
+                    status=SourceStatus.OK,
                     records=records,
                 )
                 store.put(item_name, source)
@@ -502,7 +502,7 @@ def collect_codeup(context: AssessmentContext, db_path: Path) -> bool:
 
     print_summary(data_source, 'codeup')
 
-    if data_source.status == "ok" and data_source.records:
+    if data_source.status == SourceStatus.OK and data_source.records:
         save_to_database(data_source, db_path, 'codeup')
         return True
     else:
@@ -527,7 +527,7 @@ def collect_fc(context: AssessmentContext, db_path: Path) -> bool:
 
     print_summary(data_source, 'fc')
 
-    if data_source.status == "ok" and data_source.records:
+    if data_source.status == SourceStatus.OK and data_source.records:
         save_to_database(data_source, db_path, 'fc')
         return True
     else:
@@ -552,7 +552,7 @@ def collect_ack(context: AssessmentContext, db_path: Path) -> bool:
 
     print_summary(data_source, 'ack')
 
-    if data_source.status == "ok" and data_source.records:
+    if data_source.status == SourceStatus.OK and data_source.records:
         save_to_database(data_source, db_path, 'ack')
         return True
     else:
@@ -577,7 +577,7 @@ def collect_sls(context: AssessmentContext, db_path: Path) -> bool:
 
     print_summary(data_source, 'sls')
 
-    if data_source.status == "ok" and data_source.records:
+    if data_source.status == SourceStatus.OK and data_source.records:
         save_to_database(data_source, db_path, 'sls')
         return True
     else:
@@ -602,7 +602,7 @@ def collect_rds(context: AssessmentContext, db_path: Path) -> bool:
 
     print_summary(data_source, 'rds')
 
-    if data_source.status == "ok" and data_source.records:
+    if data_source.status == SourceStatus.OK and data_source.records:
         save_to_database(data_source, db_path, 'rds')
         return True
     else:
@@ -627,7 +627,7 @@ def collect_cms(context: AssessmentContext, db_path: Path) -> bool:
 
     print_summary(data_source, 'cms')
 
-    if data_source.status == "ok" and data_source.records:
+    if data_source.status == SourceStatus.OK and data_source.records:
         save_to_database(data_source, db_path, 'cms')
         return True
     else:
@@ -652,7 +652,7 @@ def collect_ros(context: AssessmentContext, db_path: Path) -> bool:
 
     print_summary(data_source, 'ros')
 
-    if data_source.status == "ok" and data_source.records:
+    if data_source.status == SourceStatus.OK and data_source.records:
         save_to_database(data_source, db_path, 'ros')
         return True
     else:
@@ -677,7 +677,7 @@ def collect_oss(context: AssessmentContext, db_path: Path) -> bool:
 
     print_summary(data_source, 'oss')
 
-    if data_source.status == "ok" and data_source.records:
+    if data_source.status == SourceStatus.OK and data_source.records:
         save_to_database(data_source, db_path, 'oss')
         return True
     else:
@@ -702,7 +702,7 @@ def collect_arms(context: AssessmentContext, db_path: Path) -> bool:
 
     print_summary(data_source, 'arms')
 
-    if data_source.status == "ok" and data_source.records:
+    if data_source.status == SourceStatus.OK and data_source.records:
         save_to_database(data_source, db_path, 'arms')
         return True
     else:
@@ -727,7 +727,7 @@ def collect_acr(context: AssessmentContext, db_path: Path) -> bool:
 
     print_summary(data_source, 'acr')
 
-    if data_source.status == "ok" and data_source.records:
+    if data_source.status == SourceStatus.OK and data_source.records:
         save_to_database(data_source, db_path, 'acr')
         return True
     else:
@@ -752,7 +752,7 @@ def collect_alb(context: AssessmentContext, db_path: Path) -> bool:
 
     print_summary(data_source, 'alb')
 
-    if data_source.status == "ok" and data_source.records:
+    if data_source.status == SourceStatus.OK and data_source.records:
         save_to_database(data_source, db_path, 'alb')
         return True
     else:
@@ -783,7 +783,7 @@ def collect_ecs(context: AssessmentContext, db_path: Path) -> bool:
 
     print_summary(data_source, 'ecs')
 
-    if data_source.status == "ok" and data_source.records:
+    if data_source.status == SourceStatus.OK and data_source.records:
         save_to_database(data_source, db_path, 'ecs')
         return True
     else:
@@ -808,7 +808,7 @@ def collect_eventbridge(context: AssessmentContext, db_path: Path) -> bool:
 
     print_summary(data_source, 'eventbridge')
 
-    if data_source.status == "ok" and data_source.records:
+    if data_source.status == SourceStatus.OK and data_source.records:
         save_to_database(data_source, db_path, 'eventbridge')
         return True
     else:
@@ -841,7 +841,7 @@ def collect_grafana(context: AssessmentContext, db_path: Path) -> bool:
 
     print_summary(data_source, 'grafana')
 
-    if data_source.status == "ok" and data_source.records:
+    if data_source.status == SourceStatus.OK and data_source.records:
         save_to_database(data_source, db_path, 'grafana')
         return True
     else:
@@ -866,7 +866,7 @@ def collect_gtm(context: AssessmentContext, db_path: Path) -> bool:
 
     print_summary(data_source, 'gtm')
 
-    if data_source.status == "ok" and data_source.records:
+    if data_source.status == SourceStatus.OK and data_source.records:
         save_to_database(data_source, db_path, 'gtm')
         return True
     else:
@@ -891,7 +891,7 @@ def collect_tair(context: AssessmentContext, db_path: Path) -> bool:
 
     print_summary(data_source, 'tair')
 
-    if data_source.status == "ok" and data_source.records:
+    if data_source.status == SourceStatus.OK and data_source.records:
         save_to_database(data_source, db_path, 'tair')
         return True
     else:

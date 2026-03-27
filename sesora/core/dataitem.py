@@ -5,6 +5,12 @@ DataItem 基础数据类定义
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Literal
+from enum import Enum
+
+
+class SourceStatus(str, Enum):
+    OK = "ok"
+    ERROR = "error"
 
 
 @dataclass
@@ -15,12 +21,12 @@ class DataSource:
     Attributes:
         collector: 采集器名称
         collected_at: 采集时间
-        status: 采集状态 (ok/error/not_configured)
+        status: 采集状态
         records: 采集到的记录列表，实际类型由各 DataItem Schema 约束
     """
     collector: str
     collected_at: datetime
-    status: str
+    status: SourceStatus
     records: list[Any] = field(default_factory=list)
 
 

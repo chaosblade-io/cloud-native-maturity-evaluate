@@ -41,7 +41,7 @@ async def upload_mock_data(file: UploadFile = File(...)):
         
         # 导入数据
         from sesora.collectors.generic_collector import GenericCollector
-        from sesora.core.dataitem import DataSource
+        from sesora.core.dataitem import DataSource, SourceStatus
         from sesora.store.sqlite_store import SQLiteDataStore
         from sesora.schema.registry import DATAITEM_SCHEMA_REGISTRY
         
@@ -71,7 +71,7 @@ async def upload_mock_data(file: UploadFile = File(...)):
                 source = DataSource(
                     collector="web_upload",
                     collected_at=datetime.now(),
-                    status="ok",
+                    status=SourceStatus.OK,
                     records=records,
                 )
                 store.put(item_name, source)

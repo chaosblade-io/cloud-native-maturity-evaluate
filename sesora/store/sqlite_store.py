@@ -134,7 +134,7 @@ class SQLiteDataStore(DataStore):
             CREATE TABLE IF NOT EXISTS data_sources (
                 item_name TEXT,
                 collector TEXT,
-                status TEXT CHECK(status IN ('ok', 'error', 'not_configured')),
+                    status TEXT CHECK(status IN ('ok', 'error')),
                 collected_at INTEGER,
                 records_json TEXT,
                 PRIMARY KEY (item_name, collector),
@@ -233,7 +233,7 @@ class SQLiteDataStore(DataStore):
         cursor = self._conn.cursor()
         cursor.execute("""
             SELECT status FROM data_sources 
-            WHERE item_name = ? AND status = 'ok'
+                WHERE item_name = ? AND status = 'ok'
             LIMIT 1
         """, (name,))
         
