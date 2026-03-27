@@ -2,10 +2,15 @@ import json
 import logging
 import re
 import yaml
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import List, Optional
 
-from sesora.core.context import AssessmentContext
+from alibabacloud_credentials.client import Client as CredentialClient
+from alibabacloud_devops20210625.client import Client as DevOpsClient
+from alibabacloud_tea_openapi import models as open_api_models
+from alibabacloud_devops20210625 import models as devops_models
+
 from sesora.core.collector import CollectorBase
 from sesora.core.dataitem import DataSource
 from sesora.schema.codeup import (
@@ -22,24 +27,29 @@ from sesora.schema.codeup import (
     CodeupFileCommitRecord,
 )
 
-from alibabacloud_devops20210625.client import Client as DevOpsClient
-from alibabacloud_tea_openapi import models as open_api_models
-from alibabacloud_devops20210625 import models as devops_models
-
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class CodeupCollectorConfig:
+    """Codeup Collector 配置"""
+    aliyun_credentials: Optional[CredentialClient] = None
+    yunxiao_token: str = ""
+    codeup_org_id: str = ""
+    codeup_project_name: str = ""
+
+
 class CodeupCollector(CollectorBase):
-    def __init__(self, context: AssessmentContext):
-        self.context = context
-        self.token = self.context.yunxiao_token
+    def __init__(self, config: CodeupCollectorConfig):
+        self.config = config
+        self.token = config.yunxiao_token
         self.domain = "openapi-rdc.aliyuncs.com"
         # TODO: remove this project filter
-        self.project = context.codeup_project_name
+        self.project = config.codeup_project_name
         self.client = self._create_client()
 
     def _create_client(self) -> DevOpsClient:
-        creds = self.context.aliyun_credentials
+        creds = self.config.aliyun_credentials
         config = open_api_models.Config(
             credential=creds,
             protocol="https",
