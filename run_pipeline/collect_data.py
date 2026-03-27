@@ -19,11 +19,11 @@ from sesora.collectors.eventbridge_collector import EventBridgeCollector, EventB
 from sesora.collectors.fc_collector import FCCollector, FCCollectorConfig
 from sesora.collectors.grafana_collector import GrafanaCollector, GrafanaCollectorConfig
 from sesora.collectors.gtm_collector import GTMCollector, GTMCollectorConfig
-from sesora.collectors.rds_collector import RDSCollector
+from sesora.collectors.rds_collector import RDSCollector, RDSCollectorConfig
 from sesora.collectors.oss_collector import OSSCollector, OSSCollectorConfig
-from sesora.collectors.ros_collector import ROSCollector
-from sesora.collectors.sls_collector import SLSCollector
-from sesora.collectors.tair_collector import TairCollector
+from sesora.collectors.ros_collector import ROSCollector, ROSCollectorConfig
+from sesora.collectors.sls_collector import SLSCollector, SLSCollectorConfig
+from sesora.collectors.tair_collector import TairCollector, TairCollectorConfig
 
 PROJECT_ROOT = Path(__file__).parent.parent
 env_path = PROJECT_ROOT / ".env"
@@ -587,7 +587,13 @@ def collect_sls(context: AssessmentContext, db_path: Path) -> bool:
     print("开始采集 SLS 数据...")
     print("=" * 60)
 
-    collector = SLSCollector(context)
+    # 创建 SLSCollectorConfig
+    config = SLSCollectorConfig(
+        aliyun_credentials=context.aliyun_credentials,
+        sls_project=context.sls_project,
+        sls_region=context.sls_region or context.region,
+    )
+    collector = SLSCollector(config)
 
     start_time = datetime.now()
     data_source = collector.collect()
@@ -612,7 +618,14 @@ def collect_rds(context: AssessmentContext, db_path: Path) -> bool:
     print("开始采集 RDS 数据...")
     print("=" * 60)
 
-    collector = RDSCollector(context)
+    # 创建 RDSCollectorConfig
+    config = RDSCollectorConfig(
+        aliyun_credentials=context.aliyun_credentials,
+        region=context.region,
+        rds_region=context.rds_region,
+        rds_instance_ids=context.rds_instance_ids,
+    )
+    collector = RDSCollector(config)
 
     start_time = datetime.now()
     data_source = collector.collect()
@@ -666,7 +679,14 @@ def collect_ros(context: AssessmentContext, db_path: Path) -> bool:
     print("开始采集 ROS 数据...")
     print("=" * 60)
 
-    collector = ROSCollector(context)
+    # 创建 ROSCollectorConfig
+    config = ROSCollectorConfig(
+        aliyun_credentials=context.aliyun_credentials,
+        region=context.region,
+        ros_region=context.ros_region,
+        ros_stack_name=context.ros_stack_name,
+    )
+    collector = ROSCollector(config)
 
     start_time = datetime.now()
     data_source = collector.collect()
@@ -952,7 +972,13 @@ def collect_tair(context: AssessmentContext, db_path: Path) -> bool:
     print("开始采集 Tair/Redis 数据...")
     print("=" * 60)
 
-    collector = TairCollector(context)
+    # 创建 TairCollectorConfig
+    config = TairCollectorConfig(
+        aliyun_credentials=context.aliyun_credentials,
+        region=context.region,
+        tair_instance_ids=context.tair_instance_ids,
+    )
+    collector = TairCollector(config)
 
     start_time = datetime.now()
     data_source = collector.collect()

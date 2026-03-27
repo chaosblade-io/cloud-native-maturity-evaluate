@@ -1,12 +1,13 @@
 import logging
+from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Optional
 
+from alibabacloud_credentials.client import Client as CredentialClient
 from alibabacloud_r_kvstore20150101.client import Client as RKvstoreClient
 from alibabacloud_r_kvstore20150101 import models as kvstore_models
 from alibabacloud_tea_openapi import models as open_api_models
 
-from sesora.core.context import AssessmentContext
 from sesora.core.collector import CollectorBase
 from sesora.core.dataitem import DataSource
 from sesora.schema.rds_oss import TairInstanceModeRecord
@@ -14,17 +15,29 @@ from sesora.schema.rds_oss import TairInstanceModeRecord
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class TairCollectorConfig:
+    """Tair Collector 配置"""
+    aliyun_credentials: Optional[CredentialClient] = None
+    region: str = ""
+    tair_instance_ids: List[str] = None
+
+    def __post_init__(self):
+        if self.tair_instance_ids is None:
+            self.tair_instance_ids = []
+
+
 class TairCollector(CollectorBase):
     def __init__(
-        self, context: AssessmentContext, instance_ids: Optional[List[str]] = None
+        self, config: TairCollectorConfig, instance_ids: Optional[List[str]] = None
     ):
-        self.context = context
-        self.region = context.region
+        self.config = config
+        self.region = config.region
         self.instance_ids = instance_ids
         self.client = self._create_client()
 
     def _create_client(self) -> RKvstoreClient:
-        creds = self.context.aliyun_credentials
+        creds = self.config.aliyun_credentials
         config = open_api_models.Config(
             credential=creds,
             endpoint=f"r-kvstore.{self.region}.aliyuncs.com",
@@ -38,9 +51,9 @@ class TairCollector(CollectorBase):
         if self.instance_ids:
             return self.instance_ids
 
-        # 其次使用 context 中的 tair_instance_ids 列表
-        if hasattr(self.context, 'tair_instance_ids') and self.context.tair_instance_ids:
-            return self.context.tair_instance_ids
+        # 其次使用 config 中的 tair_instance_ids 列表
+        if self.config.tair_instance_ids:
+            return self.config.tair_instance_ids
 
         return []
 

@@ -1,11 +1,12 @@
 import logging
+from dataclasses import dataclass
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
+from alibabacloud_credentials.client import Client as CredentialClient
 from alibabacloud_ros20190910.client import Client as RosClient
 from alibabacloud_tea_openapi import models as open_api_models
 
-from sesora.core.context import AssessmentContext
 from sesora.core.collector import CollectorBase
 from sesora.core.dataitem import DataSource
 from sesora.schema import RosStackRecord, RosStackDriftRecord
@@ -14,15 +15,24 @@ from alibabacloud_ros20190910 import models as ros_models
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class ROSCollectorConfig:
+    """ROS Collector 配置"""
+    aliyun_credentials: Optional[CredentialClient] = None
+    region: str = ""
+    ros_region: str = ""
+    ros_stack_name: Optional[List[str]] = None
+
+
 class ROSCollector(CollectorBase):
-    def __init__(self, context: AssessmentContext):
-        self.context = context
-        self.ros_stack_name = context.ros_stack_name
-        self.ros_region = context.ros_region or context.region
+    def __init__(self, config: ROSCollectorConfig):
+        self.config = config
+        self.ros_stack_name = config.ros_stack_name
+        self.ros_region = config.ros_region or config.region
         self.client = self._create_client()
 
     def _create_client(self) -> RosClient:
-        creds = self.context.aliyun_credentials
+        creds = self.config.aliyun_credentials
         config = open_api_models.Config(
             credential=creds,
             endpoint="ros.aliyuncs.com",

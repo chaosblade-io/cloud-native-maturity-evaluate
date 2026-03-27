@@ -1,13 +1,14 @@
 import logging
+from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Optional
 
+from alibabacloud_credentials.client import Client as CredentialClient
 from alibabacloud_rds20140815.client import Client as RdsClient
 
 from alibabacloud_rds20140815 import models as rds_models
 from alibabacloud_tea_openapi import models as open_api_models
 
-from sesora.core.context import AssessmentContext
 from sesora.core.collector import CollectorBase
 from sesora.core.dataitem import DataSource
 from sesora.schema.rds_oss import (
@@ -19,17 +20,30 @@ from sesora.schema.rds_oss import (
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class RDSCollectorConfig:
+    """RDS Collector 配置"""
+    aliyun_credentials: Optional[CredentialClient] = None
+    region: str = ""
+    rds_region: str = ""
+    rds_instance_ids: List[str] = None
+
+    def __post_init__(self):
+        if self.rds_instance_ids is None:
+            self.rds_instance_ids = []
+
+
 class RDSCollector(CollectorBase):
     def __init__(
-        self, context: AssessmentContext, instance_ids: Optional[List[str]] = None
+        self, config: RDSCollectorConfig, instance_ids: Optional[List[str]] = None
     ):
-        self.context = context
-        self.rds_region = context.rds_region or context.region
+        self.config = config
+        self.rds_region = config.rds_region or config.region
         self.instance_ids = instance_ids
         self.client = self._create_client()
 
     def _create_client(self) -> RdsClient:
-        creds = self.context.aliyun_credentials
+        creds = self.config.aliyun_credentials
         config = open_api_models.Config(
             credential=creds,
             endpoint="rds.aliyuncs.com",
@@ -42,9 +56,9 @@ class RDSCollector(CollectorBase):
         if self.instance_ids:
             return self.instance_ids
 
-        # 其次使用 context 中的 rds_instance_ids 列表
-        if self.context.rds_instance_ids:
-            return self.context.rds_instance_ids
+        # 其次使用 config 中的 rds_instance_ids 列表
+        if self.config.rds_instance_ids:
+            return self.config.rds_instance_ids
 
         return []
 
