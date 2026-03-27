@@ -10,11 +10,11 @@ Grafana Collector - Grafana 仪表盘采集器
 - 文件夹结构
 - 仪表盘分析汇总
 """
+from dataclasses import dataclass
 from datetime import datetime
 import logging
 from typing import List, Optional
 import requests
-from sesora.core.context import AssessmentContext
 from sesora.core.collector import CollectorBase
 from sesora.core.dataitem import DataSource
 from sesora.schema.grafana import (
@@ -26,17 +26,33 @@ from sesora.schema.grafana import (
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class GrafanaCollectorConfig:
+    """Grafana Collector 配置"""
+    grafana_url: str = ""
+    grafana_api_token: str = ""
+    grafana_workspace_id: str = ""
+    grafana_folder_ids: List[int] = None
+    grafana_tags: List[str] = None
+
+    def __post_init__(self):
+        if self.grafana_folder_ids is None:
+            self.grafana_folder_ids = []
+        if self.grafana_tags is None:
+            self.grafana_tags = []
+
+
 class GrafanaCollector(CollectorBase):
-    def __init__(self, context: AssessmentContext):
-        self.context = context
-        self.grafana_url = context.grafana_url
-        self.api_token = context.grafana_api_token
-        self.folder_ids = context.grafana_folder_ids
-        self.tags = context.grafana_tags
+    def __init__(self, config: GrafanaCollectorConfig):
+        self.config = config
+        self.grafana_url = config.grafana_url
+        self.api_token = config.grafana_api_token
+        self.folder_ids = config.grafana_folder_ids
+        self.tags = config.grafana_tags
         
         # 如果是阿里云 ARMS Grafana，构造 URL
-        if context.grafana_workspace_id and not self.grafana_url:
-            self.grafana_url = f"https://{context.grafana_workspace_id}.grafana.aliyuncs.com"
+        if config.grafana_workspace_id and not self.grafana_url:
+            self.grafana_url = f"https://{config.grafana_workspace_id}.grafana.aliyuncs.com"
         
         if not self.grafana_url:
             raise ValueError("必须提供 grafana_url 或 grafana_workspace_id")

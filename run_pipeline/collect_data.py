@@ -17,10 +17,10 @@ from sesora.collectors.codeup_collector import CodeupCollector, CodeupCollectorC
 from sesora.collectors.ecs_collector import ECSCollector, ECSCollectorConfig
 from sesora.collectors.eventbridge_collector import EventBridgeCollector, EventBridgeCollectorConfig
 from sesora.collectors.fc_collector import FCCollector, FCCollectorConfig
-from sesora.collectors.grafana_collector import GrafanaCollector
-from sesora.collectors.gtm_collector import GTMCollector
+from sesora.collectors.grafana_collector import GrafanaCollector, GrafanaCollectorConfig
+from sesora.collectors.gtm_collector import GTMCollector, GTMCollectorConfig
 from sesora.collectors.rds_collector import RDSCollector
-from sesora.collectors.oss_collector import OSSCollector
+from sesora.collectors.oss_collector import OSSCollector, OSSCollectorConfig
 from sesora.collectors.ros_collector import ROSCollector
 from sesora.collectors.sls_collector import SLSCollector
 from sesora.collectors.tair_collector import TairCollector
@@ -691,7 +691,13 @@ def collect_oss(context: AssessmentContext, db_path: Path) -> bool:
     print("开始采集 OSS 数据...")
     print("=" * 60)
 
-    collector = OSSCollector(context)
+    # 创建 OSSCollectorConfig
+    config = OSSCollectorConfig(
+        aliyun_credentials=context.aliyun_credentials,
+        region=context.oss_region or context.region,
+        oss_bucket_names=context.oss_bucket_names,
+    )
+    collector = OSSCollector(config)
 
     start_time = datetime.now()
     data_source = collector.collect()
@@ -884,7 +890,15 @@ def collect_grafana(context: AssessmentContext, db_path: Path) -> bool:
         print("跳过 Grafana 采集: 未配置 GRAFANA_API_TOKEN")
         return False
 
-    collector = GrafanaCollector(context)
+    # 创建 GrafanaCollectorConfig
+    config = GrafanaCollectorConfig(
+        grafana_url=context.grafana_url,
+        grafana_api_token=context.grafana_api_token,
+        grafana_workspace_id=context.grafana_workspace_id,
+        grafana_folder_ids=context.grafana_folder_ids,
+        grafana_tags=context.grafana_tags,
+    )
+    collector = GrafanaCollector(config)
 
     start_time = datetime.now()
     data_source = collector.collect()
@@ -909,7 +923,11 @@ def collect_gtm(context: AssessmentContext, db_path: Path) -> bool:
     print("开始采集 GTM 全局流量管理数据...")
     print("=" * 60)
 
-    collector = GTMCollector(context)
+    # 创建 GTMCollectorConfig
+    config = GTMCollectorConfig(
+        aliyun_credentials=context.aliyun_credentials,
+    )
+    collector = GTMCollector(config)
 
     start_time = datetime.now()
     data_source = collector.collect()
