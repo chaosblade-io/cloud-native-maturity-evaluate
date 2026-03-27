@@ -1,5 +1,6 @@
 import json
 import datetime
+import logging
 from typing import List
 
 from alibabacloud_sls20201230.client import Client as SlsClient
@@ -17,6 +18,8 @@ from sesora.schema.sls import (
     SlsQueryCapabilityRecord,
     SlsArchiveConfigRecord,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class SLSCollector(CollectorBase):
@@ -310,15 +313,15 @@ class SLSCollector(CollectorBase):
     def _collect(self) -> List:
         all_records: List = []
 
-        print(f"正在采集 SLS 信息 (Project: {self.project_name})...")
+        logger.info(f"正在采集 SLS 信息 (Project: {self.project_name})...")
 
         # 1. 获取 Logstore 列表
         logstore_names = self._list_logstore_names()
-        print(f"发现 {len(logstore_names)} 个 Logstore")
+        logger.info(f"发现 {len(logstore_names)} 个 Logstore")
 
         # 2. 遍历每个 Logstore 采集详细信息
         for logstore_name in logstore_names:
-            print(f"  采集 Logstore: {logstore_name}")
+            logger.info(f"采集 Logstore: {logstore_name}")
 
             # 2.1 Logstore 详情
             logstore_record = self._get_logstore_detail(logstore_name)
@@ -351,6 +354,6 @@ class SLSCollector(CollectorBase):
                 )
                 all_records.append(structure_analysis)
 
-        print(f"SLS 采集完成，共 {len(all_records)} 条记录")
+        logger.info(f"SLS 采集完成，共 {len(all_records)} 条记录")
 
         return all_records

@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from typing import List, Optional
 
@@ -9,6 +10,8 @@ from sesora.core.context import AssessmentContext
 from sesora.core.collector import CollectorBase
 from sesora.core.dataitem import DataSource
 from sesora.schema.rds_oss import AlbListenerRecord
+
+logger = logging.getLogger(__name__)
 
 
 class ALBCollector(CollectorBase):
@@ -36,7 +39,7 @@ class ALBCollector(CollectorBase):
 
         listeners = self._collect_listeners()
         records.extend(listeners)
-        print(f"\n总计采集到 {len(listeners)} 个 ALB 监听器")
+        logger.info(f"总计采集到 {len(listeners)} 个 ALB 监听器")
 
         return records
 

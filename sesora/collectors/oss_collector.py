@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from typing import List, Optional
 
@@ -9,6 +10,8 @@ from sesora.schema.rds_oss import (
     OssBucketRecord,
     OssBucketLifecycleRecord,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class OSSCollector(CollectorBase):
@@ -48,27 +51,27 @@ class OSSCollector(CollectorBase):
 
         if not bucket_names:
             # 采集所有 Bucket
-            print("开始采集所有 OSS Bucket...")
+            logger.info("开始采集所有 OSS Bucket...")
             bucket_names = self._collect_all_bucket_names()
         for bucket_name in bucket_names:
             bucket_record = self._collect_bucket_detail(bucket_name)
             records.append(bucket_record)
-            print(f"  采集 Bucket: {bucket_name}")
+            logger.info(f"采集 Bucket: {bucket_name}")
 
             # 采集生命周期规则
             lifecycle_records = self._collect_bucket_lifecycle(bucket_name)
             if lifecycle_records:
                 records.extend(lifecycle_records)
-                print(
-                    f"  采集生命周期规则: {bucket_name} ({len(lifecycle_records)} 条)"
+                logger.info(
+                    f"采集生命周期规则: {bucket_name} ({len(lifecycle_records)} 条)"
                 )
 
         bucket_count = sum(1 for r in records if isinstance(r, OssBucketRecord))
         lifecycle_count = sum(
             1 for r in records if isinstance(r, OssBucketLifecycleRecord)
         )
-        print(
-            f"\n总计采集到 {bucket_count} 个 Bucket, {lifecycle_count} 条生命周期规则"
+        logger.info(
+            f"总计采集到 {bucket_count} 个 Bucket, {lifecycle_count} 条生命周期规则"
         )
 
         return records
@@ -99,8 +102,8 @@ class OSSCollector(CollectorBase):
             error_details = getattr(e, "details", {}) or {}
             correct_endpoint = error_details.get("Endpoint", "")
             if correct_endpoint:
-                print(
-                    f"  检测到 Bucket 位于其他区域，切换到 endpoint: {correct_endpoint}"
+                logger.info(
+                    f"检测到 Bucket 位于其他区域，切换到 endpoint: {correct_endpoint}"
                 )
                 bucket = oss2.Bucket(auth, correct_endpoint, bucket_name)
                 bucket_info = bucket.get_bucket_info()
@@ -118,7 +121,7 @@ class OSSCollector(CollectorBase):
             versioning_result = bucket.get_bucket_versioning()
             versioning_status = versioning_result.status or "Suspended"
         except Exception as error:
-            print(f"  获取版本控制状态失败 ({bucket_name}): {error}")
+            logger.debug(f"获取版本控制状态失败 ({bucket_name}): {error}")
             pass
 
         # 获取加密配置

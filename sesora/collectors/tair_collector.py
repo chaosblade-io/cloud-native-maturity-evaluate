@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from typing import List, Optional
 
@@ -9,6 +10,8 @@ from sesora.core.context import AssessmentContext
 from sesora.core.collector import CollectorBase
 from sesora.core.dataitem import DataSource
 from sesora.schema.rds_oss import TairInstanceModeRecord
+
+logger = logging.getLogger(__name__)
 
 
 class TairCollector(CollectorBase):
@@ -51,18 +54,18 @@ class TairCollector(CollectorBase):
 
         if instance_ids:
             # 采集指定实例
-            print(f"开始采集 {len(instance_ids)} 个指定 Tair/Redis 实例...")
+            logger.info(f"开始采集 {len(instance_ids)} 个指定 Tair/Redis 实例...")
             for instance_id in instance_ids:
                 instance_records = self._collect_instance_detail(instance_id)
                 for record in instance_records:
                     records.append(record)
-                    print(f"  采集实例: {record.instance_id}")
+                    logger.info(f"采集实例: {record.instance_id}")
         else:
             # 采集所有实例
-            print("开始采集所有 Tair/Redis 实例...")
+            logger.info("开始采集所有 Tair/Redis 实例...")
             records = self._collect_all_instances()
 
-        print(f"\n总计采集到 {len(records)} 个 Tair/Redis 实例")
+        logger.info(f"总计采集到 {len(records)} 个 Tair/Redis 实例")
 
         return records
 
@@ -89,7 +92,7 @@ class TairCollector(CollectorBase):
             for item in instances:
                 record = self._parse_instance(item)
                 records.append(record)
-                print(f"  采集实例: {item.instance_id} ({item.instance_name})")
+                logger.info(f"采集实例: {item.instance_id} ({item.instance_name})")
 
             # 检查是否还有下一页
             total_count = body.total_count
@@ -118,7 +121,7 @@ class TairCollector(CollectorBase):
             for item in body.instances.kvstore_instance:
                 record = self._parse_instance(item)
                 records.append(record)
-                print(f"  采集实例: {record.instance_id} ({record.instance_name})")
+                logger.info(f"采集实例: {record.instance_id} ({record.instance_name})")
 
             # 检查是否还有下一页
             total_count = body.total_count

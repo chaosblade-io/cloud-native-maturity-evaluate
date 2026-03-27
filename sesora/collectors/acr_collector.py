@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from typing import List
 
@@ -13,6 +14,8 @@ from sesora.schema.acr import (
     AcrImageRecord,
     AcrScanResultRecord,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class ACRCollector(CollectorBase):
@@ -34,7 +37,7 @@ class ACRCollector(CollectorBase):
     def _get_instance_ids(self) -> List[str]:
         if self.instance_ids:
             return self.instance_ids
-        print("未配置 ACR 实例 ID，尝试通过 ListInstance API 自动获取...")
+        logger.info("未配置 ACR 实例 ID，尝试通过 ListInstance API 自动获取...")
         return self._list_instances_via_api()
 
     def _list_instances_via_api(self) -> List[str]:
@@ -57,7 +60,7 @@ class ACRCollector(CollectorBase):
             for instance in body.instances:
                 instance_id = instance.instance_id
                 instance_ids.append(instance_id)
-                print(f"  获取到 ACR 实例 ID: {instance_id}")
+                logger.info(f"获取到 ACR 实例 ID: {instance_id}")
 
             total_count = body.total_count
             if len(instance_ids) >= total_count:
@@ -78,11 +81,11 @@ class ACRCollector(CollectorBase):
             return []
 
         for instance_id in instance_ids:
-            print(f"\n开始采集 ACR 实例: {instance_id}")
+            logger.info(f"开始采集 ACR 实例: {instance_id}")
             instance_records = self._collect_instance(instance_id)
             records.extend(instance_records)
 
-        print(f"\n总计采集到 {len(records)} 条记录")
+        logger.info(f"总计采集到 {len(records)} 条记录")
 
         return records
 
@@ -91,7 +94,7 @@ class ACRCollector(CollectorBase):
 
         repositories = self._collect_repositories(instance_id)
         records.extend(repositories)
-        print(f"  采集到 {len(repositories)} 个镜像仓库")
+        logger.info(f"采集到 {len(repositories)} 个镜像仓库")
 
         for repo in repositories:
             repo_id = repo.repo_id
@@ -101,7 +104,7 @@ class ACRCollector(CollectorBase):
             records.extend(images)
 
             for image in images:  # TODO: remove this limit?
-                print(f"    仓库 {repo_name}: 采集镜像 {image.tag}")
+                logger.debug(f"仓库 {repo_name}: 采集镜像 {image.tag}")
                 scan_result = self._collect_scan_result(instance_id, repo_id, image.tag)
                 records.append(scan_result)
 
@@ -229,7 +232,7 @@ class ACRCollector(CollectorBase):
             )
             body = response.body
             if response.status_code != 200 or not body.is_success:
-                print(f"ListRepoTagScanResult API 调用失败")
+                logger.warning("ListRepoTagScanResult API 调用失败")
                 # TODO: better way?
                 break  # Internal server error may happen, just skip 
 

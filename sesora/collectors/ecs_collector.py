@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from typing import List, Optional
 
@@ -13,6 +14,8 @@ from sesora.schema.ecs import (
     EcsSecurityGroupRecord,
     EcsSecurityGroupRuleRecord,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class ECSCollector(CollectorBase):
@@ -38,18 +41,18 @@ class ECSCollector(CollectorBase):
         # 1. 采集 ECS 实例
         instances = self._collect_instances()
         records.extend(instances)
-        print(f"采集到 {len(instances)} 个 ECS 实例")
+        logger.info(f"采集到 {len(instances)} 个 ECS 实例")
 
         # 2. 采集安全组
         security_groups = self._collect_security_groups()
         records.extend(security_groups)
-        print(f"采集到 {len(security_groups)} 个安全组")
+        logger.info(f"采集到 {len(security_groups)} 个安全组")
 
         # 3. 采集安全组规则
         for sg in security_groups:
             rules = self._collect_security_group_rules(sg.security_group_id)
             records.extend(rules)
-            print(f"  安全组 {sg.security_group_id}: 采集到 {len(rules)} 条规则")
+            logger.info(f"安全组 {sg.security_group_id}: 采集到 {len(rules)} 条规则")
 
         return records
 

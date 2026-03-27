@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from typing import List
 
@@ -9,6 +10,8 @@ from sesora.core.collector import CollectorBase
 from sesora.core.dataitem import DataSource
 from sesora.schema import RosStackRecord, RosStackDriftRecord
 from alibabacloud_ros20190910 import models as ros_models
+
+logger = logging.getLogger(__name__)
 
 
 class ROSCollector(CollectorBase):
@@ -35,16 +38,16 @@ class ROSCollector(CollectorBase):
 
         stacks = self._collect_stacks()
         records.extend(stacks)
-        print(f"\n总计采集到 {len(stacks)} 个 ROS 资源栈")
+        logger.info(f"总计采集到 {len(stacks)} 个 ROS 资源栈")
 
         # 采集漂移检测信息
-        print("\n开始采集漂移检测信息...")
+        logger.info("开始采集漂移检测信息...")
         for stack in stacks:
             if stack.drift_status != "NOT_CHECKED":
                 drift_record = self._collect_stack_drift(stack, stack.stack_name)
                 records.append(drift_record)
-                print(
-                    f"  采集漂移信息: {stack.stack_name} - {drift_record.drift_status}"
+                logger.info(
+                    f"采集漂移信息: {stack.stack_name} - {drift_record.drift_status}"
                 )
 
         return records
@@ -70,7 +73,7 @@ class ROSCollector(CollectorBase):
             for stack in body.stacks:
                 record = self._parse_stack(stack)
                 records.append(record)
-                print(f"  采集资源栈: {record.stack_name} - 状态: {record.status}")
+                logger.info(f"采集资源栈: {record.stack_name} - 状态: {record.status}")
 
             total_count = body.total_count
             if len(records) >= total_count:
