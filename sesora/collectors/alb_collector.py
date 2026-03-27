@@ -1,12 +1,13 @@
 import logging
+from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Optional
 
+from alibabacloud_credentials.client import Client as CredentialClient
 from alibabacloud_alb20200616 import models as alb_models
 from alibabacloud_alb20200616.client import Client as AlbClient
 from alibabacloud_tea_openapi import models as open_api_models
 
-from sesora.core.context import AssessmentContext
 from sesora.core.collector import CollectorBase
 from sesora.core.dataitem import DataSource
 from sesora.schema.rds_oss import AlbListenerRecord
@@ -14,19 +15,29 @@ from sesora.schema.rds_oss import AlbListenerRecord
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class ALBCollectorConfig:
+    """ALB Collector 配置"""
+    aliyun_credentials: Optional[CredentialClient] = None
+    region: str = ""
+    load_balancer_ids: List[str] = None
+
+    def __post_init__(self):
+        if self.load_balancer_ids is None:
+            self.load_balancer_ids = []
+
+
 class ALBCollector(CollectorBase):
-    def __init__(
-        self, context: AssessmentContext, load_balancer_ids: Optional[List[str]] = None
-    ):
-        self.context = context
-        self.load_balancer_ids = load_balancer_ids
+    def __init__(self, config: ALBCollectorConfig):
+        self.config = config
+        self.load_balancer_ids = config.load_balancer_ids
         self.client = self._create_client()
 
     def _create_client(self) -> AlbClient:
-        creds = self.context.aliyun_credentials
+        creds = self.config.aliyun_credentials
         config = open_api_models.Config(
             credential=creds,
-            endpoint=f"alb.{self.context.region}.aliyuncs.com",
+            endpoint=f"alb.{self.config.region}.aliyuncs.com",
             protocol="https",
         )
         return AlbClient(config)

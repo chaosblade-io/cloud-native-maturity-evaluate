@@ -1,12 +1,13 @@
 import logging
+from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import List
+from typing import List, Optional
 
+from alibabacloud_credentials.client import Client as CredentialClient
 from alibabacloud_cms20190101 import models as cms_models
 from alibabacloud_cms20190101.client import Client as CmsClient
 from alibabacloud_tea_openapi import models as open_api_models
 
-from sesora.core.context import AssessmentContext
 from sesora.core.collector import CollectorBase
 from sesora.core.dataitem import DataSource
 from sesora.schema.cms import (
@@ -21,13 +22,19 @@ from sesora.schema.cms import (
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class CMSCollectorConfig:
+    """CMS Collector 配置"""
+    aliyun_credentials: Optional[CredentialClient] = None
+
+
 class CMSCollector(CollectorBase):
-    def __init__(self, context: AssessmentContext):
-        self.context = context
+    def __init__(self, config: CMSCollectorConfig):
+        self.config = config
         self.client = self._create_client()
 
     def _create_client(self) -> CmsClient:
-        creds = self.context.aliyun_credentials
+        creds = self.config.aliyun_credentials
         config = open_api_models.Config(
             credential=creds,
             endpoint="metrics.aliyuncs.com",

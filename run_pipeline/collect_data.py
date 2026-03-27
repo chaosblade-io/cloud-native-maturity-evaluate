@@ -8,11 +8,11 @@ import json
 
 from alibabacloud_credentials.client import Client as CredentialClient
 
-from sesora.collectors.ack_collector import ACKCollector
-from sesora.collectors.acr_collector import ACRCollector
-from sesora.collectors.alb_collector import ALBCollector
-from sesora.collectors.arms_collector import ARMSCollector
-from sesora.collectors.cms_collector import CMSCollector
+from sesora.collectors.ack_collector import ACKCollector, ACKCollectorConfig
+from sesora.collectors.acr_collector import ACRCollector, ACRCollectorConfig
+from sesora.collectors.alb_collector import ALBCollector, ALBCollectorConfig
+from sesora.collectors.arms_collector import ARMSCollector, ARMSCollectorConfig
+from sesora.collectors.cms_collector import CMSCollector, CMSCollectorConfig
 from sesora.collectors.codeup_collector import CodeupCollector
 from sesora.collectors.ecs_collector import ECSCollector
 from sesora.collectors.eventbridge_collector import EventBridgeCollector
@@ -541,7 +541,15 @@ def collect_ack(context: AssessmentContext, db_path: Path) -> bool:
     print("开始采集 ACK 数据...")
     print("=" * 60)
 
-    collector = ACKCollector(context)
+    # 创建 ACKCollectorConfig
+    config = ACKCollectorConfig(
+        aliyun_credentials=context.aliyun_credentials,
+        region=context.region,
+        cluster_id=context.cluster_id if context.cluster_id else None,
+        kubeconfig_paths=context.kubeconfig_paths,
+        namespaces=context.namespaces,
+    )
+    collector = ACKCollector(config)
 
     start_time = datetime.now()
     data_source = collector.collect()
@@ -616,7 +624,11 @@ def collect_cms(context: AssessmentContext, db_path: Path) -> bool:
     print("开始采集 CMS 数据...")
     print("=" * 60)
 
-    collector = CMSCollector(context)
+    # 创建 CMSCollectorConfig
+    config = CMSCollectorConfig(
+        aliyun_credentials=context.aliyun_credentials,
+    )
+    collector = CMSCollector(config)
 
     start_time = datetime.now()
     data_source = collector.collect()
@@ -691,7 +703,12 @@ def collect_arms(context: AssessmentContext, db_path: Path) -> bool:
     print("开始采集 ARMS APM 数据...")
     print("=" * 60)
 
-    collector = ARMSCollector(context)
+    # 创建 ARMSCollectorConfig
+    config = ARMSCollectorConfig(
+        aliyun_credentials=context.aliyun_credentials,
+        region=context.region,
+    )
+    collector = ARMSCollector(config)
 
     start_time = datetime.now()
     data_source = collector.collect()
@@ -716,7 +733,14 @@ def collect_acr(context: AssessmentContext, db_path: Path) -> bool:
     print("开始采集 ACR 容器镜像服务数据...")
     print("=" * 60)
 
-    collector = ACRCollector(context)
+    # 创建 ACRCollectorConfig
+    config = ACRCollectorConfig(
+        aliyun_credentials=context.aliyun_credentials,
+        region=context.region,
+        instance_ids=context.acr_instance_ids,
+        otel_only=context.otel_only,
+    )
+    collector = ACRCollector(config)
 
     start_time = datetime.now()
     data_source = collector.collect()
@@ -741,7 +765,13 @@ def collect_alb(context: AssessmentContext, db_path: Path) -> bool:
     print("开始采集 ALB 应用负载均衡数据...")
     print("=" * 60)
 
-    collector = ALBCollector(context, load_balancer_ids=context.alb_load_balancer_ids)
+    # 创建 ALBCollectorConfig
+    config = ALBCollectorConfig(
+        aliyun_credentials=context.aliyun_credentials,
+        region=context.region,
+        load_balancer_ids=context.alb_load_balancer_ids,
+    )
+    collector = ALBCollector(config)
 
     start_time = datetime.now()
     data_source = collector.collect()
