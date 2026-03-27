@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from typing import List, Optional
 
@@ -14,6 +15,8 @@ from sesora.schema.rds_oss import (
     RdsBackupPolicyRecord,
     RdsProxyRecord,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class RDSCollector(CollectorBase):
@@ -55,36 +58,36 @@ class RDSCollector(CollectorBase):
 
         if instance_ids:
             # 采集指定实例
-            print(f"开始采集 {len(instance_ids)} 个指定 RDS 实例...")
+            logger.info(f"开始采集 {len(instance_ids)} 个指定 RDS 实例...")
             for instance_id in instance_ids:
                 record = self._collect_instance_detail(instance_id)
                 if record:
                     records.append(record)
-                    print(f"  采集实例: {instance_id}")
+                    logger.info(f"采集实例: {instance_id}")
         else:
             # 采集所有实例
-            print("开始采集所有 RDS 实例...")
+            logger.info("开始采集所有 RDS 实例...")
             records = self._collect_all_instances()
 
-        print(f"\n总计采集到 {len(records)} 个 RDS 实例")
+        logger.info(f"总计采集到 {len(records)} 个 RDS 实例")
 
         # 采集备份策略
-        print("\n开始采集备份策略...")
+        logger.info("开始采集备份策略...")
         instance_records = [r for r in records if isinstance(r, RdsInstanceRecord)]
         for instance in instance_records:
             backup_policy = self._collect_backup_policy(
                 instance.db_instance_id, instance.engine
             )
             records.append(backup_policy)
-            print(f"  采集备份策略: {instance.db_instance_id}")
+            logger.info(f"采集备份策略: {instance.db_instance_id}")
 
         backup_policy_count = sum(
             1 for r in records if isinstance(r, RdsBackupPolicyRecord)
         )
-        print(f"总计采集到 {backup_policy_count} 个备份策略")
+        logger.info(f"总计采集到 {backup_policy_count} 个备份策略")
 
         # 采集代理配置和代理实例
-        print("\n开始采集代理信息...")
+        logger.info("开始采集代理信息...")
         for instance in instance_records:
             proxy_instance = self._collect_db_proxy(instance.db_instance_id)
             records.append(proxy_instance)
@@ -92,7 +95,7 @@ class RDSCollector(CollectorBase):
         proxy_instance_count = sum(
             1 for r in records if isinstance(r, RdsProxyRecord)
         )
-        print(f"总计采集到 {proxy_instance_count} 个代理实例")
+        logger.info(f"总计采集到 {proxy_instance_count} 个代理实例")
 
         return records
 
@@ -118,7 +121,7 @@ class RDSCollector(CollectorBase):
                 instance_id = item.dbinstance_id
                 record = self._collect_instance_detail(instance_id)
                 records.append(record)
-                print(f"  采集实例: {instance_id}")
+                logger.info(f"采集实例: {instance_id}")
 
             # 检查是否还有下一页
             total_count = body.total_record_count

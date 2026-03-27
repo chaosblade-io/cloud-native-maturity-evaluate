@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from typing import List
 
@@ -9,6 +10,8 @@ from sesora.core.context import AssessmentContext
 from sesora.core.collector import CollectorBase
 from sesora.core.dataitem import DataSource
 from sesora.schema.rds_oss import GtmAddressPoolRecord
+
+logger = logging.getLogger(__name__)
 
 
 class GTMCollector(CollectorBase):
@@ -32,12 +35,12 @@ class GTMCollector(CollectorBase):
         records: List = []
 
         instances = self._collect_gtm_instances()
-        print(f"采集到 {len(instances)} 个 GTM 实例")
+        logger.info(f"采集到 {len(instances)} 个 GTM 实例")
         for instance_id in instances:
-            print(f"正在采集 GTM 实例 {instance_id} 的地址池...")
+            logger.info(f"正在采集 GTM 实例 {instance_id} 的地址池...")
             address_pools = self._collect_gtm_address_pools(instance_id)
             records.extend(address_pools)
-            print(f"采集到 {len(address_pools)} 个 GTM 地址池")
+            logger.info(f"采集到 {len(address_pools)} 个 GTM 地址池")
 
         return records
 

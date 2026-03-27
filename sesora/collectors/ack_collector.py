@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from typing import List, Optional, Tuple
 
@@ -54,6 +55,9 @@ from sesora.schema.policy import (
 )
 
 
+logger = logging.getLogger(__name__)
+
+
 class ACKCollector(CollectorBase):
     def __init__(self, context: AssessmentContext):
         self.context = context
@@ -93,7 +97,7 @@ class ACKCollector(CollectorBase):
                 )
 
         for source, kubeconfig_yaml in kubeconfig_yamls:
-            print(f"正在采集 {source} 中的 Kubernetes 资源...")
+            logger.info(f"正在采集 {source} 中的 Kubernetes 资源...")
             source_records = self._collect_workloads_via_k8s(kubeconfig_yaml)
             records.extend(source_records)
 
@@ -138,7 +142,7 @@ class ACKCollector(CollectorBase):
             ),
         )
         if response.status_code != 200:
-            print(f"  获取集群 {cluster_id} kubeconfig 失败: {response.status_code}")
+            logger.warning(f"获取集群 {cluster_id} kubeconfig 失败: {response.status_code}")
             return None
         body = response.body
         return body.config
@@ -176,7 +180,7 @@ class ACKCollector(CollectorBase):
             ).get("items", [])
         except k8s_client.ApiException as e:
             if e.status == 404:
-                print(f"  CRD {group}/{version}/{plural} 不存在，已跳过")
+                logger.debug(f"CRD {group}/{version}/{plural} 不存在，已跳过")
                 return []
             else:
                 raise
@@ -464,7 +468,7 @@ class ACKCollector(CollectorBase):
                     violation_records = self._parse_opa_violations(constraint_obj, kind)
                     records.extend(violation_records)
             except Exception as e:
-                print(f"  查询 Constraint {kind} 失败: {e}")
+                logger.warning(f"查询 Constraint {kind} 失败: {e}")
                 continue
 
         return records

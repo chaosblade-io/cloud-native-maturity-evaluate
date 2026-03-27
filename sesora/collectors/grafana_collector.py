@@ -11,6 +11,7 @@ Grafana Collector - Grafana 仪表盘采集器
 - 仪表盘分析汇总
 """
 from datetime import datetime
+import logging
 from typing import List, Optional
 import requests
 from sesora.core.context import AssessmentContext
@@ -21,6 +22,8 @@ from sesora.schema.grafana import (
     GrafanaFolderRecord,
     GrafanaDashboardAnalysisRecord,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class GrafanaCollector(CollectorBase):
@@ -55,17 +58,17 @@ class GrafanaCollector(CollectorBase):
         # 采集文件夹
         folders = self._collect_folders()
         records.extend(folders)
-        print(f"采集到 {len(folders)} 个文件夹")
+        logger.info(f"采集到 {len(folders)} 个文件夹")
 
         # 采集仪表盘
         dashboards = self._collect_dashboards()
         records.extend(dashboards)
-        print(f"采集到 {len(dashboards)} 个仪表盘")
+        logger.info(f"采集到 {len(dashboards)} 个仪表盘")
 
         # 生成分析汇总
         analysis = self._generate_analysis(dashboards)
         records.append(analysis)
-        print(f"生成分析汇总记录")
+        logger.info("生成分析汇总记录")
 
         return records
 
@@ -106,7 +109,7 @@ class GrafanaCollector(CollectorBase):
                 records.append(record)
 
         except Exception as e:
-            print(f"采集文件夹失败: {e}")
+            logger.error(f"采集文件夹失败: {e}")
 
         return records
 
@@ -137,11 +140,11 @@ class GrafanaCollector(CollectorBase):
                     record = self._collect_dashboard_detail(dash)
                     records.append(record)
                 except Exception as e:
-                    print(f"获取仪表盘 {dash.get('uid')} 详情失败: {e}")
+                    logger.warning(f"获取仪表盘 {dash.get('uid')} 详情失败: {e}")
                     continue
 
         except Exception as e:
-            print(f"采集仪表盘列表失败: {e}")
+            logger.error(f"采集仪表盘列表失败: {e}")
 
         return records
 

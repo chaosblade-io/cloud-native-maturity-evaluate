@@ -1,4 +1,5 @@
 import json
+import logging
 from datetime import datetime
 from typing import List, Optional
 
@@ -15,6 +16,8 @@ from sesora.schema.eventbridge import (
     EbEventRuleRecord,
     EbEventTargetRecord,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class EventBridgeCollector(CollectorBase):
@@ -45,19 +48,19 @@ class EventBridgeCollector(CollectorBase):
             bus.rule_count = bus_rule_count.get(bus.event_bus_name, 0)
 
         records.extend(buses)
-        print(f"采集到 {len(buses)} 个事件总线")
+        logger.info(f"采集到 {len(buses)} 个事件总线")
         records.extend(rules)
-        print(f"采集到 {len(rules)} 条事件规则")
+        logger.info(f"采集到 {len(rules)} 条事件规则")
         records.extend(targets)
-        print(f"采集到 {len(targets)} 条事件目标")
+        logger.info(f"采集到 {len(targets)} 条事件目标")
 
         official_sources = self._collect_aliyun_official_event_sources()
         records.extend(official_sources)
-        print(f"采集到 {len(official_sources)} 个阿里云官方事件源")
+        logger.info(f"采集到 {len(official_sources)} 个阿里云官方事件源")
 
         user_defined_sources = self._collect_user_defined_event_sources()
         records.extend(user_defined_sources)
-        print(f"采集到 {len(user_defined_sources)} 个外部事件源")
+        logger.info(f"采集到 {len(user_defined_sources)} 个外部事件源")
 
         return records
 

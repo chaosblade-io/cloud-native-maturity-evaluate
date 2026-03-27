@@ -1,4 +1,5 @@
 import json
+import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
@@ -19,6 +20,8 @@ from sesora.schema.apm import (
     ApmServiceDbMappingRecord,
     ApmExternalMessageRecord,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def map_rpc_type(rpc_type) -> str:
@@ -120,15 +123,15 @@ class ARMSCollector(CollectorBase):
         # 1. 采集应用列表
         services = self._collect_trace_apps()
         records.extend(services)
-        print(f"采集到 {len(services)} 个 ARMS 应用")
+        logger.info(f"采集到 {len(services)} 个 ARMS 应用")
         services = services[:15]  # TODO: remove this limit
-        print(f"  采集应用列表(first 15)")
+        logger.info("采集应用列表(first 15)")
 
         pid_to_service = {svc.pid: svc.service_name for svc in services}
 
         # 2. 基于应用的 pid 采集服务依赖和拓扑指标
         for svc in services:
-            print(f"  采集应用 {svc.service_name} 的服务依赖和拓扑指标")
+            logger.info(f"采集应用 {svc.service_name} 的服务依赖和拓扑指标")
             # 采集服务依赖及其指标（appstat.incall）
             deps = self._collect_service_incall(svc.pid, pid_to_service, hours)
             records.extend(deps)
@@ -139,11 +142,11 @@ class ARMSCollector(CollectorBase):
         topo_count = sum(
             1 for r in records if isinstance(r, ApmTopologyMetricsRecord)
         )
-        print(f"采集到 {dep_count} 条服务依赖关系")
-        print(f"采集到 {topo_count} 条拓扑指标")
+        logger.info(f"采集到 {dep_count} 条服务依赖关系")
+        logger.info(f"采集到 {topo_count} 条拓扑指标")
 
         # 3. 采集外部数据库调用
-        print("  采集外部数据库调用...")
+        logger.info("采集外部数据库调用...")
         all_db_records: List[ApmExternalDatabaseRecord] = []
         for svc in services:
             db_recs = self._collect_external_databases(
@@ -151,16 +154,16 @@ class ARMSCollector(CollectorBase):
             )
             all_db_records.extend(db_recs)
         records.extend(all_db_records)
-        print(f"采集到 {len(all_db_records)} 条外部数据库调用记录")
+        logger.info(f"采集到 {len(all_db_records)} 条外部数据库调用记录")
 
         # 4. 推导服务-数据库映射
-        print("  推导服务-数据库映射...")
+        logger.info("推导服务-数据库映射...")
         db_mappings = self._derive_service_db_mappings(all_db_records)
         records.extend(db_mappings)
-        print(f"推导出 {len(db_mappings)} 条服务-数据库映射")
+        logger.info(f"推导出 {len(db_mappings)} 条服务-数据库映射")
 
         # 5. 采集外部消息队列调用
-        print("  采集外部消息队列调用...")
+        logger.info("采集外部消息队列调用...")
         all_msg_records: List[ApmExternalMessageRecord] = []
         for svc in services:
             msg_recs = self._collect_external_messages(
@@ -168,27 +171,27 @@ class ARMSCollector(CollectorBase):
             )
             all_msg_records.extend(msg_recs)
         records.extend(all_msg_records)
-        print(f"采集到 {len(all_msg_records)} 条外部消息队列调用记录")
+        logger.info(f"采集到 {len(all_msg_records)} 条外部消息队列调用记录")
 
         # 6. 采集链路数据 (SearchTracesByPage + GetTrace)
-        print("  采集链路数据...")
+        logger.info("采集链路数据...")
         trace_records = self._collect_traces(services, hours)
         records.extend(trace_records)
         error_trace_count = sum(1 for t in trace_records if t.has_error)
         slow_trace_count = sum(1 for t in trace_records if t.duration_ms > 1000)
-        print(
+        logger.info(
             f"采集到 {len(trace_records)} 条链路记录"
             f" (错误: {error_trace_count}, 慢: {slow_trace_count})"
         )
 
         # 7. 采集每个应用的配置（采样配置 + 集成配置）
-        print("  采集应用配置...")
+        logger.info("采集应用配置...")
         config_records = self._collect_app_configs(services)
         records.extend(config_records)
         apm_sampling_count = sum(
             1 for r in config_records if isinstance(r, ApmSamplingConfigRecord)
         )
-        print(f"采集到 {apm_sampling_count} 条采样配置(SamplingConfig)")
+        logger.info(f"采集到 {apm_sampling_count} 条采样配置(SamplingConfig)")
 
         return records
 
@@ -317,7 +320,7 @@ class ARMSCollector(CollectorBase):
                     break
                 current_page += 1
             except Exception as e:
-                print(f"  QueryMetricByPage({metric}) page={current_page} 异常: {e}")
+                logger.warning(f"QueryMetricByPage({metric}) page={current_page} 异常: {e}")
                 break
 
         return all_items
@@ -652,7 +655,7 @@ class ARMSCollector(CollectorBase):
         records: List = []
 
         for svc in services:
-            print(f"    采集应用 {svc.service_name} 的配置")
+            logger.debug(f"采集应用 {svc.service_name} 的配置")
             response = self.client.get_trace_app_config(
                 arms_models.GetTraceAppConfigRequest(pid=svc.pid)
             )
@@ -666,7 +669,7 @@ class ARMSCollector(CollectorBase):
                 # 解析 JSON
                 config = json.loads(body.data)
             except (json.JSONDecodeError, TypeError):
-                print(f"      解析 JSON 失败 (pid={svc.pid})")
+                logger.warning(f"解析 JSON 失败 (pid={svc.pid})")
                 continue
 
             # 生成 ApmSamplingConfigRecord

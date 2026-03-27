@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta
 from typing import List
 
@@ -16,6 +17,8 @@ from sesora.schema.cms import (
     CmsAlarmHistoryRecord,
     CmsEventTriggerRecord,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class CMSCollector(CollectorBase):
@@ -42,34 +45,34 @@ class CMSCollector(CollectorBase):
         # 采集联系人
         contacts = self._collect_contacts()
         records.extend(contacts)
-        print(f"采集到 {len(contacts)} 个联系人")
+        logger.info(f"采集到 {len(contacts)} 个联系人")
 
         # 生成通道汇总记录
         channel_summary = self._generate_channel_summary(contacts)
         records.append(channel_summary)
-        print(f"生成通道汇总记录: {channel_summary.channel_types}")
+        logger.info(f"生成通道汇总记录: {channel_summary.channel_types}")
 
         # 采集告警规则
         alarm_rules = self._collect_alarm_rules()
         records.extend(alarm_rules)
-        print(f"采集到 {len(alarm_rules)} 条告警规则")
+        logger.info(f"采集到 {len(alarm_rules)} 条告警规则")
 
         # 采集联系组
         contact_groups = self._collect_contact_groups()
         records.extend(contact_groups)
-        print(f"采集到 {len(contact_groups)} 个联系组")
+        logger.info(f"采集到 {len(contact_groups)} 个联系组")
 
         # 采集告警历史
         alarm_history = self._collect_alarm_history(hours=history_hours)
         records.extend(alarm_history)
-        print(
+        logger.info(
             f"采集到 {len(alarm_history)} 条告警历史（最近 {history_hours} 小时）"
         )
 
         # 采集事件触发器
         event_triggers = self._collect_event_triggers()
         records.extend(event_triggers)
-        print(f"采集到 {len(event_triggers)} 个事件触发器")
+        logger.info(f"采集到 {len(event_triggers)} 个事件触发器")
 
         return records
 

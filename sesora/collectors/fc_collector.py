@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from typing import List
 
@@ -14,6 +15,8 @@ from sesora.schema.fc import (
     FcVersionRecord,
     FcUsageSummaryRecord,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class FCCollector(CollectorBase):
@@ -47,15 +50,15 @@ class FCCollector(CollectorBase):
 
         if function_names:
             for function_name in function_names:
-                print(f"正在采集函数 {function_name} 的信息...")
+                logger.info(f"正在采集函数 {function_name} 的信息...")
                 # 采集函数列表
                 function = self._collect_function_detail(function_name)
                 functions.append(function)
         else:
-            print("未配置 FC 服务名称，将直接采集所有函数...")
+            logger.info("未配置 FC 服务名称，将直接采集所有函数...")
             functions = self._list_all_functions_directly()
             records.extend(functions)
-            print(f"  采集到 {len(functions)} 个函数")
+            logger.info(f"采集到 {len(functions)} 个函数")
 
         total_functions = len(functions)
         for func in functions:
@@ -73,8 +76,8 @@ class FCCollector(CollectorBase):
             records.extend(aliases)
             if aliases:
                 functions_with_alias += 1
-                print(
-                    f"    函数 {func.function_name}: 采集到 {len(aliases)} 个别名"
+                logger.info(
+                    f"函数 {func.function_name}: 采集到 {len(aliases)} 个别名"
                 )
 
             # 采集版本
@@ -82,8 +85,8 @@ class FCCollector(CollectorBase):
             records.extend(versions)
             if versions:
                 functions_with_version += 1
-                print(
-                    f"    函数 {func.function_name}: 采集到 {len(versions)} 个版本"
+                logger.info(
+                    f"函数 {func.function_name}: 采集到 {len(versions)} 个版本"
                 )
 
         # 创建使用汇总记录
@@ -97,7 +100,7 @@ class FCCollector(CollectorBase):
             functions_with_version=functions_with_version,
         )
         records.append(usage_summary)
-        print(f"\nFC 采集汇总: {total_functions} 个函数")
+        logger.info(f"FC 采集汇总: {total_functions} 个函数")
 
         return records
 
