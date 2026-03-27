@@ -11,9 +11,21 @@
                 <span>选择评估项</span>
               </div>
               <div class="header-actions">
+                <el-button size="small" text @click="importConfig">
+                  <el-icon><Upload /></el-icon>
+                  导入配置
+                </el-button>
                 <el-button size="small" text @click="selectAll">全选</el-button>
                 <el-button size="small" text @click="selectNone">清空</el-button>
               </div>
+              <!-- 隐藏的文件输入框 -->
+              <input
+                ref="jsonFileInput"
+                type="file"
+                accept=".json,application/json"
+                style="display: none"
+                @change="handleJsonFileChange"
+              />
             </div>
           </template>
           
@@ -373,6 +385,60 @@ import { getAnalyzers, getDataStatus, runAnalysis } from '../api'
 
 // 状态
 const loadingAnalyzers = ref(false)
+
+// JSON 配置导入
+const jsonFileInput = ref(null)
+
+const importConfig = () => {
+  jsonFileInput.value?.click()
+}
+
+const handleJsonFileChange = (event) => {
+  const file = event.target.files?.[0]
+  if (!file) return
+
+  // 重置 input，允许重复选择同一文件
+  event.target.value = ''
+
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    try {
+      const parsed = JSON.parse(e.target.result)
+
+      // 支持两种格式：{ keys: [...] } 或直接 ["key1", "key2", ...]
+      let keys
+      if (Array.isArray(parsed)) {
+        keys = parsed
+      } else if (parsed && Array.isArray(parsed.keys)) {
+        keys = parsed.keys
+      } else {
+        ElMessage.error('JSON 格式不正确，应为 ["key1", ...] 或 { "keys": ["key1", ...] }')
+        return
+      }
+
+      // 过滤出有效的分析器 key
+      const validKeys = analyzers.value.map(a => a.key)
+      const matched = keys.filter(k => validKeys.includes(k))
+      const unmatched = keys.filter(k => !validKeys.includes(k))
+
+      if (matched.length === 0) {
+        ElMessage.warning('JSON 中的评估项 key 均无法匹配，请检查文件内容')
+        return
+      }
+
+      selectedKeys.value = matched
+
+      if (unmatched.length > 0) {
+        ElMessage.warning(`已选中 ${matched.length} 项，${unmatched.length} 个 key 无法匹配（${unmatched.slice(0, 3).join(', ')}${unmatched.length > 3 ? '...' : ''}）`)
+      } else {
+        ElMessage.success(`已从配置文件选中 ${matched.length} 个评估项`)
+      }
+    } catch {
+      ElMessage.error('JSON 解析失败，请检查文件格式')
+    }
+  }
+  reader.readAsText(file)
+}
 const analyzing = ref(false)
 const analyzeProgress = ref(0)
 const checkingStatus = ref(false)
