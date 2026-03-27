@@ -6,6 +6,7 @@ from alibabacloud_cr20181201.client import Client as CRClient
 from alibabacloud_tea_openapi import models as open_api_models
 
 from sesora.core.context import AssessmentContext
+from sesora.core.collector import CollectorBase
 from sesora.core.dataitem import DataSource
 from sesora.schema.acr import (
     AcrRepositoryRecord,
@@ -14,7 +15,7 @@ from sesora.schema.acr import (
 )
 
 
-class ACRCollector:
+class ACRCollector(CollectorBase):
     def __init__(self, context: AssessmentContext):
         self.context = context
         self.instance_ids = context.acr_instance_ids
@@ -65,18 +66,16 @@ class ACRCollector:
 
         return instance_ids
 
-    def collect(self) -> DataSource:
+    def name(self) -> str:
+        return "acr_collector"
+
+    def _collect(self) -> List:
         records: List = []
 
         instance_ids = self._get_instance_ids()
 
         if not instance_ids:
-            return DataSource(
-                collector="acr_collector",
-                collected_at=datetime.now(),
-                status="not_configured",
-                records=[],
-            )
+            return []
 
         for instance_id in instance_ids:
             print(f"\n开始采集 ACR 实例: {instance_id}")
@@ -85,12 +84,7 @@ class ACRCollector:
 
         print(f"\n总计采集到 {len(records)} 条记录")
 
-        return DataSource(
-            collector="acr_collector",
-            collected_at=datetime.now(),
-            status="ok",
-            records=records,
-        )
+        return records
 
     def _collect_instance(self, instance_id: str) -> List:
         records: List = []

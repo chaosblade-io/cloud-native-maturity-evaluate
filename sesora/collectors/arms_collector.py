@@ -7,6 +7,7 @@ from alibabacloud_arms20190808.client import Client as ARMSClient
 from alibabacloud_tea_openapi import models as open_api_models
 
 from sesora.core.context import AssessmentContext
+from sesora.core.collector import CollectorBase
 from sesora.core.dataitem import DataSource
 from sesora.schema.apm import (
     ApmServiceRecord,
@@ -93,7 +94,7 @@ def map_rpc_type(rpc_type) -> str:
         return str(rpc_type) if rpc_type else "UNKNOWN"
 
 
-class ARMSCollector:
+class ARMSCollector(CollectorBase):
     def __init__(self, context: AssessmentContext):
         self.context = context
         self.client = self._create_client()
@@ -109,97 +110,87 @@ class ARMSCollector:
         )
         return ARMSClient(config)
 
-    def collect(self, hours: int = 24) -> DataSource:
+    def name(self) -> str:
+        return "arms_collector"
+
+    def _collect(self) -> List:
+        hours: int = 24
         records: List = []
-        status = "ok"
 
-        try:
-            # 1. 采集应用列表
-            services = self._collect_trace_apps()
-            records.extend(services)
-            print(f"采集到 {len(services)} 个 ARMS 应用")
-            services = services[:15]  # TODO: remove this limit
-            print(f"  采集应用列表(first 15)")
+        # 1. 采集应用列表
+        services = self._collect_trace_apps()
+        records.extend(services)
+        print(f"采集到 {len(services)} 个 ARMS 应用")
+        services = services[:15]  # TODO: remove this limit
+        print(f"  采集应用列表(first 15)")
 
-            pid_to_service = {svc.pid: svc.service_name for svc in services}
+        pid_to_service = {svc.pid: svc.service_name for svc in services}
 
-            # 2. 基于应用的 pid 采集服务依赖和拓扑指标
-            for svc in services:
-                print(f"  采集应用 {svc.service_name} 的服务依赖和拓扑指标")
-                # 采集服务依赖及其指标（appstat.incall）
-                deps = self._collect_service_incall(svc.pid, pid_to_service, hours)
-                records.extend(deps)
+        # 2. 基于应用的 pid 采集服务依赖和拓扑指标
+        for svc in services:
+            print(f"  采集应用 {svc.service_name} 的服务依赖和拓扑指标")
+            # 采集服务依赖及其指标（appstat.incall）
+            deps = self._collect_service_incall(svc.pid, pid_to_service, hours)
+            records.extend(deps)
 
-            dep_count = sum(
-                1 for r in records if isinstance(r, ApmServiceDependencyRecord)
-            )
-            topo_count = sum(
-                1 for r in records if isinstance(r, ApmTopologyMetricsRecord)
-            )
-            print(f"采集到 {dep_count} 条服务依赖关系")
-            print(f"采集到 {topo_count} 条拓扑指标")
-
-            # 3. 采集外部数据库调用
-            print("  采集外部数据库调用...")
-            all_db_records: List[ApmExternalDatabaseRecord] = []
-            for svc in services:
-                db_recs = self._collect_external_databases(
-                    svc.pid, svc.service_name, hours
-                )
-                all_db_records.extend(db_recs)
-            records.extend(all_db_records)
-            print(f"采集到 {len(all_db_records)} 条外部数据库调用记录")
-
-            # 4. 推导服务-数据库映射
-            print("  推导服务-数据库映射...")
-            db_mappings = self._derive_service_db_mappings(all_db_records)
-            records.extend(db_mappings)
-            print(f"推导出 {len(db_mappings)} 条服务-数据库映射")
-
-            # 5. 采集外部消息队列调用
-            print("  采集外部消息队列调用...")
-            all_msg_records: List[ApmExternalMessageRecord] = []
-            for svc in services:
-                msg_recs = self._collect_external_messages(
-                    svc.pid, svc.service_name, hours
-                )
-                all_msg_records.extend(msg_recs)
-            records.extend(all_msg_records)
-            print(f"采集到 {len(all_msg_records)} 条外部消息队列调用记录")
-
-            # 6. 采集链路数据 (SearchTracesByPage + GetTrace)
-            print("  采集链路数据...")
-            trace_records = self._collect_traces(services, hours)
-            records.extend(trace_records)
-            error_trace_count = sum(1 for t in trace_records if t.has_error)
-            slow_trace_count = sum(1 for t in trace_records if t.duration_ms > 1000)
-            print(
-                f"采集到 {len(trace_records)} 条链路记录"
-                f" (错误: {error_trace_count}, 慢: {slow_trace_count})"
-            )
-
-            # 7. 采集每个应用的配置（采样配置 + 集成配置）
-            print("  采集应用配置...")
-            config_records = self._collect_app_configs(services)
-            records.extend(config_records)
-            apm_sampling_count = sum(
-                1 for r in config_records if isinstance(r, ApmSamplingConfigRecord)
-            )
-            print(f"采集到 {apm_sampling_count} 条采样配置(SamplingConfig)")
-
-        except Exception as e:
-            status = "error"
-            print(f"ARMS 采集失败: {e}")
-            import traceback
-
-            traceback.print_exc()
-
-        return DataSource(
-            collector="arms_collector",
-            collected_at=datetime.now(),
-            status=status,
-            records=records,
+        dep_count = sum(
+            1 for r in records if isinstance(r, ApmServiceDependencyRecord)
         )
+        topo_count = sum(
+            1 for r in records if isinstance(r, ApmTopologyMetricsRecord)
+        )
+        print(f"采集到 {dep_count} 条服务依赖关系")
+        print(f"采集到 {topo_count} 条拓扑指标")
+
+        # 3. 采集外部数据库调用
+        print("  采集外部数据库调用...")
+        all_db_records: List[ApmExternalDatabaseRecord] = []
+        for svc in services:
+            db_recs = self._collect_external_databases(
+                svc.pid, svc.service_name, hours
+            )
+            all_db_records.extend(db_recs)
+        records.extend(all_db_records)
+        print(f"采集到 {len(all_db_records)} 条外部数据库调用记录")
+
+        # 4. 推导服务-数据库映射
+        print("  推导服务-数据库映射...")
+        db_mappings = self._derive_service_db_mappings(all_db_records)
+        records.extend(db_mappings)
+        print(f"推导出 {len(db_mappings)} 条服务-数据库映射")
+
+        # 5. 采集外部消息队列调用
+        print("  采集外部消息队列调用...")
+        all_msg_records: List[ApmExternalMessageRecord] = []
+        for svc in services:
+            msg_recs = self._collect_external_messages(
+                svc.pid, svc.service_name, hours
+            )
+            all_msg_records.extend(msg_recs)
+        records.extend(all_msg_records)
+        print(f"采集到 {len(all_msg_records)} 条外部消息队列调用记录")
+
+        # 6. 采集链路数据 (SearchTracesByPage + GetTrace)
+        print("  采集链路数据...")
+        trace_records = self._collect_traces(services, hours)
+        records.extend(trace_records)
+        error_trace_count = sum(1 for t in trace_records if t.has_error)
+        slow_trace_count = sum(1 for t in trace_records if t.duration_ms > 1000)
+        print(
+            f"采集到 {len(trace_records)} 条链路记录"
+            f" (错误: {error_trace_count}, 慢: {slow_trace_count})"
+        )
+
+        # 7. 采集每个应用的配置（采样配置 + 集成配置）
+        print("  采集应用配置...")
+        config_records = self._collect_app_configs(services)
+        records.extend(config_records)
+        apm_sampling_count = sum(
+            1 for r in config_records if isinstance(r, ApmSamplingConfigRecord)
+        )
+        print(f"采集到 {apm_sampling_count} 条采样配置(SamplingConfig)")
+
+        return records
 
     def _collect_trace_apps(self) -> List[ApmServiceRecord]:
         records: List[ApmServiceRecord] = []
@@ -276,10 +267,6 @@ class ARMSCollector:
             update_time=update_time,
         )
 
-    # ------------------------------------------------------------------
-    # QueryMetricByPage 通用方法
-    # ------------------------------------------------------------------
-
     def _query_metric_by_page(
         self,
         metric: str,
@@ -289,29 +276,14 @@ class ARMSCollector:
         dimensions: Optional[List[str]] = None,
         interval_in_sec: int = 60000,
     ) -> List[Dict[str, Any]]:
-        """
-        通用 QueryMetricByPage 分页查询
-
-        Args:
-            metric: 指标名称，如 appstat.incall / appstat.database
-            pid: 应用 PID
-            hours: 查询时间范围（小时）
-            measures: 要查询的度量列表
-            dimensions: 要查询的维度列表
-            interval_in_sec: 时间粒度（毫秒），默认 60000（1分钟）
-
-        Returns:
-            List[Dict[str, Any]]: 所有数据项
-        """
+        """通用 QueryMetricByPage 分页查询。"""
         all_items: List[Dict[str, Any]] = []
         end_time = int(datetime.now().timestamp() * 1000)
         start_time = int((datetime.now() - timedelta(hours=hours)).timestamp() * 1000)
-
         region = self.context.region
 
         current_page = 1
         max_pages = 2
-
         while current_page <= max_pages:
             try:
                 request = arms_models.QueryMetricByPageRequest(
@@ -322,9 +294,7 @@ class ARMSCollector:
                     current_page=current_page,
                     page_size=100,
                     filters=[
-                        arms_models.QueryMetricByPageRequestFilters(
-                            key="pid", value=pid
-                        ),
+                        arms_models.QueryMetricByPageRequestFilters(key="pid", value=pid),
                         arms_models.QueryMetricByPageRequestFilters(
                             key="regionId", value=region
                         ),
@@ -334,13 +304,8 @@ class ARMSCollector:
                 )
 
                 response = self.client.query_metric_by_page(request)
-
                 if response.status_code != 200 or not response.body.success:
-                    msg = (
-                        response.body.message
-                        if response.body
-                        else f"{response.status_code}"
-                    )
+                    msg = response.body.message if response.body else f"{response.status_code}"
                     raise Exception(f"QueryMetricByPage API 调用失败: {msg}")
 
                 data = response.body.data
@@ -348,13 +313,9 @@ class ARMSCollector:
                     break
 
                 all_items.extend(data.items)
-
-                # 检查是否已完成分页
                 if data.completed:
                     break
-
                 current_page += 1
-
             except Exception as e:
                 print(f"  QueryMetricByPage({metric}) page={current_page} 异常: {e}")
                 break
@@ -365,8 +326,7 @@ class ARMSCollector:
         self, pid: str, pid_to_service: Dict[str, str], hours: int = 24
     ) -> List:
         records = []
-
-        target_service = pid_to_service[pid]
+        target_service = pid_to_service.get(pid, "unknown")
         items = self._query_metric_by_page(
             metric="appstat.incall",
             pid=pid,
@@ -376,31 +336,29 @@ class ARMSCollector:
         )
 
         dependencies = set()
-
         for item in items:
-            date = item["date"]
-            rt = item["rt"]
-            rpc = item["rpc"]
-            count = item["count"]
-            error = item["error"]
-            ppid = item["ppid"]
-            rpc_type = item["rpcType"]
+            date = int(item.get("date", 0) or 0)
+            rt = float(item.get("rt", 0) or 0)
+            rpc = item.get("rpc", "")
+            count = int(item.get("count", 0) or 0)
+            error = int(item.get("error", 0) or 0)
+            ppid = item.get("ppid", "")
+            rpc_type = item.get("rpcType", "")
             source_service = pid_to_service.get(ppid, "unknown")
+
             records.append(
                 ApmTopologyMetricsRecord(
                     source_service=source_service,
                     target_service=target_service,
                     call_type=map_rpc_type(rpc_type),
                     call=rpc,
-                    call_count=int(count),
-                    error_count=int(error),
+                    call_count=count,
+                    error_count=error,
                     rt=rt,
-                    timestamp=datetime.fromtimestamp(date / 1000),
+                    timestamp=datetime.fromtimestamp(date / 1000) if date else None,
                 )
             )
-
-            dep_data = (source_service, target_service, map_rpc_type(rpc_type), rpc)
-            dependencies.add(dep_data)
+            dependencies.add((source_service, target_service, map_rpc_type(rpc_type), rpc))
 
         for dep_data in dependencies:
             records.append(ApmServiceDependencyRecord(*dep_data))

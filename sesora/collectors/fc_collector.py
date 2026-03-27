@@ -6,6 +6,7 @@ from alibabacloud_tea_openapi import models as open_api_models
 from alibabacloud_fc20230330 import models as fc_models
 
 from sesora.core.context import AssessmentContext
+from sesora.core.collector import CollectorBase
 from sesora.core.dataitem import DataSource
 from sesora.schema.fc import (
     FcFunctionRecord,
@@ -15,7 +16,7 @@ from sesora.schema.fc import (
 )
 
 
-class FCCollector:
+class FCCollector(CollectorBase):
     def __init__(self, context: AssessmentContext):
         self.context = context
         self.client = self._create_client()
@@ -29,84 +30,76 @@ class FCCollector:
         )
         return FCClient(config)
 
-    def collect(self) -> DataSource:
+    def name(self) -> str:
+        return "fc_collector"
+
+    def _collect(self) -> List:
         records: List = []
-        status = "ok"
 
-        try:
-            # 获取服务名称列表（FC 3.0 中服务名作为函数的逻辑分组）
-            function_names = self._get_function_names()
+        # 获取服务名称列表（FC 3.0 中服务名作为函数的逻辑分组）
+        function_names = self._get_function_names()
 
-            runtime_types = set()
-            trigger_types = set()
-            functions_with_alias = 0
-            functions_with_version = 0
-            functions = []
+        runtime_types = set()
+        trigger_types = set()
+        functions_with_alias = 0
+        functions_with_version = 0
+        functions = []
 
-            if function_names:
-                for function_name in function_names:
-                    print(f"正在采集函数 {function_name} 的信息...")
-                    # 采集函数列表
-                    function = self._collect_function_detail(function_name)
-                    functions.append(function)
-            else:
-                print("未配置 FC 服务名称，将直接采集所有函数...")
-                functions = self._list_all_functions_directly()
-                records.extend(functions)
-                print(f"  采集到 {len(functions)} 个函数")
+        if function_names:
+            for function_name in function_names:
+                print(f"正在采集函数 {function_name} 的信息...")
+                # 采集函数列表
+                function = self._collect_function_detail(function_name)
+                functions.append(function)
+        else:
+            print("未配置 FC 服务名称，将直接采集所有函数...")
+            functions = self._list_all_functions_directly()
+            records.extend(functions)
+            print(f"  采集到 {len(functions)} 个函数")
 
-            total_functions = len(functions)
-            for func in functions:
-                if func.runtime:
-                    runtime_types.add(func.runtime)
+        total_functions = len(functions)
+        for func in functions:
+            if func.runtime:
+                runtime_types.add(func.runtime)
 
-                # 收集触发器类型
-                for trigger in func.triggers:
-                    trigger_type = trigger.get("triggerType", "")
-                    if trigger_type:
-                        trigger_types.add(trigger_type)
+            # 收集触发器类型
+            for trigger in func.triggers:
+                trigger_type = trigger.get("triggerType", "")
+                if trigger_type:
+                    trigger_types.add(trigger_type)
 
-                # 采集别名
-                aliases = self._collect_aliases(func.function_name)
-                records.extend(aliases)
-                if aliases:
-                    functions_with_alias += 1
-                    print(
-                        f"    函数 {func.function_name}: 采集到 {len(aliases)} 个别名"
-                    )
+            # 采集别名
+            aliases = self._collect_aliases(func.function_name)
+            records.extend(aliases)
+            if aliases:
+                functions_with_alias += 1
+                print(
+                    f"    函数 {func.function_name}: 采集到 {len(aliases)} 个别名"
+                )
 
-                # 采集版本
-                versions = self._collect_versions(func.function_name)
-                records.extend(versions)
-                if versions:
-                    functions_with_version += 1
-                    print(
-                        f"    函数 {func.function_name}: 采集到 {len(versions)} 个版本"
-                    )
+            # 采集版本
+            versions = self._collect_versions(func.function_name)
+            records.extend(versions)
+            if versions:
+                functions_with_version += 1
+                print(
+                    f"    函数 {func.function_name}: 采集到 {len(versions)} 个版本"
+                )
 
-            # 创建使用汇总记录
-            usage_summary = FcUsageSummaryRecord(
-                total_functions=total_functions,
-                trigger_types=list(trigger_types),
-                trigger_type_count=len(trigger_types),
-                runtime_types=list(runtime_types),
-                runtime_type_count=len(runtime_types),
-                functions_with_alias=functions_with_alias,
-                functions_with_version=functions_with_version,
-            )
-            records.append(usage_summary)
-            print(f"\nFC 采集汇总: {total_functions} 个函数")
-
-        except Exception as e:
-            status = "error"
-            print(f"FC 采集失败: {e}")
-
-        return DataSource(
-            collector="fc_collector",
-            collected_at=datetime.now(),
-            status=status,
-            records=records,
+        # 创建使用汇总记录
+        usage_summary = FcUsageSummaryRecord(
+            total_functions=total_functions,
+            trigger_types=list(trigger_types),
+            trigger_type_count=len(trigger_types),
+            runtime_types=list(runtime_types),
+            runtime_type_count=len(runtime_types),
+            functions_with_alias=functions_with_alias,
+            functions_with_version=functions_with_version,
         )
+        records.append(usage_summary)
+        print(f"\nFC 采集汇总: {total_functions} 个函数")
+
+        return records
 
     def _get_function_names(self) -> List[str]:
         """

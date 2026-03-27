@@ -8,6 +8,7 @@ from alibabacloud_tea_openapi import models as open_api_models
 from kubernetes import client as k8s_client, config as k8s_config
 
 from sesora.core.context import AssessmentContext
+from sesora.core.collector import CollectorBase
 from sesora.core.dataitem import DataSource
 from sesora.schema.k8s import (
     K8sNodeRecord,
@@ -53,7 +54,7 @@ from sesora.schema.policy import (
 )
 
 
-class ACKCollector:
+class ACKCollector(CollectorBase):
     def __init__(self, context: AssessmentContext):
         self.context = context
         self.client = self._create_client()
@@ -67,44 +68,37 @@ class ACKCollector:
         )
         return CSClient(config)
 
-    def collect(self) -> DataSource:
+    def name(self) -> str:
+        return "ack_collector"
+
+    def _collect(self) -> List:
         records: List = []
-        status = "ok"
 
-        try:
-            kubeconfig_yamls: List[Tuple[str, str]] = []  # (source, kubeconfig_yaml)
+        kubeconfig_yamls: List[Tuple[str, str]] = []  # (source, kubeconfig_yaml)
 
-            cluster_ids = self._get_cluster_ids()
-            # for cluster_id in cluster_ids:
-            #     print(f"正在采集 ACK 集群 {cluster_id} kubeconfig...")
-            #     kubeconfig_yaml = self._get_cluster_kubeconfig(cluster_id)
-            #     if kubeconfig_yaml is None:
-            #         print(f"  获取集群 {cluster_id} kubeconfig 失败，跳过该集群")
-            #         continue
-            #     kubeconfig_yamls.append((f"cluster:{cluster_id}", kubeconfig_yaml))
+        cluster_ids = self._get_cluster_ids()
+        # for cluster_id in cluster_ids:
+        #     print(f"正在采集 ACK 集群 {cluster_id} kubeconfig...")
+        #     kubeconfig_yaml = self._get_cluster_kubeconfig(cluster_id)
+        #     if kubeconfig_yaml is None:
+        #         print(f"  获取集群 {cluster_id} kubeconfig 失败，跳过该集群")
+        #         continue
+        #     kubeconfig_yamls.append((f"cluster:{cluster_id}", kubeconfig_yaml))
 
-            for kubeconfig_path in self.context.kubeconfig_paths:
-                with open(kubeconfig_path, "r") as f:
-                    kubeconfig_yaml = f.read()
-                    kubeconfig_yamls.append(
-                        (f"file:{kubeconfig_path}", kubeconfig_yaml)
-                    )
+        for kubeconfig_path in self.context.kubeconfig_paths:
+            with open(kubeconfig_path, "r") as f:
+                kubeconfig_yaml = f.read()
+                kubeconfig_yamls.append(
+                    (f"file:{kubeconfig_path}", kubeconfig_yaml)
+                )
 
-            for source, kubeconfig_yaml in kubeconfig_yamls:
-                print(f"正在采集 {source} 中的 Kubernetes 资源...")
-                source_records = self._collect_workloads_via_k8s(kubeconfig_yaml)
-                records.extend(source_records)
+        for source, kubeconfig_yaml in kubeconfig_yamls:
+            print(f"正在采集 {source} 中的 Kubernetes 资源...")
+            source_records = self._collect_workloads_via_k8s(kubeconfig_yaml)
+            records.extend(source_records)
 
-        except Exception as e:
-            print(f"ACK 采集失败: {e}")
-            status = "error"
 
-        return DataSource(
-            collector="ack_collector",
-            collected_at=datetime.now(),
-            status=status,
-            records=records,
-        )
+        return records
 
     def _get_cluster_ids(self) -> List[str]:
         if self.context.cluster_id:

@@ -6,6 +6,7 @@ from alibabacloud_cms20190101.client import Client as CmsClient
 from alibabacloud_tea_openapi import models as open_api_models
 
 from sesora.core.context import AssessmentContext
+from sesora.core.collector import CollectorBase
 from sesora.core.dataitem import DataSource
 from sesora.schema.cms import (
     CmsContactRecord,
@@ -17,7 +18,7 @@ from sesora.schema.cms import (
 )
 
 
-class CMSCollector:
+class CMSCollector(CollectorBase):
     def __init__(self, context: AssessmentContext):
         self.context = context
         self.client = self._create_client()
@@ -31,56 +32,46 @@ class CMSCollector:
         )
         return CmsClient(config)
 
-    def collect(
-        self,
-        history_hours: int = 24,
-    ) -> DataSource:
+    def name(self) -> str:
+        return "cms_collector"
+
+    def _collect(self) -> List:
+        history_hours: int = 24
         records: List = []
-        status = "ok"
 
-        try:
-            # 采集联系人
-            contacts = self._collect_contacts()
-            records.extend(contacts)
-            print(f"采集到 {len(contacts)} 个联系人")
+        # 采集联系人
+        contacts = self._collect_contacts()
+        records.extend(contacts)
+        print(f"采集到 {len(contacts)} 个联系人")
 
-            # 生成通道汇总记录
-            channel_summary = self._generate_channel_summary(contacts)
-            records.append(channel_summary)
-            print(f"生成通道汇总记录: {channel_summary.channel_types}")
+        # 生成通道汇总记录
+        channel_summary = self._generate_channel_summary(contacts)
+        records.append(channel_summary)
+        print(f"生成通道汇总记录: {channel_summary.channel_types}")
 
-            # 采集告警规则
-            alarm_rules = self._collect_alarm_rules()
-            records.extend(alarm_rules)
-            print(f"采集到 {len(alarm_rules)} 条告警规则")
+        # 采集告警规则
+        alarm_rules = self._collect_alarm_rules()
+        records.extend(alarm_rules)
+        print(f"采集到 {len(alarm_rules)} 条告警规则")
 
-            # 采集联系组
-            contact_groups = self._collect_contact_groups()
-            records.extend(contact_groups)
-            print(f"采集到 {len(contact_groups)} 个联系组")
+        # 采集联系组
+        contact_groups = self._collect_contact_groups()
+        records.extend(contact_groups)
+        print(f"采集到 {len(contact_groups)} 个联系组")
 
-            # 采集告警历史
-            alarm_history = self._collect_alarm_history(hours=history_hours)
-            records.extend(alarm_history)
-            print(
-                f"采集到 {len(alarm_history)} 条告警历史（最近 {history_hours} 小时）"
-            )
-
-            # 采集事件触发器
-            event_triggers = self._collect_event_triggers()
-            records.extend(event_triggers)
-            print(f"采集到 {len(event_triggers)} 个事件触发器")
-
-        except Exception as e:
-            status = "error"
-            print(f"CMS 采集失败: {e}")
-
-        return DataSource(
-            collector="cms_collector",
-            collected_at=datetime.now(),
-            status=status,
-            records=records,
+        # 采集告警历史
+        alarm_history = self._collect_alarm_history(hours=history_hours)
+        records.extend(alarm_history)
+        print(
+            f"采集到 {len(alarm_history)} 条告警历史（最近 {history_hours} 小时）"
         )
+
+        # 采集事件触发器
+        event_triggers = self._collect_event_triggers()
+        records.extend(event_triggers)
+        print(f"采集到 {len(event_triggers)} 个事件触发器")
+
+        return records
 
     def _collect_contacts(self) -> List[CmsContactRecord]:
         records: List[CmsContactRecord] = []

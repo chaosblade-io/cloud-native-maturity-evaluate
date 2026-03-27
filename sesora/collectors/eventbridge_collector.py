@@ -7,6 +7,7 @@ from alibabacloud_tea_openapi import models as open_api_models
 from alibabacloud_eventbridge20200401 import models as eventbridge_models
 
 from sesora.core.context import AssessmentContext
+from sesora.core.collector import CollectorBase
 from sesora.core.dataitem import DataSource
 from sesora.schema.eventbridge import (
     EventBridgeEventSourceRecord,
@@ -16,7 +17,7 @@ from sesora.schema.eventbridge import (
 )
 
 
-class EventBridgeCollector:
+class EventBridgeCollector(CollectorBase):
     def __init__(self, context: AssessmentContext):
         self.context = context
         self.client = self._create_client()
@@ -29,43 +30,36 @@ class EventBridgeCollector:
         )
         return EventBridgeClient(config)
 
-    def collect(self) -> DataSource:
+    def name(self) -> str:
+        return "eventbridge_collector"
+
+    def _collect(self) -> List:
         records: List = []
-        status = "ok"
 
-        try:
-            buses = self._collect_event_buses()
+        buses = self._collect_event_buses()
 
-            rules, targets, bus_rule_count = self._collect_rules_and_targets(
-                [bus.event_bus_name for bus in buses]
-            )
-            for bus in buses:
-                bus.rule_count = bus_rule_count.get(bus.event_bus_name, 0)
-
-            records.extend(buses)
-            print(f"采集到 {len(buses)} 个事件总线")
-            records.extend(rules)
-            print(f"采集到 {len(rules)} 条事件规则")
-            records.extend(targets)
-            print(f"采集到 {len(targets)} 条事件目标")
-
-            official_sources = self._collect_aliyun_official_event_sources()
-            records.extend(official_sources)
-            print(f"采集到 {len(official_sources)} 个阿里云官方事件源")
-
-            user_defined_sources = self._collect_user_defined_event_sources()
-            records.extend(user_defined_sources)
-            print(f"采集到 {len(user_defined_sources)} 个外部事件源")
-        except Exception as exc:
-            status = "error"
-            print(f"EventBridge 采集失败: {exc}")
-
-        return DataSource(
-            collector="eventbridge_collector",
-            collected_at=datetime.now(),
-            status=status,
-            records=records,
+        rules, targets, bus_rule_count = self._collect_rules_and_targets(
+            [bus.event_bus_name for bus in buses]
         )
+        for bus in buses:
+            bus.rule_count = bus_rule_count.get(bus.event_bus_name, 0)
+
+        records.extend(buses)
+        print(f"采集到 {len(buses)} 个事件总线")
+        records.extend(rules)
+        print(f"采集到 {len(rules)} 条事件规则")
+        records.extend(targets)
+        print(f"采集到 {len(targets)} 条事件目标")
+
+        official_sources = self._collect_aliyun_official_event_sources()
+        records.extend(official_sources)
+        print(f"采集到 {len(official_sources)} 个阿里云官方事件源")
+
+        user_defined_sources = self._collect_user_defined_event_sources()
+        records.extend(user_defined_sources)
+        print(f"采集到 {len(user_defined_sources)} 个外部事件源")
+
+        return records
 
     def _collect_aliyun_official_event_sources(
         self,

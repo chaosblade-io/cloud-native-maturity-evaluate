@@ -6,6 +6,7 @@ from alibabacloud_ecs20140526.client import Client as AcsClient
 from alibabacloud_tea_openapi import models as open_api_models
 
 from sesora.core.context import AssessmentContext
+from sesora.core.collector import CollectorBase
 from sesora.core.dataitem import DataSource
 from sesora.schema.ecs import (
     EcsInstanceRecord,
@@ -14,7 +15,7 @@ from sesora.schema.ecs import (
 )
 
 
-class ECSCollector:
+class ECSCollector(CollectorBase):
     def __init__(self, context: AssessmentContext):
         self.context = context
         self.client = self._create_client()
@@ -28,37 +29,29 @@ class ECSCollector:
         )
         return AcsClient(config)
 
-    def collect(self) -> DataSource:
+    def name(self) -> str:
+        return "ecs_collector"
+
+    def _collect(self) -> List:
         records: List = []
-        status = "ok"
 
-        try:
-            # 1. 采集 ECS 实例
-            instances = self._collect_instances()
-            records.extend(instances)
-            print(f"采集到 {len(instances)} 个 ECS 实例")
+        # 1. 采集 ECS 实例
+        instances = self._collect_instances()
+        records.extend(instances)
+        print(f"采集到 {len(instances)} 个 ECS 实例")
 
-            # 2. 采集安全组
-            security_groups = self._collect_security_groups()
-            records.extend(security_groups)
-            print(f"采集到 {len(security_groups)} 个安全组")
+        # 2. 采集安全组
+        security_groups = self._collect_security_groups()
+        records.extend(security_groups)
+        print(f"采集到 {len(security_groups)} 个安全组")
 
-            # 3. 采集安全组规则
-            for sg in security_groups:
-                rules = self._collect_security_group_rules(sg.security_group_id)
-                records.extend(rules)
-                print(f"  安全组 {sg.security_group_id}: 采集到 {len(rules)} 条规则")
+        # 3. 采集安全组规则
+        for sg in security_groups:
+            rules = self._collect_security_group_rules(sg.security_group_id)
+            records.extend(rules)
+            print(f"  安全组 {sg.security_group_id}: 采集到 {len(rules)} 条规则")
 
-        except Exception as e:
-            print(f"ECS 采集失败: {e}")
-            status = "error"
-
-        return DataSource(
-            collector="ecs_collector",
-            collected_at=datetime.now(),
-            status=status,
-            records=records,
-        )
+        return records
 
     def _collect_instances(self) -> List[EcsInstanceRecord]:
         records: List[EcsInstanceRecord] = []

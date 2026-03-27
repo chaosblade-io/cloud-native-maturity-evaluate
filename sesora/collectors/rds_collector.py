@@ -7,6 +7,7 @@ from alibabacloud_rds20140815 import models as rds_models
 from alibabacloud_tea_openapi import models as open_api_models
 
 from sesora.core.context import AssessmentContext
+from sesora.core.collector import CollectorBase
 from sesora.core.dataitem import DataSource
 from sesora.schema.rds_oss import (
     RdsInstanceRecord,
@@ -15,7 +16,7 @@ from sesora.schema.rds_oss import (
 )
 
 
-class RDSCollector:
+class RDSCollector(CollectorBase):
     def __init__(
         self, context: AssessmentContext, instance_ids: Optional[List[str]] = None
     ):
@@ -44,67 +45,56 @@ class RDSCollector:
 
         return []
 
-    def collect(self) -> DataSource:
+    def name(self) -> str:
+        return "rds_collector"
+
+    def _collect(self) -> List:
         records: List = []
-        status = "ok"
 
-        try:
-            instance_ids = self._get_instance_ids()
+        instance_ids = self._get_instance_ids()
 
-            if instance_ids:
-                # 采集指定实例
-                print(f"开始采集 {len(instance_ids)} 个指定 RDS 实例...")
-                for instance_id in instance_ids:
-                    record = self._collect_instance_detail(instance_id)
-                    if record:
-                        records.append(record)
-                        print(f"  采集实例: {instance_id}")
-            else:
-                # 采集所有实例
-                print("开始采集所有 RDS 实例...")
-                records = self._collect_all_instances()
+        if instance_ids:
+            # 采集指定实例
+            print(f"开始采集 {len(instance_ids)} 个指定 RDS 实例...")
+            for instance_id in instance_ids:
+                record = self._collect_instance_detail(instance_id)
+                if record:
+                    records.append(record)
+                    print(f"  采集实例: {instance_id}")
+        else:
+            # 采集所有实例
+            print("开始采集所有 RDS 实例...")
+            records = self._collect_all_instances()
 
-            print(f"\n总计采集到 {len(records)} 个 RDS 实例")
+        print(f"\n总计采集到 {len(records)} 个 RDS 实例")
 
-            # 采集备份策略
-            print("\n开始采集备份策略...")
-            instance_records = [r for r in records if isinstance(r, RdsInstanceRecord)]
-            for instance in instance_records:
-                backup_policy = self._collect_backup_policy(
-                    instance.db_instance_id, instance.engine
-                )
-                records.append(backup_policy)
-                print(f"  采集备份策略: {instance.db_instance_id}")
-
-            backup_policy_count = sum(
-                1 for r in records if isinstance(r, RdsBackupPolicyRecord)
+        # 采集备份策略
+        print("\n开始采集备份策略...")
+        instance_records = [r for r in records if isinstance(r, RdsInstanceRecord)]
+        for instance in instance_records:
+            backup_policy = self._collect_backup_policy(
+                instance.db_instance_id, instance.engine
             )
-            print(f"总计采集到 {backup_policy_count} 个备份策略")
+            records.append(backup_policy)
+            print(f"  采集备份策略: {instance.db_instance_id}")
 
-            # 采集代理配置和代理实例
-            print("\n开始采集代理信息...")
-            for instance in instance_records:
-                proxy_instance = self._collect_db_proxy(instance.db_instance_id)
-                records.append(proxy_instance)
-
-            proxy_instance_count = sum(
-                1 for r in records if isinstance(r, RdsProxyRecord)
-            )
-            print(f"总计采集到 {proxy_instance_count} 个代理实例")
-
-        except Exception as e:
-            status = "error"
-            print(f"RDS 采集失败: {e}")
-            import traceback
-
-            traceback.print_exc()
-
-        return DataSource(
-            collector="rds_collector",
-            collected_at=datetime.now(),
-            status=status,
-            records=records,
+        backup_policy_count = sum(
+            1 for r in records if isinstance(r, RdsBackupPolicyRecord)
         )
+        print(f"总计采集到 {backup_policy_count} 个备份策略")
+
+        # 采集代理配置和代理实例
+        print("\n开始采集代理信息...")
+        for instance in instance_records:
+            proxy_instance = self._collect_db_proxy(instance.db_instance_id)
+            records.append(proxy_instance)
+
+        proxy_instance_count = sum(
+            1 for r in records if isinstance(r, RdsProxyRecord)
+        )
+        print(f"总计采集到 {proxy_instance_count} 个代理实例")
+
+        return records
 
     def _collect_all_instances(self) -> List[RdsInstanceRecord]:
         records: List[RdsInstanceRecord] = []

@@ -6,11 +6,12 @@ from alibabacloud_r_kvstore20150101 import models as kvstore_models
 from alibabacloud_tea_openapi import models as open_api_models
 
 from sesora.core.context import AssessmentContext
+from sesora.core.collector import CollectorBase
 from sesora.core.dataitem import DataSource
 from sesora.schema.rds_oss import TairInstanceModeRecord
 
 
-class TairCollector:
+class TairCollector(CollectorBase):
     def __init__(
         self, context: AssessmentContext, instance_ids: Optional[List[str]] = None
     ):
@@ -40,40 +41,30 @@ class TairCollector:
 
         return []
 
-    def collect(self) -> DataSource:
+    def name(self) -> str:
+        return "tair_collector"
+
+    def _collect(self) -> List:
         records: List[TairInstanceModeRecord] = []
-        status = "ok"
 
-        try:
-            instance_ids = self._get_instance_ids()
+        instance_ids = self._get_instance_ids()
 
-            if instance_ids:
-                # 采集指定实例
-                print(f"开始采集 {len(instance_ids)} 个指定 Tair/Redis 实例...")
-                for instance_id in instance_ids:
-                    instance_records = self._collect_instance_detail(instance_id)
-                    for record in instance_records:
-                        records.append(record)
-                        print(f"  采集实例: {record.instance_id}")
-            else:
-                # 采集所有实例
-                print("开始采集所有 Tair/Redis 实例...")
-                records = self._collect_all_instances()
+        if instance_ids:
+            # 采集指定实例
+            print(f"开始采集 {len(instance_ids)} 个指定 Tair/Redis 实例...")
+            for instance_id in instance_ids:
+                instance_records = self._collect_instance_detail(instance_id)
+                for record in instance_records:
+                    records.append(record)
+                    print(f"  采集实例: {record.instance_id}")
+        else:
+            # 采集所有实例
+            print("开始采集所有 Tair/Redis 实例...")
+            records = self._collect_all_instances()
 
-            print(f"\n总计采集到 {len(records)} 个 Tair/Redis 实例")
+        print(f"\n总计采集到 {len(records)} 个 Tair/Redis 实例")
 
-        except Exception as e:
-            status = "error"
-            print(f"Tair/Redis 采集失败: {e}")
-            import traceback
-            traceback.print_exc()
-
-        return DataSource(
-            collector="tair_collector",
-            collected_at=datetime.now(),
-            status=status,
-            records=records,
-        )
+        return records
 
     def _collect_all_instances(self) -> List[TairInstanceModeRecord]:
         """采集该区域下所有 Tair/Redis 实例"""

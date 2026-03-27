@@ -5,12 +5,13 @@ from alibabacloud_ros20190910.client import Client as RosClient
 from alibabacloud_tea_openapi import models as open_api_models
 
 from sesora.core.context import AssessmentContext
+from sesora.core.collector import CollectorBase
 from sesora.core.dataitem import DataSource
 from sesora.schema import RosStackRecord, RosStackDriftRecord
 from alibabacloud_ros20190910 import models as ros_models
 
 
-class ROSCollector:
+class ROSCollector(CollectorBase):
     def __init__(self, context: AssessmentContext):
         self.context = context
         self.ros_stack_name = context.ros_stack_name
@@ -26,34 +27,27 @@ class ROSCollector:
         )
         return RosClient(config)
 
-    def collect(self) -> DataSource:
+    def name(self) -> str:
+        return "ros_collector"
+
+    def _collect(self) -> List:
         records: List = []
-        status = "ok"
 
-        try:
-            stacks = self._collect_stacks()
-            records.extend(stacks)
-            print(f"\n总计采集到 {len(stacks)} 个 ROS 资源栈")
+        stacks = self._collect_stacks()
+        records.extend(stacks)
+        print(f"\n总计采集到 {len(stacks)} 个 ROS 资源栈")
 
-            # 采集漂移检测信息
-            print("\n开始采集漂移检测信息...")
-            for stack in stacks:
-                if stack.drift_status != "NOT_CHECKED":
-                    drift_record = self._collect_stack_drift(stack, stack.stack_name)
-                    records.append(drift_record)
-                    print(
-                        f"  采集漂移信息: {stack.stack_name} - {drift_record.drift_status}"
-                    )
-        except Exception as e:
-            status = "error"
-            print(f"ROS 采集失败: {e}")
+        # 采集漂移检测信息
+        print("\n开始采集漂移检测信息...")
+        for stack in stacks:
+            if stack.drift_status != "NOT_CHECKED":
+                drift_record = self._collect_stack_drift(stack, stack.stack_name)
+                records.append(drift_record)
+                print(
+                    f"  采集漂移信息: {stack.stack_name} - {drift_record.drift_status}"
+                )
 
-        return DataSource(
-            collector="ros_collector",
-            collected_at=datetime.now(),
-            status=status,
-            records=records,
-        )
+        return records
 
     def _collect_stacks(self) -> List[RosStackRecord]:
         records: List[RosStackRecord] = []

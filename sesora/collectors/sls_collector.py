@@ -7,6 +7,7 @@ from alibabacloud_tea_openapi import models as open_api_models
 from alibabacloud_sls20201230 import models as sls_models
 
 from sesora.core.context import AssessmentContext
+from sesora.core.collector import CollectorBase
 from sesora import DataSource
 from sesora.schema.sls import (
     SlsLogstoreRecord,
@@ -18,7 +19,7 @@ from sesora.schema.sls import (
 )
 
 
-class SLSCollector:
+class SLSCollector(CollectorBase):
     # 常见的标准日志字段
     STANDARD_FIELDS = {
         "timestamp": [
@@ -303,60 +304,53 @@ class SLSCollector:
             max_retention_days=ttl,
         )
 
-    def collect(self) -> DataSource:
+    def name(self) -> str:
+        return "sls_collector"
+
+    def _collect(self) -> List:
         all_records: List = []
-        status = "ok"
 
-        try:
-            print(f"正在采集 SLS 信息 (Project: {self.project_name})...")
+        print(f"正在采集 SLS 信息 (Project: {self.project_name})...")
 
-            # 1. 获取 Logstore 列表
-            logstore_names = self._list_logstore_names()
-            print(f"发现 {len(logstore_names)} 个 Logstore")
+        # 1. 获取 Logstore 列表
+        logstore_names = self._list_logstore_names()
+        print(f"发现 {len(logstore_names)} 个 Logstore")
 
-            # 2. 遍历每个 Logstore 采集详细信息
-            for logstore_name in logstore_names:
-                print(f"  采集 Logstore: {logstore_name}")
+        # 2. 遍历每个 Logstore 采集详细信息
+        for logstore_name in logstore_names:
+            print(f"  采集 Logstore: {logstore_name}")
 
-                # 2.1 Logstore 详情
-                logstore_record = self._get_logstore_detail(logstore_name)
-                all_records.append(logstore_record)
+            # 2.1 Logstore 详情
+            logstore_record = self._get_logstore_detail(logstore_name)
+            all_records.append(logstore_record)
 
-                # 2.2 索引配置
-                index_config = self._get_index_config(logstore_name)
-                all_records.append(index_config)
+            # 2.2 索引配置
+            index_config = self._get_index_config(logstore_name)
+            all_records.append(index_config)
 
-                # 2.3 查询能力（基于索引配置生成）
-                query_capability = self._build_query_capability(
-                    logstore_name, index_config
+            # 2.3 查询能力（基于索引配置生成）
+            query_capability = self._build_query_capability(
+                logstore_name, index_config
+            )
+            all_records.append(query_capability)
+
+            # 2.4 归档配置（基于 Logstore 配置生成）
+            archive_config = self._build_archive_config(
+                logstore_name, logstore_record
+            )
+            all_records.append(archive_config)
+
+            # 2.5 日志样本（仅当索引开启时才能查询）
+            if index_config.index_enabled:
+                samples = self._get_log_samples(logstore_name, sample_count=50)
+                all_records.extend(samples)
+
+                # 2.6 日志结构分析
+                structure_analysis = self._analyze_log_structure(
+                    logstore_name, samples
                 )
-                all_records.append(query_capability)
+                all_records.append(structure_analysis)
 
-                # 2.4 归档配置（基于 Logstore 配置生成）
-                archive_config = self._build_archive_config(
-                    logstore_name, logstore_record
-                )
-                all_records.append(archive_config)
+        print(f"SLS 采集完成，共 {len(all_records)} 条记录")
 
-                # 2.5 日志样本（仅当索引开启时才能查询）
-                if index_config.index_enabled:
-                    samples = self._get_log_samples(logstore_name, sample_count=50)
-                    all_records.extend(samples)
-
-                    # 2.6 日志结构分析
-                    structure_analysis = self._analyze_log_structure(
-                        logstore_name, samples
-                    )
-                    all_records.append(structure_analysis)
-
-            print(f"SLS 采集完成，共 {len(all_records)} 条记录")
-        except Exception as e:
-            print(f"SLS 采集失败: {e}")
-            status = "error"
-
-        return DataSource(
-            collector="sls_collector",
-            collected_at=datetime.datetime.now(),
-            status=status,
-            records=all_records,
-        )
+        return all_records

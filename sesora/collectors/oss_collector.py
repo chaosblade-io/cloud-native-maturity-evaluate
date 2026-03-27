@@ -3,6 +3,7 @@ from typing import List, Optional
 
 import oss2
 from sesora.core.context import AssessmentContext
+from sesora.core.collector import CollectorBase
 from sesora.core.dataitem import DataSource
 from sesora.schema.rds_oss import (
     OssBucketRecord,
@@ -10,7 +11,7 @@ from sesora.schema.rds_oss import (
 )
 
 
-class OSSCollector:
+class OSSCollector(CollectorBase):
     def __init__(
         self, context: AssessmentContext, bucket_names: Optional[List[str]] = None
     ):
@@ -37,48 +38,40 @@ class OSSCollector:
 
         return []
 
-    def collect(self) -> DataSource:
+    def name(self) -> str:
+        return "oss_collector"
+
+    def _collect(self) -> List:
         records: List = []
-        status = "ok"
 
-        try:
-            bucket_names = self._get_bucket_names()
+        bucket_names = self._get_bucket_names()
 
-            if not bucket_names:
-                # 采集所有 Bucket
-                print("开始采集所有 OSS Bucket...")
-                bucket_names = self._collect_all_bucket_names()
-            for bucket_name in bucket_names:
-                bucket_record = self._collect_bucket_detail(bucket_name)
-                records.append(bucket_record)
-                print(f"  采集 Bucket: {bucket_name}")
+        if not bucket_names:
+            # 采集所有 Bucket
+            print("开始采集所有 OSS Bucket...")
+            bucket_names = self._collect_all_bucket_names()
+        for bucket_name in bucket_names:
+            bucket_record = self._collect_bucket_detail(bucket_name)
+            records.append(bucket_record)
+            print(f"  采集 Bucket: {bucket_name}")
 
-                # 采集生命周期规则
-                lifecycle_records = self._collect_bucket_lifecycle(bucket_name)
-                if lifecycle_records:
-                    records.extend(lifecycle_records)
-                    print(
-                        f"  采集生命周期规则: {bucket_name} ({len(lifecycle_records)} 条)"
-                    )
+            # 采集生命周期规则
+            lifecycle_records = self._collect_bucket_lifecycle(bucket_name)
+            if lifecycle_records:
+                records.extend(lifecycle_records)
+                print(
+                    f"  采集生命周期规则: {bucket_name} ({len(lifecycle_records)} 条)"
+                )
 
-            bucket_count = sum(1 for r in records if isinstance(r, OssBucketRecord))
-            lifecycle_count = sum(
-                1 for r in records if isinstance(r, OssBucketLifecycleRecord)
-            )
-            print(
-                f"\n总计采集到 {bucket_count} 个 Bucket, {lifecycle_count} 条生命周期规则"
-            )
-
-        except Exception as e:
-            status = "error"
-            print(f"OSS 采集失败: {e}")
-
-        return DataSource(
-            collector="oss_collector",
-            collected_at=datetime.now(),
-            status=status,
-            records=records,
+        bucket_count = sum(1 for r in records if isinstance(r, OssBucketRecord))
+        lifecycle_count = sum(
+            1 for r in records if isinstance(r, OssBucketLifecycleRecord)
         )
+        print(
+            f"\n总计采集到 {bucket_count} 个 Bucket, {lifecycle_count} 条生命周期规则"
+        )
+
+        return records
 
     def _collect_all_bucket_names(self) -> List[str]:
         buckets = self.client.list_buckets()

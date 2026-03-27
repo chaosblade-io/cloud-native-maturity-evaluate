@@ -6,11 +6,12 @@ from alibabacloud_tea_openapi import models as open_api_models
 from alibabacloud_alidns20150109 import models as alidns_models
 
 from sesora.core.context import AssessmentContext
+from sesora.core.collector import CollectorBase
 from sesora.core.dataitem import DataSource
 from sesora.schema.rds_oss import GtmAddressPoolRecord
 
 
-class GTMCollector:
+class GTMCollector(CollectorBase):
     def __init__(self, context: AssessmentContext):
         self.context = context
         self.client = self._create_client()
@@ -24,29 +25,21 @@ class GTMCollector:
         )
         return AlidnsClient(config)
 
-    def collect(self) -> DataSource:
+    def name(self) -> str:
+        return "gtm_collector"
+
+    def _collect(self) -> List:
         records: List = []
-        status = "ok"
 
-        try:
-            instances = self._collect_gtm_instances()
-            print(f"采集到 {len(instances)} 个 GTM 实例")
-            for instance_id in instances:
-                print(f"正在采集 GTM 实例 {instance_id} 的地址池...")
-                address_pools = self._collect_gtm_address_pools(instance_id)
-                records.extend(address_pools)
-                print(f"采集到 {len(address_pools)} 个 GTM 地址池")
+        instances = self._collect_gtm_instances()
+        print(f"采集到 {len(instances)} 个 GTM 实例")
+        for instance_id in instances:
+            print(f"正在采集 GTM 实例 {instance_id} 的地址池...")
+            address_pools = self._collect_gtm_address_pools(instance_id)
+            records.extend(address_pools)
+            print(f"采集到 {len(address_pools)} 个 GTM 地址池")
 
-        except Exception as e:
-            print(f"GTM 采集失败: {e}")
-            status = "error"
-
-        return DataSource(
-            collector="gtm_collector",
-            collected_at=datetime.now(),
-            status=status,
-            records=records,
-        )
+        return records
 
     def _collect_gtm_instances(self) -> List[str]:
         instance_ids: List[str] = []

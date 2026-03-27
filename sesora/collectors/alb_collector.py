@@ -6,11 +6,12 @@ from alibabacloud_alb20200616.client import Client as AlbClient
 from alibabacloud_tea_openapi import models as open_api_models
 
 from sesora.core.context import AssessmentContext
+from sesora.core.collector import CollectorBase
 from sesora.core.dataitem import DataSource
 from sesora.schema.rds_oss import AlbListenerRecord
 
 
-class ALBCollector:
+class ALBCollector(CollectorBase):
     def __init__(
         self, context: AssessmentContext, load_balancer_ids: Optional[List[str]] = None
     ):
@@ -27,24 +28,17 @@ class ALBCollector:
         )
         return AlbClient(config)
 
-    def collect(self) -> DataSource:
+    def name(self) -> str:
+        return "alb_collector"
+
+    def _collect(self) -> List:
         records: List = []
-        status = "ok"
 
-        try:
-            listeners = self._collect_listeners()
-            records.extend(listeners)
-            print(f"\n总计采集到 {len(listeners)} 个 ALB 监听器")
-        except Exception as e:
-            status = "error"
-            print(f"ALB 采集失败: {e}")
+        listeners = self._collect_listeners()
+        records.extend(listeners)
+        print(f"\n总计采集到 {len(listeners)} 个 ALB 监听器")
 
-        return DataSource(
-            collector="alb_collector",
-            collected_at=datetime.now(),
-            status=status,
-            records=records,
-        )
+        return records
 
     def _collect_listeners(self) -> List[AlbListenerRecord]:
         records: List[AlbListenerRecord] = []

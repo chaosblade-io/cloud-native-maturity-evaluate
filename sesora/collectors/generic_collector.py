@@ -1,16 +1,20 @@
 from datetime import datetime
 from dacite import from_dict, Config
 
+from sesora.core.collector import CollectorBase
 from sesora.core.dataitem import DataSource
 from sesora.schema.registry import DATAITEM_SCHEMA_REGISTRY
 
 
-class GenericCollector:
+class GenericCollector(CollectorBase):
     def __init__(self, data, collector_name="external"):
         self.data = data
         self.collector_name = collector_name
 
-    def collect(self) -> DataSource:
+    def name(self) -> str:
+        return self.collector_name
+
+    def _collect(self) -> list:
         records = []
         for dataitem_name, records_data in self.data.items():
             record_class = DATAITEM_SCHEMA_REGISTRY.get(dataitem_name)
@@ -28,9 +32,4 @@ class GenericCollector:
                     ),
                 )
                 records.append(record)
-        return DataSource(
-            collector=self.collector_name,
-            collected_at=datetime.now(),
-            status="ok",
-            records=records,
-        )
+            return records

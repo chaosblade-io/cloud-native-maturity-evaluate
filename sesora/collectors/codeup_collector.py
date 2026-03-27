@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from typing import List, Optional
 
 from sesora.core.context import AssessmentContext
+from sesora.core.collector import CollectorBase
 from sesora.core.dataitem import DataSource
 from sesora.schema.codeup import (
     CodeupPipelineRecord,
@@ -25,7 +26,7 @@ import re
 import yaml
 
 
-class CodeupCollector:
+class CodeupCollector(CollectorBase):
     def __init__(self, context: AssessmentContext):
         self.context = context
         self.token = self.context.yunxiao_token
@@ -43,105 +44,87 @@ class CodeupCollector:
         )
         return DevOpsClient(config)
 
-    def collect(self) -> DataSource:
+    def name(self) -> str:
+        return "codeup_collector"
+
+    def _collect(self) -> List:
         records: List = []
-        status = "ok"
 
         # 检查 Token 是否配置
         if not self.token:
             print("错误: 未配置云效 Token，请设置 YUNXIAO_TOKEN 环境变量")
-            return DataSource(
-                collector="codeup_collector",
-                collected_at=datetime.now(),
-                status="not_configured",
-                records=[],
-            )
+            return []
 
-        try:
-            # 获取组织 ID 列表
-            org_ids = self._get_organization_ids()
+        # 获取组织 ID 列表
+        org_ids = self._get_organization_ids()
 
-            if not org_ids:
-                print("警告: 未配置组织 ID，请设置 codeup_org_id 或 CODEUP_ORG_ID")
-                return DataSource(
-                    collector="codeup_collector",
-                    collected_at=datetime.now(),
-                    status="not_configured",
-                    records=[],
+        if not org_ids:
+            print("警告: 未配置组织 ID，请设置 codeup_org_id 或 CODEUP_ORG_ID")
+            return []
+
+        # 为每个组织采集代码仓库
+        for org_id in org_ids:
+            print(f"正在采集组织 {org_id} 的代码仓库信息...")
+            repos = self._collect_repos(org_id, self.project)
+            records.extend(repos)
+
+            for repo in repos:
+                print(f"正在采集仓库 {repo.repo_name} 的信息...")
+                file_tree = self._collect_repo_file_tree(
+                    org_id, repo.repo_id, repo.repo_name
+                )
+                records.extend(file_tree)
+
+                print(f"正在采集仓库 {repo.repo_name} 的文件提交信息...")
+                file_commits = []
+                for file_tree_record in file_tree:
+                    file_commit = self._calculate_file_last_commit(
+                        file_tree_record.path, org_id, repo.repo_id
+                    )
+                    file_commits.append(file_commit)
+                records.extend(file_commits)
+
+                print(f"正在采集仓库 {repo.repo_name} 的标签信息...")
+                tags = self._collect_repo_tags(org_id, repo.repo_id)
+                records.extend(tags)
+                print(f"    采集到仓库 {repo.repo_name} 的 {len(tags)} 个标签")
+
+                print(f"正在采集仓库 {repo.repo_name} 的分支信息...")
+                branches = self._collect_repo_branches(org_id, repo.repo_id)
+                records.extend(branches)
+                print(f"    采集到仓库 {repo.repo_name} 的 {len(branches)} 个分支")
+
+                print(f"正在采集仓库 {repo.repo_name} 的提交信息...")
+                commits = self._collect_repo_commits(org_id, repo.repo_id)
+                records.extend(commits)
+                print(
+                    f"    采集到仓库 {repo.repo_name} 的 {len(commits)} 条提交记录"
                 )
 
-            # 为每个组织采集代码仓库
-            for org_id in org_ids:
-                print(f"正在采集组织 {org_id} 的代码仓库信息...")
-                repos = self._collect_repos(org_id, self.project)
-                records.extend(repos)
+            print(f"正在采集组织 {org_id} 的流水线信息...")
+            pipelines = self._collect_pipelines(org_id)
+            records.extend(pipelines)
+            print(f"  采集到 {len(pipelines)} 条流水线")
 
-                for repo in repos:
-                    print(f"正在采集仓库 {repo.repo_name} 的信息...")
-                    file_tree = self._collect_repo_file_tree(
-                        org_id, repo.repo_id, repo.repo_name
-                    )
-                    records.extend(file_tree)
+            # 采集流水线配置详情
+            for pipeline in pipelines:
+                config_records = self._collect_pipeline_config(
+                    org_id, pipeline.pipeline_id
+                )
+                records.extend(config_records)
+                print(f"    采集到流水线 {pipeline.name} 的配置信息")
 
-                    print(f"正在采集仓库 {repo.repo_name} 的文件提交信息...")
-                    file_commits = []
-                    for file_tree_record in file_tree:
-                        file_commit = self._calculate_file_last_commit(
-                            file_tree_record.path, org_id, repo.repo_id
-                        )
-                        file_commits.append(file_commit)
-                    records.extend(file_commits)
+            # 采集流水线运行记录和指标
+            for pipeline in pipelines:
+                run_records = self._collect_pipeline_runs(
+                    org_id, pipeline.pipeline_id, pipeline.name
+                )
+                records.extend(run_records)
+                print(
+                    f"    采集到流水线 {pipeline.name} 的 {len(run_records)} 条运行记录"
+                )
 
-                    print(f"正在采集仓库 {repo.repo_name} 的标签信息...")
-                    tags = self._collect_repo_tags(org_id, repo.repo_id)
-                    records.extend(tags)
-                    print(f"    采集到仓库 {repo.repo_name} 的 {len(tags)} 个标签")
-
-                    print(f"正在采集仓库 {repo.repo_name} 的分支信息...")
-                    branches = self._collect_repo_branches(org_id, repo.repo_id)
-                    records.extend(branches)
-                    print(f"    采集到仓库 {repo.repo_name} 的 {len(branches)} 个分支")
-
-                    print(f"正在采集仓库 {repo.repo_name} 的提交信息...")
-                    commits = self._collect_repo_commits(org_id, repo.repo_id)
-                    records.extend(commits)
-                    print(
-                        f"    采集到仓库 {repo.repo_name} 的 {len(commits)} 条提交记录"
-                    )
-
-                print(f"正在采集组织 {org_id} 的流水线信息...")
-                pipelines = self._collect_pipelines(org_id)
-                records.extend(pipelines)
-                print(f"  采集到 {len(pipelines)} 条流水线")
-
-                # 采集流水线配置详情
-                for pipeline in pipelines:
-                    config_records = self._collect_pipeline_config(
-                        org_id, pipeline.pipeline_id
-                    )
-                    records.extend(config_records)
-                    print(f"    采集到流水线 {pipeline.name} 的配置信息")
-
-                # 采集流水线运行记录和指标
-                for pipeline in pipelines:
-                    run_records = self._collect_pipeline_runs(
-                        org_id, pipeline.pipeline_id, pipeline.name
-                    )
-                    records.extend(run_records)
-                    print(
-                        f"    采集到流水线 {pipeline.name} 的 {len(run_records)} 条运行记录"
-                    )
-
-        except Exception as e:
-            status = "error"
-            print(f"Codeup 采集失败: {e}")
-
-        return DataSource(
-            collector="codeup_collector",
-            collected_at=datetime.now(),
-            status=status,
-            records=records,
-        )
+        return records
 
     def _get_organization_ids(self) -> List[str]:
         org_ids = []

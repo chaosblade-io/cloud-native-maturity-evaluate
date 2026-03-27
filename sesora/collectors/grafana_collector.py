@@ -14,6 +14,7 @@ from datetime import datetime
 from typing import List, Optional
 import requests
 from sesora.core.context import AssessmentContext
+from sesora.core.collector import CollectorBase
 from sesora.core.dataitem import DataSource
 from sesora.schema.grafana import (
     GrafanaDashboardRecord,
@@ -22,7 +23,7 @@ from sesora.schema.grafana import (
 )
 
 
-class GrafanaCollector:
+class GrafanaCollector(CollectorBase):
     def __init__(self, context: AssessmentContext):
         self.context = context
         self.grafana_url = context.grafana_url
@@ -44,39 +45,29 @@ class GrafanaCollector:
             "Content-Type": "application/json"
         }
 
-    def collect(self) -> DataSource:
+    def name(self) -> str:
+        return "grafana_collector"
+
+    def _collect(self) -> List:
         """执行 Grafana 数据采集"""
         records: List = []
-        status = "ok"
 
-        try:
-            # 采集文件夹
-            folders = self._collect_folders()
-            records.extend(folders)
-            print(f"采集到 {len(folders)} 个文件夹")
+        # 采集文件夹
+        folders = self._collect_folders()
+        records.extend(folders)
+        print(f"采集到 {len(folders)} 个文件夹")
 
-            # 采集仪表盘
-            dashboards = self._collect_dashboards()
-            records.extend(dashboards)
-            print(f"采集到 {len(dashboards)} 个仪表盘")
+        # 采集仪表盘
+        dashboards = self._collect_dashboards()
+        records.extend(dashboards)
+        print(f"采集到 {len(dashboards)} 个仪表盘")
 
-            # 生成分析汇总
-            analysis = self._generate_analysis(dashboards)
-            records.append(analysis)
-            print(f"生成分析汇总记录")
+        # 生成分析汇总
+        analysis = self._generate_analysis(dashboards)
+        records.append(analysis)
+        print(f"生成分析汇总记录")
 
-        except Exception as e:
-            status = "error"
-            print(f"Grafana 采集失败: {e}")
-            import traceback
-            traceback.print_exc()
-
-        return DataSource(
-            collector="grafana_collector",
-            collected_at=datetime.now(),
-            status=status,
-            records=records,
-        )
+        return records
 
     def _collect_folders(self) -> List[GrafanaFolderRecord]:
         """采集 Grafana 文件夹"""
