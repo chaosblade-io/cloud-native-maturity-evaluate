@@ -1,9 +1,10 @@
 import logging
+from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Optional
 
 import oss2
-from sesora.core.context import AssessmentContext
+from alibabacloud_credentials.client import Client as CredentialClient
 from sesora.core.collector import CollectorBase
 from sesora.core.dataitem import DataSource
 from sesora.schema.rds_oss import (
@@ -14,31 +15,35 @@ from sesora.schema.rds_oss import (
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class OSSCollectorConfig:
+    """OSS Collector 配置"""
+    aliyun_credentials: Optional[CredentialClient] = None
+    region: str = ""
+    oss_bucket_names: List[str] = None
+
+    def __post_init__(self):
+        if self.oss_bucket_names is None:
+            self.oss_bucket_names = []
+
+
 class OSSCollector(CollectorBase):
-    def __init__(
-        self, context: AssessmentContext, bucket_names: Optional[List[str]] = None
-    ):
-        self.context = context
-        self.bucket_names = bucket_names
+    def __init__(self, config: OSSCollectorConfig):
+        self.config = config
         self.client = self._create_client()
         # 缓存 Bucket 所在地域，用于后续操作
         self._bucket_locations: dict[str, str] = {}
 
     def _create_client(self):
-        creds = self.context.aliyun_credentials
+        creds = self.config.aliyun_credentials
         auth = oss2.Auth(creds.get_access_key_id(), creds.get_access_key_secret())
-        endpoint = f"oss-{self.context.region}.aliyuncs.com"
+        endpoint = f"oss-{self.config.region}.aliyuncs.com"
         return oss2.Service(auth, endpoint)
 
     def _get_bucket_names(self) -> List[str]:
-        # 优先使用传入的 bucket_names
-        if self.bucket_names:
-            return self.bucket_names
-
-        # 其次使用 context 中的 oss_bucket_names 列表
-        if self.context.oss_bucket_names:
-            return self.context.oss_bucket_names
-
+        # 使用 config 中的 oss_bucket_names 列表
+        if self.config.oss_bucket_names:
+            return self.config.oss_bucket_names
         return []
 
     def name(self) -> str:
@@ -86,11 +91,11 @@ class OSSCollector(CollectorBase):
     # TODO: remove these exceptions handling
     def _collect_bucket_detail(self, bucket_name: str) -> OssBucketRecord:
         # TODO: remove this duplicate auth
-        creds = self.context.aliyun_credentials
+        creds = self.config.aliyun_credentials
         auth = oss2.Auth(creds.get_access_key_id(), creds.get_access_key_secret())
 
         # 首先使用默认 endpoint 获取 Bucket 信息（包含真实地域）
-        default_endpoint = f"oss-{self.context.region}.aliyuncs.com"
+        default_endpoint = f"oss-{self.config.region}.aliyuncs.com"
 
         bucket = oss2.Bucket(auth, default_endpoint, bucket_name)
 
@@ -162,7 +167,7 @@ class OSSCollector(CollectorBase):
         records: List[OssBucketLifecycleRecord] = []
 
         try:
-            creds = self.context.aliyun_credentials
+            creds = self.config.aliyun_credentials
             auth = oss2.Auth(creds.get_access_key_id(), creds.get_access_key_secret())
 
             # 使用缓存的地域信息，如果没有则使用默认地域
@@ -170,7 +175,7 @@ class OSSCollector(CollectorBase):
             if bucket_location:
                 endpoint = self._get_bucket_endpoint(bucket_location)
             else:
-                endpoint = f"oss-{self.context.region}.aliyuncs.com"
+                endpoint = f"oss-{self.config.region}.aliyuncs.com"
 
             bucket = oss2.Bucket(auth, endpoint, bucket_name)
 

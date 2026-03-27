@@ -1,12 +1,13 @@
 import logging
+from dataclasses import dataclass
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
+from alibabacloud_credentials.client import Client as CredentialClient
 from alibabacloud_alidns20150109.client import Client as AlidnsClient
 from alibabacloud_tea_openapi import models as open_api_models
 from alibabacloud_alidns20150109 import models as alidns_models
 
-from sesora.core.context import AssessmentContext
 from sesora.core.collector import CollectorBase
 from sesora.core.dataitem import DataSource
 from sesora.schema.rds_oss import GtmAddressPoolRecord
@@ -14,13 +15,19 @@ from sesora.schema.rds_oss import GtmAddressPoolRecord
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class GTMCollectorConfig:
+    """GTM Collector 配置"""
+    aliyun_credentials: Optional[CredentialClient] = None
+
+
 class GTMCollector(CollectorBase):
-    def __init__(self, context: AssessmentContext):
-        self.context = context
+    def __init__(self, config: GTMCollectorConfig):
+        self.config = config
         self.client = self._create_client()
 
     def _create_client(self) -> AlidnsClient:
-        creds = self.context.aliyun_credentials
+        creds = self.config.aliyun_credentials
         config = open_api_models.Config(
             credential=creds,
             endpoint=f"alidns.aliyuncs.com",
