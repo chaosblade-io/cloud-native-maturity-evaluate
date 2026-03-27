@@ -1,12 +1,13 @@
 import logging
+from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Optional
 
+from alibabacloud_credentials.client import Client as CredentialClient
 from alibabacloud_ecs20140526 import models as ecs_models
 from alibabacloud_ecs20140526.client import Client as AcsClient
 from alibabacloud_tea_openapi import models as open_api_models
 
-from sesora.core.context import AssessmentContext
 from sesora.core.collector import CollectorBase
 from sesora.core.dataitem import DataSource
 from sesora.schema.ecs import (
@@ -18,16 +19,23 @@ from sesora.schema.ecs import (
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class ECSCollectorConfig:
+    """ECS Collector 配置"""
+    aliyun_credentials: Optional[CredentialClient] = None
+    region: str = ""
+
+
 class ECSCollector(CollectorBase):
-    def __init__(self, context: AssessmentContext):
-        self.context = context
+    def __init__(self, config: ECSCollectorConfig):
+        self.config = config
         self.client = self._create_client()
 
     def _create_client(self) -> AcsClient:
-        creds = self.context.aliyun_credentials
+        creds = self.config.aliyun_credentials
         config = open_api_models.Config(
             credential=creds,
-            endpoint=f"ecs.{self.context.region}.aliyuncs.com",
+            endpoint=f"ecs.{self.config.region}.aliyuncs.com",
             protocol="https",
         )
         return AcsClient(config)
@@ -64,7 +72,7 @@ class ECSCollector(CollectorBase):
         while True:
             response = self.client.describe_instances(
                 ecs_models.DescribeInstancesRequest(
-                    region_id=self.context.region,
+                    region_id=self.config.region,
                     page_number=page_no,
                     page_size=page_size,
                 )
@@ -171,7 +179,7 @@ class ECSCollector(CollectorBase):
         while True:
             response = self.client.describe_security_groups(
                 ecs_models.DescribeSecurityGroupsRequest(
-                    region_id=self.context.region,
+                    region_id=self.config.region,
                     page_number=page_no,
                     page_size=page_size,
                 )
@@ -219,7 +227,7 @@ class ECSCollector(CollectorBase):
 
         response = self.client.describe_security_group_attribute(
             ecs_models.DescribeSecurityGroupAttributeRequest(
-                region_id=self.context.region,
+                region_id=self.config.region,
                 security_group_id=security_group_id,
             )
         )

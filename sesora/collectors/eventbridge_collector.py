@@ -1,13 +1,14 @@
 import json
 import logging
+from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Optional
 
+from alibabacloud_credentials.client import Client as CredentialClient
 from alibabacloud_eventbridge20200401.client import Client as EventBridgeClient
 from alibabacloud_tea_openapi import models as open_api_models
 from alibabacloud_eventbridge20200401 import models as eventbridge_models
 
-from sesora.core.context import AssessmentContext
 from sesora.core.collector import CollectorBase
 from sesora.core.dataitem import DataSource
 from sesora.schema.eventbridge import (
@@ -20,15 +21,27 @@ from sesora.schema.eventbridge import (
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class EventBridgeCollectorConfig:
+    """EventBridge Collector 配置"""
+    aliyun_credentials: Optional[CredentialClient] = None
+    region: str = ""
+    eventbridge_bus_names: List[str] = None
+
+    def __post_init__(self):
+        if self.eventbridge_bus_names is None:
+            self.eventbridge_bus_names = []
+
+
 class EventBridgeCollector(CollectorBase):
-    def __init__(self, context: AssessmentContext):
-        self.context = context
+    def __init__(self, config: EventBridgeCollectorConfig):
+        self.config = config
         self.client = self._create_client()
 
     def _create_client(self) -> EventBridgeClient:
         config = open_api_models.Config(
-            credential=self.context.aliyun_credentials,
-            endpoint=f"eventbridge-console.{self.context.region}.aliyuncs.com",
+            credential=self.config.aliyun_credentials,
+            endpoint=f"eventbridge-console.{self.config.region}.aliyuncs.com",
             protocol="https",
         )
         return EventBridgeClient(config)
@@ -81,7 +94,7 @@ class EventBridgeCollector(CollectorBase):
 
         data = body.data
         source_list = data.event_source_list if data and data.event_source_list else []
-        allowed_bus_names = set(self.context.eventbridge_bus_names)
+        allowed_bus_names = set(self.config.eventbridge_bus_names)
 
         records: List[EventBridgeEventSourceRecord] = []
         for source in source_list:
@@ -128,7 +141,7 @@ class EventBridgeCollector(CollectorBase):
         if self.client is None:
             return []
 
-        allowed_bus_names = set(self.context.eventbridge_bus_names)
+        allowed_bus_names = set(self.config.eventbridge_bus_names)
         next_token: Optional[str] = None
         records: List[EventBridgeEventSourceRecord] = []
 

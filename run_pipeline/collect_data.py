@@ -13,10 +13,10 @@ from sesora.collectors.acr_collector import ACRCollector, ACRCollectorConfig
 from sesora.collectors.alb_collector import ALBCollector, ALBCollectorConfig
 from sesora.collectors.arms_collector import ARMSCollector, ARMSCollectorConfig
 from sesora.collectors.cms_collector import CMSCollector, CMSCollectorConfig
-from sesora.collectors.codeup_collector import CodeupCollector
-from sesora.collectors.ecs_collector import ECSCollector
-from sesora.collectors.eventbridge_collector import EventBridgeCollector
-from sesora.collectors.fc_collector import FCCollector
+from sesora.collectors.codeup_collector import CodeupCollector, CodeupCollectorConfig
+from sesora.collectors.ecs_collector import ECSCollector, ECSCollectorConfig
+from sesora.collectors.eventbridge_collector import EventBridgeCollector, EventBridgeCollectorConfig
+from sesora.collectors.fc_collector import FCCollector, FCCollectorConfig
 from sesora.collectors.grafana_collector import GrafanaCollector
 from sesora.collectors.gtm_collector import GTMCollector
 from sesora.collectors.rds_collector import RDSCollector
@@ -491,7 +491,14 @@ def collect_codeup(context: AssessmentContext, db_path: Path) -> bool:
     print("开始采集 Codeup 数据...")
     print("=" * 60)
 
-    collector = CodeupCollector(context)
+    # 创建 CodeupCollectorConfig
+    config = CodeupCollectorConfig(
+        aliyun_credentials=context.aliyun_credentials,
+        yunxiao_token=context.yunxiao_token,
+        codeup_org_id=context.codeup_org_id,
+        codeup_project_name=context.codeup_project_name,
+    )
+    collector = CodeupCollector(config)
 
     start_time = datetime.now()
     data_source = collector.collect()
@@ -516,7 +523,13 @@ def collect_fc(context: AssessmentContext, db_path: Path) -> bool:
     print("开始采集 FC 数据...")
     print("=" * 60)
 
-    collector = FCCollector(context)
+    # 创建 FCCollectorConfig
+    config = FCCollectorConfig(
+        aliyun_credentials=context.aliyun_credentials,
+        region=context.region,
+        fc_function_names=context.fc_function_names,
+    )
+    collector = FCCollector(config)
 
     start_time = datetime.now()
     data_source = collector.collect()
@@ -802,7 +815,12 @@ def collect_ecs(context: AssessmentContext, db_path: Path) -> bool:
     print("开始采集 ECS 云服务器数据...")
     print("=" * 60)
 
-    collector = ECSCollector(context)
+    # 创建 ECSCollectorConfig
+    config = ECSCollectorConfig(
+        aliyun_credentials=context.aliyun_credentials,
+        region=context.ecs_region or context.region,
+    )
+    collector = ECSCollector(config)
 
     start_time = datetime.now()
     data_source = collector.collect()
@@ -827,7 +845,13 @@ def collect_eventbridge(context: AssessmentContext, db_path: Path) -> bool:
     print("开始采集 EventBridge 事件总线数据...")
     print("=" * 60)
 
-    collector = EventBridgeCollector(context)
+    # 创建 EventBridgeCollectorConfig
+    config = EventBridgeCollectorConfig(
+        aliyun_credentials=context.aliyun_credentials,
+        region=context.region,
+        eventbridge_bus_names=context.eventbridge_bus_names,
+    )
+    collector = EventBridgeCollector(config)
 
     start_time = datetime.now()
     data_source = collector.collect()

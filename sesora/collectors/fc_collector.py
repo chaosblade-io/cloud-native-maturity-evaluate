@@ -1,12 +1,13 @@
 import logging
+from dataclasses import dataclass
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
+from alibabacloud_credentials.client import Client as CredentialClient
 from alibabacloud_fc20230330.client import Client as FCClient
 from alibabacloud_tea_openapi import models as open_api_models
 from alibabacloud_fc20230330 import models as fc_models
 
-from sesora.core.context import AssessmentContext
 from sesora.core.collector import CollectorBase
 from sesora.core.dataitem import DataSource
 from sesora.schema.fc import (
@@ -19,16 +20,28 @@ from sesora.schema.fc import (
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class FCCollectorConfig:
+    """FC Collector 配置"""
+    aliyun_credentials: Optional[CredentialClient] = None
+    region: str = ""
+    fc_function_names: List[str] = None
+
+    def __post_init__(self):
+        if self.fc_function_names is None:
+            self.fc_function_names = []
+
+
 class FCCollector(CollectorBase):
-    def __init__(self, context: AssessmentContext):
-        self.context = context
+    def __init__(self, config: FCCollectorConfig):
+        self.config = config
         self.client = self._create_client()
 
     def _create_client(self) -> FCClient:
-        creds = self.context.aliyun_credentials
+        creds = self.config.aliyun_credentials
         config = open_api_models.Config(
             credential=creds,
-            endpoint=f"fcv3.{self.context.region}.aliyuncs.com",
+            endpoint=f"fcv3.{self.config.region}.aliyuncs.com",
             protocol="https",
         )
         return FCClient(config)
@@ -113,9 +126,9 @@ class FCCollector(CollectorBase):
         """
         function_names = []
 
-        # 从 context 获取
-        if self.context.fc_function_names:
-            function_names = self.context.fc_function_names
+        # 从 config 获取
+        if self.config.fc_function_names:
+            function_names = self.config.fc_function_names
 
         return function_names
 
