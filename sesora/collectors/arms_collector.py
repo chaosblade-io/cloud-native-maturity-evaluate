@@ -1,13 +1,14 @@
 import json
 import logging
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
+from alibabacloud_credentials.client import Client as CredentialClient
 from alibabacloud_arms20190808 import models as arms_models
 from alibabacloud_arms20190808.client import Client as ARMSClient
 from alibabacloud_tea_openapi import models as open_api_models
 
-from sesora.core.context import AssessmentContext
 from sesora.core.collector import CollectorBase
 from sesora.core.dataitem import DataSource
 from sesora.schema.apm import (
@@ -97,15 +98,22 @@ def map_rpc_type(rpc_type) -> str:
         return str(rpc_type) if rpc_type else "UNKNOWN"
 
 
+@dataclass
+class ARMSCollectorConfig:
+    """ARMS Collector 配置"""
+    aliyun_credentials: Optional[CredentialClient] = None
+    region: str = ""
+
+
 class ARMSCollector(CollectorBase):
-    def __init__(self, context: AssessmentContext):
-        self.context = context
+    def __init__(self, config: ARMSCollectorConfig):
+        self.config = config
         self.client = self._create_client()
         self._logging_configs = {}
 
     def _create_client(self) -> ARMSClient:
-        creds = self.context.aliyun_credentials
-        region = self.context.region
+        creds = self.config.aliyun_credentials
+        region = self.config.region
         config = open_api_models.Config(
             credential=creds,
             protocol="https",
@@ -201,7 +209,7 @@ class ARMSCollector(CollectorBase):
         # TODO: filter by cluster_id
 
         response = self.client.list_trace_apps(
-            arms_models.ListTraceAppsRequest(region_id=self.context.region)
+            arms_models.ListTraceAppsRequest(region_id=self.config.region)
         )
         body = response.body
         if response.status_code != 200 or not body.success:
@@ -283,7 +291,7 @@ class ARMSCollector(CollectorBase):
         all_items: List[Dict[str, Any]] = []
         end_time = int(datetime.now().timestamp() * 1000)
         start_time = int((datetime.now() - timedelta(hours=hours)).timestamp() * 1000)
-        region = self.context.region
+        region = self.config.region
 
         current_page = 1
         max_pages = 2
@@ -396,7 +404,7 @@ class ARMSCollector(CollectorBase):
         start_time = end_time - timedelta(hours=hours)
         end_time = int(end_time.timestamp() * 1000)
         start_time = int(start_time.timestamp() * 1000)
-        region = self.context.region
+        region = self.config.region
 
         records: List[ApmTraceRecord] = []
         error_trace_ids: set = set()
@@ -474,7 +482,7 @@ class ARMSCollector(CollectorBase):
     ) -> None:
         end_time = int(datetime.now().timestamp() * 1000)
         start_time = int((datetime.now() - timedelta(hours=hours)).timestamp() * 1000)
-        region = self.context.region
+        region = self.config.region
 
         for rec in sample_traces:
             response = self.client.get_trace(

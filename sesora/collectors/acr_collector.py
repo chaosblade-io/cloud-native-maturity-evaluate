@@ -1,12 +1,13 @@
 import logging
+from dataclasses import dataclass
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
+from alibabacloud_credentials.client import Client as CredentialClient
 from alibabacloud_cr20181201 import models as cr_models
 from alibabacloud_cr20181201.client import Client as CRClient
 from alibabacloud_tea_openapi import models as open_api_models
 
-from sesora.core.context import AssessmentContext
 from sesora.core.collector import CollectorBase
 from sesora.core.dataitem import DataSource
 from sesora.schema.acr import (
@@ -18,18 +19,31 @@ from sesora.schema.acr import (
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class ACRCollectorConfig:
+    """ACR Collector 配置"""
+    aliyun_credentials: Optional[CredentialClient] = None
+    region: str = ""
+    instance_ids: List[str] = None
+    otel_only: bool = True
+
+    def __post_init__(self):
+        if self.instance_ids is None:
+            self.instance_ids = []
+
+
 class ACRCollector(CollectorBase):
-    def __init__(self, context: AssessmentContext):
-        self.context = context
-        self.instance_ids = context.acr_instance_ids
-        self.otel_only = context.otel_only
+    def __init__(self, config: ACRCollectorConfig):
+        self.config = config
+        self.instance_ids = config.instance_ids
+        self.otel_only = config.otel_only
         self.client = self._create_client()
 
     def _create_client(self) -> CRClient:
-        creds = self.context.aliyun_credentials
+        creds = self.config.aliyun_credentials
         config = open_api_models.Config(
             credential=creds,
-            endpoint=f"cr.{self.context.region}.aliyuncs.com",
+            endpoint=f"cr.{self.config.region}.aliyuncs.com",
             protocol="https",
         )
         return CRClient(config)

@@ -1,14 +1,15 @@
 import logging
+from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Optional, Tuple
 
 import yaml
+from alibabacloud_credentials.client import Client as CredentialClient
 from alibabacloud_cs20151215 import models as cs_models
 from alibabacloud_cs20151215.client import Client as CSClient
 from alibabacloud_tea_openapi import models as open_api_models
 from kubernetes import client as k8s_client, config as k8s_config
 
-from sesora.core.context import AssessmentContext
 from sesora.core.collector import CollectorBase
 from sesora.core.dataitem import DataSource
 from sesora.schema.k8s import (
@@ -58,16 +59,32 @@ from sesora.schema.policy import (
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class ACKCollectorConfig:
+    """ACK Collector 配置"""
+    aliyun_credentials: Optional[CredentialClient] = None
+    region: str = ""
+    cluster_id: Optional[str] = None
+    kubeconfig_paths: List[str] = None
+    namespaces: List[str] = None
+
+    def __post_init__(self):
+        if self.kubeconfig_paths is None:
+            self.kubeconfig_paths = []
+        if self.namespaces is None:
+            self.namespaces = []
+
+
 class ACKCollector(CollectorBase):
-    def __init__(self, context: AssessmentContext):
-        self.context = context
+    def __init__(self, config: ACKCollectorConfig):
+        self.config = config
         self.client = self._create_client()
 
     def _create_client(self) -> CSClient:
-        creds = self.context.aliyun_credentials
+        creds = self.config.aliyun_credentials
         config = open_api_models.Config(
             credential=creds,
-            endpoint=f"cs.{self.context.region}.aliyuncs.com",
+            endpoint=f"cs.{self.config.region}.aliyuncs.com",
             protocol="https",
         )
         return CSClient(config)
@@ -89,7 +106,7 @@ class ACKCollector(CollectorBase):
         #         continue
         #     kubeconfig_yamls.append((f"cluster:{cluster_id}", kubeconfig_yaml))
 
-        for kubeconfig_path in self.context.kubeconfig_paths:
+        for kubeconfig_path in self.config.kubeconfig_paths:
             with open(kubeconfig_path, "r") as f:
                 kubeconfig_yaml = f.read()
                 kubeconfig_yamls.append(
@@ -105,8 +122,8 @@ class ACKCollector(CollectorBase):
         return records
 
     def _get_cluster_ids(self) -> List[str]:
-        if self.context.cluster_id:
-            return [self.context.cluster_id]
+        if self.config.cluster_id:
+            return [self.config.cluster_id]
 
         cluster_ids = []
 
@@ -114,7 +131,7 @@ class ACKCollector(CollectorBase):
         page_size = 100
         while True:
             response = self.client.describe_clusters_for_region(
-                self.context.region,
+                self.config.region,
                 cs_models.DescribeClustersForRegionRequest(
                     page_number=page_no, page_size=page_size
                 ),
@@ -149,7 +166,7 @@ class ACKCollector(CollectorBase):
 
     def _list_ns(self, list_fn_namespaced, list_fn_all):
         """根据 namespace_filter 调用命名空间或集群级别的列表接口，返回所有 items。"""
-        namespace_filter = self.context.get_namespace_filter()
+        namespace_filter = self.config.namespaces
         if namespace_filter:
             items = []
             for ns in namespace_filter:
@@ -158,7 +175,7 @@ class ACKCollector(CollectorBase):
         return list_fn_all().items
 
     def _list_custom_ns(self, group, version, plural):
-        namespace_filter = self.context.get_namespace_filter()
+        namespace_filter = self.config.namespaces
         custom_api = k8s_client.CustomObjectsApi()
         try:
             if namespace_filter:
@@ -198,7 +215,7 @@ class ACKCollector(CollectorBase):
         autoscaling_v2 = k8s_client.AutoscalingV2Api()
         custom_api = k8s_client.CustomObjectsApi()
 
-        namespace_filter = self.context.get_namespace_filter()
+        namespace_filter = self.config.namespaces
 
         # Namespace
         ns_list = core_v1.list_namespace()
