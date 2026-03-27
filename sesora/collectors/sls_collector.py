@@ -1,13 +1,14 @@
 import json
 import datetime
 import logging
-from typing import List
+from dataclasses import dataclass
+from typing import List, Optional
 
+from alibabacloud_credentials.client import Client as CredentialClient
 from alibabacloud_sls20201230.client import Client as SlsClient
 from alibabacloud_tea_openapi import models as open_api_models
 from alibabacloud_sls20201230 import models as sls_models
 
-from sesora.core.context import AssessmentContext
 from sesora.core.collector import CollectorBase
 from sesora import DataSource
 from sesora.schema.sls import (
@@ -20,6 +21,14 @@ from sesora.schema.sls import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class SLSCollectorConfig:
+    """SLS Collector 配置"""
+    aliyun_credentials: Optional[CredentialClient] = None
+    sls_project: str = ""
+    sls_region: str = ""
 
 
 class SLSCollector(CollectorBase):
@@ -54,15 +63,15 @@ class SLSCollector(CollectorBase):
         ],
     }
 
-    def __init__(self, context: AssessmentContext):
-        self.context = context
-        self.project_name = context.sls_project
-        self.sls_region = context.sls_region
+    def __init__(self, config: SLSCollectorConfig):
+        self.config = config
+        self.project_name = config.sls_project
+        self.sls_region = config.sls_region
         self.client = self._create_client()
 
     def _create_client(self) -> SlsClient:
         """使用 AK/SK 初始化 SLS 客户端"""
-        creds = self.context.aliyun_credentials
+        creds = self.config.aliyun_credentials
         config = open_api_models.Config(
             credential=creds,
             endpoint=f"{self.sls_region}.log.aliyuncs.com",
