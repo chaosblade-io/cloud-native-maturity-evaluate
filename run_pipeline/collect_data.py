@@ -451,13 +451,7 @@ def save_to_database(data_source: DataSource, db_path: Path, source_type: str) -
             TairInstanceModeRecord: "tair.instance.list",
         }
 
-    grouped_records: dict[str, list] = {name: [] for name in type_mapping.values()}
-
-    for record in data_source.records:
-        for record_type, item_name in type_mapping.items():
-            if isinstance(record, record_type):
-                grouped_records[item_name].append(record)
-                break
+    grouped_records: dict[str, list] = data_source.records_dict
 
     # 保存到数据库
     with SQLiteDataStore(db_path) as store:

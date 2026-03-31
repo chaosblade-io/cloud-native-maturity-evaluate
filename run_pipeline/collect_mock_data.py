@@ -201,29 +201,7 @@ def save_to_database(data_source: DataSource, db_path: Path) -> None:
         db_path: 数据库文件路径
     """
     # 按 DataItem 名称分组记录
-    grouped_records: dict[str, list] = {}
-    
-    for record in data_source.records:
-        # 从 record 获取 DataItem 名称
-        record_type = type(record).__name__
-        # 反向查找 DataItem 名称
-        dataitem_name = None
-        for name, source_type in DATAITEM_TYPE_MAPPINGS.items():
-            # 通过类型匹配确定 DataItem 名称
-            if record.__class__.__name__ == name.split('.')[-1].replace('_', '').replace('.', '').title():
-                # 简化匹配：直接使用记录类型名
-                pass
-        
-        # 更简单的方法：直接从记录对象推断
-        # 遍历所有已知的 DataItem 名称，找到匹配的
-        from sesora.schema.registry import DATAITEM_SCHEMA_REGISTRY
-        
-        for item_name, record_class in DATAITEM_SCHEMA_REGISTRY.items():
-            if isinstance(record, record_class):
-                if item_name not in grouped_records:
-                    grouped_records[item_name] = []
-                grouped_records[item_name].append(record)
-                break
+    grouped_records: dict[str, list] = data_source.records_dict
     
     # 保存到数据库
     with SQLiteDataStore(db_path) as store:

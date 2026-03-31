@@ -55,15 +55,7 @@ async def upload_mock_data(file: UploadFile = File(...)):
         data_source = collector.collect()
         
         # 按 DataItem 名称分组记录
-        grouped_records: dict[str, list] = {}
-        
-        for record in data_source.records:
-            for item_name, record_class in DATAITEM_SCHEMA_REGISTRY.items():
-                if isinstance(record, record_class):
-                    if item_name not in grouped_records:
-                        grouped_records[item_name] = []
-                    grouped_records[item_name].append(record)
-                    break
+        grouped_records: dict[str, list] = data_source.records_dict
         
         # 保存到数据库
         with SQLiteDataStore(db_path) as store:
