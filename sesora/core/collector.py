@@ -19,11 +19,17 @@ class CollectorBase(ABC):
         except Exception as e:
             status = SourceStatus.ERROR
             print(f"Error collecting data for {self.name()}: {e}")
+
+        records_dict = {}
+        for record in records:
+            records_dict.setdefault(record.DATAITEM_NAME, []).append(record)
+
         return DataSource(
             collector=self.name(),
             collected_at=datetime.now(),
             status=status,
             records=records,
+            records_dict=records_dict,
         )
 
     @abstractmethod

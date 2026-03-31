@@ -28,6 +28,7 @@ class DataSource:
     collected_at: datetime
     status: SourceStatus
     records: list[Any] = field(default_factory=list)
+    records_dict: dict[str, list[Any]] = field(default_factory=dict)
 
 
 @dataclass
