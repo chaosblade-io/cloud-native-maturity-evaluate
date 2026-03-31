@@ -35,4 +35,4 @@ class GenericCollector(CollectorBase):
                     ),
                 )
                 records.append(record)
-            return records
+        return records
