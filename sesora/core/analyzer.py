@@ -216,7 +216,7 @@ class AnalyzerRegistry:
             else:
                 try:
                     result = analyzer.analyze(store)
-                    from sesora.services.manual_semantic_assessor import maybe_apply_manual_agent_assessment
+                    from sesora.utils.manual_semantic_assessor import maybe_apply_manual_agent_assessment
                     result = maybe_apply_manual_agent_assessment(analyzer, store, result)
                     results.append(result)
                 except Exception as e:
@@ -260,7 +260,7 @@ class AnalyzerRegistry:
             else:
                 try:
                     result = analyzer.analyze(store)
-                    from sesora.services.manual_semantic_assessor import maybe_apply_manual_agent_assessment
+                    from sesora.utils.manual_semantic_assessor import maybe_apply_manual_agent_assessment
                     result = maybe_apply_manual_agent_assessment(analyzer, store, result)
                     results.append(result)
                 except Exception as e:
