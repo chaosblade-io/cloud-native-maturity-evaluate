@@ -24,8 +24,11 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
+load_dotenv(dotenv_path=PROJECT_ROOT / ".env", override=False)
 
 from sesora.store.sqlite_store import SQLiteDataStore
 from sesora.engine import AssessmentEngine
@@ -359,6 +362,11 @@ def main():
         action="store_true",
         help="仅检查数据就绪状态，不运行分析器"
     )
+    parser.add_argument(
+        "--agent-data-ownership",
+        action="store_true",
+        help="为 data_ownership_clear 启用 Agent 语义评估（需配置 API_KEY/BASE_URL/MODEL_NAME）"
+    )
     
     args = parser.parse_args()
     
@@ -434,6 +442,10 @@ def main():
         output_path = PROJECT_ROOT /"results"/ timestamp / f"results_{timestamp}.csv"
     
     print(f"输出文件: {output_path}")
+
+    if args.agent_data_ownership:
+        os.environ["SESORA_AGENT_ASSESS_DATA_OWNERSHIP"] = "1"
+        print("Agent 语义评估: 已启用 data_ownership_clear")
     
     # 运行分析器
     with SQLiteDataStore(db_path) as store:

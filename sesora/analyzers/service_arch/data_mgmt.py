@@ -10,6 +10,13 @@ Service Architecture 维度 - 数据管理与解耦分析器
 | data_migration_strategy    | 5    | 在线数据迁移：不停机情况下进行数据库变更的能力               |
 | data_ownership_clear       | 5    | 数据所有权明确：每个数据表有唯一写入者，其他服务通过 API 访问|
 """
+import json
+import os
+import re
+from typing import Any
+
+import requests
+
 from sesora.core.analyzer import Analyzer, ScoreResult
 from sesora.schema.apm import ApmServiceDbMappingRecord, ApmExternalDatabaseRecord
 from sesora.schema.manual import ManualDataConsistencyRecord, ManualDataMigrationRecord, ManualDataOwnershipRecord
@@ -671,11 +678,152 @@ class DataOwnershipClearAnalyzer(Analyzer):
     def optional_data(self) -> list[str]:
         return ["apm.service.db.mapping"]
 
+    @staticmethod
+    def _extract_json_object(content: str) -> dict[str, Any]:
+        stripped = content.strip()
+        if stripped.startswith("```"):
+            stripped = re.sub(r"^```[a-zA-Z0-9_-]*\n", "", stripped)
+            stripped = re.sub(r"\n```$", "", stripped)
+
+        try:
+            return json.loads(stripped)
+        except json.JSONDecodeError:
+            match = re.search(r"\{.*\}", stripped, re.DOTALL)
+            if not match:
+                raise
+            return json.loads(match.group(0))
+
+    @staticmethod
+    def _serialize_manual_record(record: ManualDataOwnershipRecord) -> dict[str, Any]:
+        return {
+            "table_or_collection": record.table_or_collection,
+            "owner_service": record.owner_service,
+            "read_only_services": record.read_only_services,
+            "access_via_api": record.access_via_api,
+            "evidence": record.evidence,
+        }
+
+    @staticmethod
+    def _serialize_apm_mapping(record: ApmServiceDbMappingRecord) -> dict[str, Any]:
+        return {
+            "service_name": record.service_name,
+            "database_name": record.database_name,
+            "db_type": record.db_type,
+            "db_instance": record.db_instance,
+            "access_type": record.access_type,
+            "is_shared": record.is_shared,
+            "shared_with": record.shared_with,
+        }
+
+    def _run_agent_assessment(
+        self,
+        records: list[ManualDataOwnershipRecord],
+        mappings: list[ApmServiceDbMappingRecord],
+    ) -> ScoreResult | None:
+        if os.getenv("SESORA_AGENT_ASSESS_DATA_OWNERSHIP", "0") != "1":
+            return None
+
+        api_key = os.getenv("API_KEY") or os.getenv("OPENAI_API_KEY")
+        base_url = os.getenv("BASE_URL") or os.getenv("OPENAI_BASE_URL")
+        model_name = os.getenv("MODEL_NAME") or os.getenv("OPENAI_MODEL")
+
+        if not api_key or not base_url or not model_name:
+            return None
+
+        payload = {
+            "metric_key": self.key(),
+            "metric_definition": "每个数据表/集合应有唯一写入者，跨服务访问应通过 API。",
+            "max_score": self.max_score(),
+            "method": {
+                "step_1": "Evidence Extraction: 从 manual 与 APM 数据中提取证据片段 E_m",
+                "step_2": "Evidence-Based Scoring: 基于 E_m 给出 0-5 评分与原因",
+            },
+            "rubric": [
+                "score=5: 几乎全部表有明确 owner，API 访问规范，且无多写入者",
+                "score=4: 大部分规范，少量缺口",
+                "score=3: 规范覆盖一般，存在可控风险",
+                "score=2: 规范起步，存在明显风险",
+                "score=1: 规范较差",
+                "score=0: 大量多写入者或几乎无 owner",
+            ],
+            "input_data": {
+                "manual_data_ownership": [self._serialize_manual_record(r) for r in records],
+                "apm_service_db_mapping": [self._serialize_apm_mapping(m) for m in mappings],
+            },
+            "output_format": {
+                "score": "0-5 integer",
+                "reason": "string",
+                "evidence": ["string"],
+                "data_gaps": ["string"],
+                "confidence": "0-1 float",
+            },
+        }
+
+        system_prompt = (
+            "你是云原生成熟度评估助手。请仅基于输入数据执行两阶段评估："
+            "先提取证据，再基于证据打分。不得编造。仅输出 JSON。"
+        )
+
+        try:
+            response = requests.post(
+                f"{base_url.rstrip('/')}/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": model_name,
+                    "temperature": float(os.getenv("SESORA_AGENT_TEMPERATURE", "0.1")),
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
+                    ],
+                },
+                timeout=120,
+            )
+            response.raise_for_status()
+
+            content = response.json()["choices"][0]["message"]["content"]
+            result = self._extract_json_object(content)
+
+            score = int(result.get("score"))
+            if score < 0 or score > self.max_score():
+                return None
+
+            reason = str(result.get("reason") or "Agent 语义评估完成")
+
+            agent_evidence = result.get("evidence") or []
+            if not isinstance(agent_evidence, list):
+                agent_evidence = [str(agent_evidence)]
+            evidence = [str(item) for item in agent_evidence[:10]]
+            evidence.insert(0, "ℹ️ 使用 Agent 语义评估（data_ownership_clear）")
+
+            data_gaps = result.get("data_gaps") or []
+            if isinstance(data_gaps, list) and data_gaps:
+                evidence.extend([f"⚠️ 数据缺口: {str(item)}" for item in data_gaps[:3]])
+
+            confidence = result.get("confidence")
+            if confidence is not None:
+                evidence.append(f"ℹ️ 语义评估置信度: {confidence}")
+
+            return self._scored(score, reason, evidence)
+        except Exception:
+            return None
+
     def analyze(self, store) -> ScoreResult:
         records: list[ManualDataOwnershipRecord] = store.get("manual.data_ownership")
 
         if not records:
             return self._not_evaluated("未获取到数据所有权配置（需人工填写）")
+
+        mappings: list[ApmServiceDbMappingRecord] = []
+        if store.available("apm.service.db.mapping"):
+            mappings = store.get("apm.service.db.mapping")
+
+        agent_enabled = os.getenv("SESORA_AGENT_ASSESS_DATA_OWNERSHIP", "0") == "1"
+        agent_result = self._run_agent_assessment(records, mappings)
+        if agent_result is not None:
+            return agent_result
 
         evidence = []
         raw_score = 0
@@ -721,9 +869,7 @@ class DataOwnershipClearAnalyzer(Analyzer):
 
         # ========== 4. APM 数据验证（关键反模式检测）==========
         apm_violations = 0
-        if store.available("apm.service.db.mapping"):
-            mappings: list[ApmServiceDbMappingRecord] = store.get("apm.service.db.mapping")
-
+        if mappings:
             write_services = {}
             for m in mappings:
                 if m.access_type in ("write_only", "read_write"):
@@ -788,6 +934,9 @@ class DataOwnershipClearAnalyzer(Analyzer):
         else:
             final_score = 0
             conclusion = "数据所有权严重违规：存在大量多写入者"
+
+        if agent_enabled:
+            evidence.insert(0, "ℹ️ Agent 语义评估未生效，已回退规则评分（请检查 API_KEY/BASE_URL/MODEL_NAME 或网络）")
 
         return self._scored(final_score, conclusion, evidence)
 
