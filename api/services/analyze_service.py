@@ -4,10 +4,8 @@
 封装评估分析逻辑，复用 engine.py 和 run_analyzer.py 中的分析器
 """
 import sys
-import os
 from pathlib import Path
 from typing import Optional
-from contextlib import contextmanager
 
 from api.models.schemas import (
     AnalyzerInfo,
@@ -20,6 +18,8 @@ from api.models.schemas import (
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
+from sesora.utils.agent_guidance import agent_assist_env
+
 
 class AnalyzeService:
     """分析服务类"""
@@ -28,44 +28,6 @@ class AnalyzeService:
     DB_DIR = PROJECT_ROOT / "data"
     DEFAULT_DB = DB_DIR / "sesora.db"
 
-    @staticmethod
-    @contextmanager
-    def _agent_assist_env(
-        enabled: bool,
-        keys: Optional[list[str]] = None,
-        temperature: Optional[float] = None,
-    ):
-        managed_keys = [
-            "SESORA_AGENT_ASSIST_ENABLED",
-            "SESORA_AGENT_ASSIST_KEYS",
-            "SESORA_AGENT_ASSIST_TEMPERATURE",
-        ]
-        backup = {k: os.environ.get(k) for k in managed_keys}
-
-        try:
-            if enabled:
-                os.environ["SESORA_AGENT_ASSIST_ENABLED"] = "1"
-                if keys:
-                    os.environ["SESORA_AGENT_ASSIST_KEYS"] = ",".join(keys)
-                else:
-                    os.environ.pop("SESORA_AGENT_ASSIST_KEYS", None)
-
-                if temperature is not None:
-                    os.environ["SESORA_AGENT_ASSIST_TEMPERATURE"] = str(temperature)
-                else:
-                    os.environ.pop("SESORA_AGENT_ASSIST_TEMPERATURE", None)
-            else:
-                for k in managed_keys:
-                    os.environ.pop(k, None)
-
-            yield
-        finally:
-            for k, v in backup.items():
-                if v is None:
-                    os.environ.pop(k, None)
-                else:
-                    os.environ[k] = v
-    
     @classmethod
     def get_maturity_level(cls, percentage: float) -> str:
         """
@@ -213,7 +175,7 @@ class AnalyzeService:
                 keys = [a.key() for a in all_analyzers]
             
             # 执行分析
-            with cls._agent_assist_env(
+            with agent_assist_env(
                 enabled=agent_assist,
                 keys=agent_assist_keys,
                 temperature=agent_assist_temperature,

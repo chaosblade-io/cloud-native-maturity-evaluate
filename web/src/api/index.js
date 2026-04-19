@@ -129,6 +129,20 @@ export const runAnalysis = (keys = [], options = {}) =>
     agent_assist_temperature: options.agentAssistTemperature ?? null,
   })
 
+/**
+ * 生成首轮改进建议
+ * @param {Object} payload - guidance 生成参数
+ */
+export const generateGuidance = (payload = {}) =>
+  api.post('/analyze/guidance', payload)
+
+/**
+ * 基于反馈迭代改进建议
+ * @param {Object} payload - guidance refinement 参数
+ */
+export const refineGuidance = (payload = {}) =>
+  api.post('/analyze/guidance/refine', payload)
+
 // ============================================
 // 健康检查 API
 // ============================================

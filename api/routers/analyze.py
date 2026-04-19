@@ -11,8 +11,12 @@ from api.models.schemas import (
     AnalyzeResponse,
     DataResponse,
     DataStatusResponse,
+    GuidanceRefineRequest,
+    GuidanceRequest,
+    GuidanceResponse,
 )
 from api.services.analyze_service import AnalyzeService
+from api.services.guidance_service import GuidanceService
 
 router = APIRouter(prefix="/analyze", tags=["评估分析"])
 
@@ -128,4 +132,78 @@ async def run_analysis(request: AnalyzeRequest):
             total_max_score=0,
             total_percentage=0,
             overall_maturity="",
+        )
+
+
+@router.post("/guidance", response_model=GuidanceResponse)
+async def generate_guidance(request: GuidanceRequest):
+    """基于评估结果生成首轮改进建议"""
+    try:
+        session, current_turn = await asyncio.to_thread(
+            GuidanceService.generate_guidance,
+            keys=request.keys if request.keys else None,
+            focus_keys=request.focus_keys if request.focus_keys else None,
+            max_focus=request.max_focus,
+            max_dataitems=request.max_dataitems,
+            max_records=request.max_records,
+            temperature=request.temperature,
+            api_key=request.api_key,
+            base_url=request.base_url,
+            model_name=request.model_name,
+            agent_assist=request.agent_assist,
+            agent_assist_keys=request.agent_assist_keys if request.agent_assist_keys else None,
+            agent_assist_temperature=request.agent_assist_temperature,
+        )
+
+        return GuidanceResponse(
+            success=True,
+            message="已生成首轮改进建议",
+            session=session,
+            current_turn=current_turn,
+        )
+    except FileNotFoundError as e:
+        return GuidanceResponse(
+            success=False,
+            message=f"数据库不存在，请先采集数据: {str(e)}",
+        )
+    except Exception as e:
+        return GuidanceResponse(
+            success=False,
+            message=f"生成改进建议失败: {str(e)}",
+        )
+
+
+@router.post("/guidance/refine", response_model=GuidanceResponse)
+async def refine_guidance(request: GuidanceRefineRequest):
+    """基于用户反馈迭代完善改进建议"""
+    try:
+        session, current_turn = await asyncio.to_thread(
+            GuidanceService.refine_guidance,
+            session=request.session,
+            feedback=request.feedback,
+            db_name=request.db_name,
+            max_focus=request.max_focus,
+            max_dataitems=request.max_dataitems,
+            max_records=request.max_records,
+            temperature=request.temperature,
+            api_key=request.api_key,
+            base_url=request.base_url,
+            model_name=request.model_name,
+        )
+
+        return GuidanceResponse(
+            success=True,
+            message="已基于反馈更新改进建议",
+            session=session,
+            current_turn=current_turn,
+        )
+    except FileNotFoundError as e:
+        return GuidanceResponse(
+            success=False,
+            message=f"数据库不存在，请先采集数据: {str(e)}",
+        )
+    except Exception as e:
+        return GuidanceResponse(
+            success=False,
+            message=f"更新改进建议失败: {str(e)}",
         )

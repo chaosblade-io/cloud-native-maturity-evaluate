@@ -226,6 +226,42 @@ class AnalyzeResponse(BaseResponse):
     overall_maturity: str = ""
 
 
+class GuidanceRequest(BaseModel):
+    """初始改进建议请求"""
+    keys: list[str] = Field(default=[], description="要纳入建议生成的分析器 key 列表，空列表表示全部")
+    focus_keys: list[str] = Field(default=[], description="显式指定首轮聚焦的评估项 key 列表")
+    max_focus: int = Field(default=6, description="每轮最多聚焦的评估项数量")
+    max_dataitems: int = Field(default=12, description="每轮最多附带的数据项数量")
+    max_records: int = Field(default=3, description="每个数据项最多附带的样本记录数")
+    temperature: float = Field(default=0.1, description="建议生成温度参数")
+    api_key: Optional[str] = Field(default=None, description="覆盖环境变量 API_KEY")
+    base_url: Optional[str] = Field(default=None, description="覆盖环境变量 BASE_URL")
+    model_name: Optional[str] = Field(default=None, description="覆盖环境变量 MODEL_NAME")
+    agent_assist: bool = Field(default=False, description="是否启用 Agent 辅助评估")
+    agent_assist_keys: list[str] = Field(default=[], description="启用 Agent 辅助的 key 列表")
+    agent_assist_temperature: Optional[float] = Field(default=None, description="Agent 辅助评估温度参数")
+
+
+class GuidanceRefineRequest(BaseModel):
+    """改进建议 refinement 请求"""
+    session: dict[str, Any] = Field(default_factory=dict, description="前一轮 guidance session")
+    feedback: str = Field(default="", description="用户反馈")
+    db_name: Optional[str] = Field(default=None, description="覆盖 session 中的数据库名称")
+    max_focus: Optional[int] = Field(default=None, description="覆盖 session 的聚焦项数量")
+    max_dataitems: Optional[int] = Field(default=None, description="覆盖 session 的数据项数量")
+    max_records: Optional[int] = Field(default=None, description="覆盖 session 的样本记录数量")
+    temperature: Optional[float] = Field(default=None, description="覆盖 session 的温度参数")
+    api_key: Optional[str] = Field(default=None, description="覆盖环境变量 API_KEY")
+    base_url: Optional[str] = Field(default=None, description="覆盖环境变量 BASE_URL")
+    model_name: Optional[str] = Field(default=None, description="覆盖环境变量 MODEL_NAME")
+
+
+class GuidanceResponse(BaseResponse):
+    """改进建议响应"""
+    session: dict[str, Any] = Field(default_factory=dict)
+    current_turn: dict[str, Any] = Field(default_factory=dict)
+
+
 class DataItemStatus(BaseModel):
     """数据项状态"""
     name: str
@@ -258,6 +294,9 @@ __all__ = [
     "AnalyzeResult",
     "DimensionSummary",
     "AnalyzeResponse",
+    "GuidanceRequest",
+    "GuidanceRefineRequest",
+    "GuidanceResponse",
     "DataItemStatus",
     "DataStatusResponse",
 ]

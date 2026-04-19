@@ -323,6 +323,165 @@
               </el-table-column>
             </el-table>
           </el-card>
+
+          <el-card class="guidance-card">
+            <template #header>
+              <div class="card-header">
+                <span>改进建议</span>
+                <div class="header-actions">
+                  <el-button
+                    size="small"
+                    type="primary"
+                    plain
+                    :disabled="!lastAnalysisRequest.keys.length"
+                    :loading="generatingGuidance"
+                    @click="handleGenerateGuidance"
+                  >
+                    生成建议
+                  </el-button>
+                  <el-button
+                    size="small"
+                    text
+                    :disabled="!guidanceSession"
+                    @click="clearGuidanceSession"
+                  >
+                    清空
+                  </el-button>
+                </div>
+              </div>
+            </template>
+
+            <div v-if="!lastAnalysisRequest.keys.length" class="guidance-empty">
+              <el-empty description="运行评估后可生成改进建议" />
+            </div>
+
+            <div v-else-if="!guidanceSession" class="guidance-empty">
+              <el-empty description="当前还没有生成改进建议">
+                <el-button type="primary" :loading="generatingGuidance" @click="handleGenerateGuidance">
+                  生成首轮建议
+                </el-button>
+              </el-empty>
+            </div>
+
+            <div v-else-if="currentGuidanceTurn" class="guidance-content">
+              <div class="guidance-meta">
+                <el-tag type="primary" effect="plain">
+                  {{ currentGuidanceTurn.stage === 'initial_diagnosis' ? 'Initial Diagnosis' : 'Iterative Refinement' }}
+                </el-tag>
+                <el-tag type="info" effect="plain">
+                  聚焦 {{ currentGuidanceTurn.focus_keys?.length || 0 }} 项
+                </el-tag>
+                <span class="guidance-model">模型: {{ guidanceSession.model }}</span>
+              </div>
+
+              <div class="guidance-block">
+                <div class="guidance-title">诊断摘要</div>
+                <div class="guidance-text">{{ currentGuidanceTurn.guidance?.diagnosis_summary || '-' }}</div>
+              </div>
+
+              <div class="guidance-block" v-if="currentGuidanceTurn.guidance?.focus_areas?.length">
+                <div class="guidance-title">重点领域</div>
+                <div class="tag-list">
+                  <el-tag v-for="area in currentGuidanceTurn.guidance.focus_areas" :key="area" type="warning" effect="light">
+                    {{ area }}
+                  </el-tag>
+                </div>
+              </div>
+
+              <div class="guidance-block" v-if="currentGuidanceTurn.guidance?.prioritized_recommendations?.length">
+                <div class="guidance-title">优先建议</div>
+                <div
+                  v-for="(recommendation, index) in currentGuidanceTurn.guidance.prioritized_recommendations"
+                  :key="`${recommendation.title}-${index}`"
+                  class="recommendation-item"
+                >
+                  <div class="recommendation-header">
+                    <div class="recommendation-name">
+                      <el-tag size="small" type="danger">{{ recommendation.priority || 'P2' }}</el-tag>
+                      <span>{{ recommendation.title || '未命名建议' }}</span>
+                    </div>
+                    <span class="recommendation-scope">{{ recommendation.scope || '-' }}</span>
+                  </div>
+                  <div class="recommendation-text">{{ recommendation.rationale || '-' }}</div>
+                  <div class="recommendation-subtitle">建议动作</div>
+                  <ul class="guidance-list">
+                    <li v-for="(action, actionIndex) in recommendation.actions || []" :key="`${index}-action-${actionIndex}`">
+                      {{ action }}
+                    </li>
+                  </ul>
+                  <div class="recommendation-subtitle" v-if="recommendation.evidence?.length">关联证据</div>
+                  <ul class="guidance-list compact" v-if="recommendation.evidence?.length">
+                    <li v-for="(evidence, evidenceIndex) in recommendation.evidence" :key="`${index}-evidence-${evidenceIndex}`">
+                      {{ evidence }}
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="guidance-block" v-if="currentGuidanceTurn.guidance?.data_gaps?.length">
+                <div class="guidance-title">数据缺口</div>
+                <div
+                  v-for="(gap, index) in currentGuidanceTurn.guidance.data_gaps"
+                  :key="`${gap.scope}-${index}`"
+                  class="gap-item"
+                >
+                  <div class="gap-scope">{{ gap.scope || '-' }}</div>
+                  <div class="gap-text">{{ gap.gap || '-' }}</div>
+                  <div class="gap-hint">{{ gap.suggested_collection || '-' }}</div>
+                </div>
+              </div>
+
+              <div class="guidance-block" v-if="currentGuidanceTurn.guidance?.follow_up_questions?.length">
+                <div class="guidance-title">后续确认问题</div>
+                <ul class="guidance-list compact">
+                  <li v-for="(question, index) in currentGuidanceTurn.guidance.follow_up_questions" :key="`${question}-${index}`">
+                    {{ question }}
+                  </li>
+                </ul>
+              </div>
+
+              <div class="guidance-block">
+                <div class="guidance-title">继续完善建议</div>
+                <el-input
+                  v-model="guidanceFeedback"
+                  type="textarea"
+                  :rows="3"
+                  resize="vertical"
+                  placeholder="例如：先做低成本项；只关注可观测性；结合当前团队人力约束重排优先级"
+                />
+                <div class="guidance-actions">
+                  <el-button
+                    type="primary"
+                    :loading="refiningGuidance"
+                    :disabled="!guidanceFeedback.trim()"
+                    @click="handleRefineGuidance"
+                  >
+                    基于反馈完善
+                  </el-button>
+                </div>
+              </div>
+
+              <div class="guidance-block" v-if="guidanceTurns.length > 1">
+                <div class="guidance-title">历史轮次</div>
+                <div class="history-list">
+                  <div
+                    v-for="(turn, index) in guidanceTurns"
+                    :key="`${turn.stage}-${index}`"
+                    class="history-item"
+                  >
+                    <div class="history-header">
+                      <span>第 {{ index + 1 }} 轮</span>
+                      <el-tag size="small" type="info" effect="plain">
+                        {{ turn.stage === 'initial_diagnosis' ? 'Initial' : 'Refinement' }}
+                      </el-tag>
+                    </div>
+                    <div class="history-feedback" v-if="turn.feedback">反馈: {{ turn.feedback }}</div>
+                    <div class="history-summary">{{ turn.guidance?.diagnosis_summary || '-' }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </el-card>
         </template>
         
         <!-- 空状态 -->
@@ -401,7 +560,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { getAnalyzers, getDataStatus, runAnalysis } from '../api'
+import { getAnalyzers, getDataStatus, runAnalysis, generateGuidance, refineGuidance } from '../api'
 
 // 状态
 const loadingAnalyzers = ref(false)
@@ -464,6 +623,8 @@ const analyzeProgress = ref(0)
 const checkingStatus = ref(false)
 const agentAssistEnabled = ref(false)
 const agentAssistOnlySelected = ref(true)
+const generatingGuidance = ref(false)
+const refiningGuidance = ref(false)
 
 const analyzers = ref([])
 const analyzersByDimension = ref({})
@@ -473,6 +634,13 @@ const selectedKeys = ref([])
 const dataStatus = ref(null)
 const analyzeResult = ref(null)
 const searchKey = ref('')
+const guidanceSession = ref(null)
+const guidanceFeedback = ref('')
+const lastAnalysisRequest = ref({
+  keys: [],
+  agentAssist: false,
+  agentAssistKeys: [],
+})
 
 const showDetail = ref(false)
 const currentDimension = ref(null)
@@ -618,6 +786,23 @@ const dimensionResults = computed(() => {
   return analyzeResult.value.results.filter(r => r.dimension === currentDimension.value.dimension)
 })
 
+const guidanceTurns = computed(() => guidanceSession.value?.turns || [])
+
+const currentGuidanceTurn = computed(() => {
+  if (!guidanceTurns.value.length) return null
+  return guidanceTurns.value[guidanceTurns.value.length - 1]
+})
+
+const getCurrentAgentAssistKeys = () => {
+  if (!agentAssistEnabled.value) return []
+  return agentAssistOnlySelected.value ? [...selectedKeys.value] : []
+}
+
+const clearGuidanceSession = () => {
+  guidanceSession.value = null
+  guidanceFeedback.value = ''
+}
+
 // 加载分析器列表
 const loadAnalyzers = async () => {
   loadingAnalyzers.value = true
@@ -659,6 +844,13 @@ const handleAnalyze = async () => {
   analyzing.value = true
   analyzeProgress.value = 0
   analyzeResult.value = null
+  clearGuidanceSession()
+
+  const analysisRequest = {
+    keys: [...selectedKeys.value],
+    agentAssist: agentAssistEnabled.value,
+    agentAssistKeys: getCurrentAgentAssistKeys(),
+  }
   
   // 模拟进度
   const progressInterval = setInterval(() => {
@@ -668,16 +860,15 @@ const handleAnalyze = async () => {
   }, 500)
   
   try {
-    const result = await runAnalysis(selectedKeys.value, {
-      agentAssist: agentAssistEnabled.value,
-      agentAssistKeys: (agentAssistEnabled.value && agentAssistOnlySelected.value)
-        ? selectedKeys.value
-        : [],
+    const result = await runAnalysis(analysisRequest.keys, {
+      agentAssist: analysisRequest.agentAssist,
+      agentAssistKeys: analysisRequest.agentAssistKeys,
     })
     analyzeProgress.value = 100
     
     if (result.success) {
       analyzeResult.value = result
+      lastAnalysisRequest.value = analysisRequest
       ElMessage.success(`评估完成: ${result.results?.length || 0} 个评估项`)
     } else {
       ElMessage.error(result.message || '评估失败')
@@ -687,6 +878,65 @@ const handleAnalyze = async () => {
   } finally {
     clearInterval(progressInterval)
     analyzing.value = false
+  }
+}
+
+const handleGenerateGuidance = async () => {
+  if (!lastAnalysisRequest.value.keys.length) {
+    ElMessage.warning('请先运行评估')
+    return
+  }
+
+  generatingGuidance.value = true
+  try {
+    const result = await generateGuidance({
+      keys: lastAnalysisRequest.value.keys,
+      agent_assist: lastAnalysisRequest.value.agentAssist,
+      agent_assist_keys: lastAnalysisRequest.value.agentAssistKeys,
+    })
+
+    if (result.success) {
+      guidanceSession.value = result.session
+      guidanceFeedback.value = ''
+      ElMessage.success('已生成首轮改进建议')
+    } else {
+      ElMessage.error(result.message || '生成改进建议失败')
+    }
+  } catch (error) {
+    ElMessage.error('生成改进建议失败: ' + error.message)
+  } finally {
+    generatingGuidance.value = false
+  }
+}
+
+const handleRefineGuidance = async () => {
+  if (!guidanceSession.value) {
+    ElMessage.warning('请先生成首轮改进建议')
+    return
+  }
+  if (!guidanceFeedback.value.trim()) {
+    ElMessage.warning('请输入反馈内容')
+    return
+  }
+
+  refiningGuidance.value = true
+  try {
+    const result = await refineGuidance({
+      session: guidanceSession.value,
+      feedback: guidanceFeedback.value.trim(),
+    })
+
+    if (result.success) {
+      guidanceSession.value = result.session
+      guidanceFeedback.value = ''
+      ElMessage.success('已根据反馈更新建议')
+    } else {
+      ElMessage.error(result.message || '更新改进建议失败')
+    }
+  } catch (error) {
+    ElMessage.error('更新改进建议失败: ' + error.message)
+  } finally {
+    refiningGuidance.value = false
   }
 }
 
@@ -724,6 +974,7 @@ onMounted(() => {
 .loading-card,
 .overview-card,
 .summary-card,
+.guidance-card,
 .detail-card,
 .empty-card {
   border-radius: 16px;
@@ -860,6 +1111,134 @@ onMounted(() => {
   height: 48px;
   border-radius: 12px;
   font-weight: 500;
+}
+
+.guidance-empty {
+  min-height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.guidance-content {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.guidance-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.guidance-model {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.guidance-block {
+  border: 1px solid #e8ecf1;
+  border-radius: 12px;
+  padding: 16px;
+  background: #fbfdff;
+}
+
+.guidance-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 10px;
+}
+
+.guidance-text {
+  color: #334155;
+  line-height: 1.7;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.recommendation-item,
+.gap-item,
+.history-item {
+  border: 1px solid #e8ecf1;
+  border-radius: 10px;
+  padding: 14px;
+  background: white;
+}
+
+.recommendation-item + .recommendation-item,
+.gap-item + .gap-item,
+.history-item + .history-item {
+  margin-top: 12px;
+}
+
+.recommendation-header,
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.recommendation-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.recommendation-scope,
+.gap-hint,
+.history-feedback,
+.history-summary {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.recommendation-text,
+.gap-text,
+.gap-scope {
+  color: #334155;
+  line-height: 1.7;
+}
+
+.recommendation-subtitle {
+  margin-top: 10px;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.guidance-list {
+  margin: 0;
+  padding-left: 18px;
+  color: #334155;
+  line-height: 1.7;
+}
+
+.guidance-list.compact {
+  line-height: 1.6;
+}
+
+.guidance-actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 /* 数据状态 */
