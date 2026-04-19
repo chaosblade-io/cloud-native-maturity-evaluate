@@ -4,8 +4,10 @@
 封装评估分析逻辑，复用 engine.py 和 run_analyzer.py 中的分析器
 """
 import sys
+import os
 from pathlib import Path
 from typing import Optional
+from contextlib import contextmanager
 
 from api.models.schemas import (
     AnalyzerInfo,
@@ -25,6 +27,44 @@ class AnalyzeService:
     # 数据库路径
     DB_DIR = PROJECT_ROOT / "data"
     DEFAULT_DB = DB_DIR / "sesora.db"
+
+    @staticmethod
+    @contextmanager
+    def _agent_assist_env(
+        enabled: bool,
+        keys: Optional[list[str]] = None,
+        temperature: Optional[float] = None,
+    ):
+        managed_keys = [
+            "SESORA_AGENT_ASSIST_ENABLED",
+            "SESORA_AGENT_ASSIST_KEYS",
+            "SESORA_AGENT_ASSIST_TEMPERATURE",
+        ]
+        backup = {k: os.environ.get(k) for k in managed_keys}
+
+        try:
+            if enabled:
+                os.environ["SESORA_AGENT_ASSIST_ENABLED"] = "1"
+                if keys:
+                    os.environ["SESORA_AGENT_ASSIST_KEYS"] = ",".join(keys)
+                else:
+                    os.environ.pop("SESORA_AGENT_ASSIST_KEYS", None)
+
+                if temperature is not None:
+                    os.environ["SESORA_AGENT_ASSIST_TEMPERATURE"] = str(temperature)
+                else:
+                    os.environ.pop("SESORA_AGENT_ASSIST_TEMPERATURE", None)
+            else:
+                for k in managed_keys:
+                    os.environ.pop(k, None)
+
+            yield
+        finally:
+            for k, v in backup.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
     
     @classmethod
     def get_maturity_level(cls, percentage: float) -> str:
@@ -139,6 +179,9 @@ class AnalyzeService:
         cls,
         keys: list[str] = None,
         db_name: str = "sesora.db",
+        agent_assist: bool = False,
+        agent_assist_keys: Optional[list[str]] = None,
+        agent_assist_temperature: Optional[float] = None,
     ) -> tuple[list[AnalyzeResult], list[DimensionSummary], int, int, float, str]:
         """
         执行评估分析
@@ -170,7 +213,12 @@ class AnalyzeService:
                 keys = [a.key() for a in all_analyzers]
             
             # 执行分析
-            score_results = engine.registry.run_by_keys(store, keys)
+            with cls._agent_assist_env(
+                enabled=agent_assist,
+                keys=agent_assist_keys,
+                temperature=agent_assist_temperature,
+            ):
+                score_results = engine.registry.run_by_keys(store, keys)
             
             # 转换结果
             results = []
@@ -188,6 +236,10 @@ class AnalyzeService:
                     percentage=round(pct, 1),
                     reason=r.reason,
                     evidence=r.evidence[:10] if r.evidence else [],
+                    ai_assisted=any(
+                        "使用 Agent 辅助评估（agent-assist）" in str(ev)
+                        for ev in (r.evidence or [])
+                    ),
                 ))
             
             # 按维度汇总

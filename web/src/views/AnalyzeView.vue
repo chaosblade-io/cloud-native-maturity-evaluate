@@ -80,6 +80,17 @@
           
           <!-- 操作按钮 -->
           <div class="action-bar">
+            <div class="assist-options">
+              <el-switch
+                v-model="agentAssistEnabled"
+                inline-prompt
+                active-text="AI辅助"
+                inactive-text="规则"
+              />
+              <el-checkbox v-model="agentAssistOnlySelected" :disabled="!agentAssistEnabled">
+                仅当前选中项
+              </el-checkbox>
+            </div>
             <el-button
               type="primary"
               size="large"
@@ -285,6 +296,12 @@
                   </el-tag>
                 </template>
               </el-table-column>
+              <el-table-column label="AI" width="70" align="center">
+                <template #default="{ row }">
+                  <el-tag v-if="row.ai_assisted" type="primary" size="small">AI</el-tag>
+                  <span v-else>-</span>
+                </template>
+              </el-table-column>
               <el-table-column prop="percentage" label="得分" width="150" sortable>
                 <template #default="{ row }">
                   <div class="score-cell">
@@ -353,9 +370,12 @@
           >
             <div class="indicator-header">
               <span class="indicator-name">{{ result.key }}</span>
-              <el-tag :type="getStateType(result.state)" size="small">
-                {{ result.score }}/{{ result.max_score }}
-              </el-tag>
+              <div class="indicator-tags">
+                <el-tag :type="getStateType(result.state)" size="small">
+                  {{ result.score }}/{{ result.max_score }}
+                </el-tag>
+                <el-tag v-if="result.ai_assisted" type="primary" size="small">AI辅助</el-tag>
+              </div>
             </div>
             <el-progress
               :percentage="result.percentage"
@@ -442,6 +462,8 @@ const handleJsonFileChange = (event) => {
 const analyzing = ref(false)
 const analyzeProgress = ref(0)
 const checkingStatus = ref(false)
+const agentAssistEnabled = ref(false)
+const agentAssistOnlySelected = ref(true)
 
 const analyzers = ref([])
 const analyzersByDimension = ref({})
@@ -646,7 +668,12 @@ const handleAnalyze = async () => {
   }, 500)
   
   try {
-    const result = await runAnalysis(selectedKeys.value)
+    const result = await runAnalysis(selectedKeys.value, {
+      agentAssist: agentAssistEnabled.value,
+      agentAssistKeys: (agentAssistEnabled.value && agentAssistOnlySelected.value)
+        ? selectedKeys.value
+        : [],
+    })
     analyzeProgress.value = 100
     
     if (result.success) {
@@ -819,6 +846,13 @@ onMounted(() => {
 /* 操作按钮 */
 .action-bar {
   margin-top: 16px;
+}
+
+.assist-options {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
 }
 
 .action-btn {
@@ -1100,6 +1134,11 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 8px;
+}
+
+.indicator-tags {
+  display: flex;
+  gap: 6px;
 }
 
 .indicator-name {

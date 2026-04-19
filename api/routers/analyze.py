@@ -91,6 +91,9 @@ async def run_analysis(request: AnalyzeRequest):
             await asyncio.to_thread(
                 AnalyzeService.run_analysis,
                 keys=request.keys if request.keys else None,
+                agent_assist=request.agent_assist,
+                agent_assist_keys=request.agent_assist_keys if request.agent_assist_keys else None,
+                agent_assist_temperature=request.agent_assist_temperature,
             )
         
         return AnalyzeResponse(

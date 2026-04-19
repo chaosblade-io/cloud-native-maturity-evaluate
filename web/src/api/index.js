@@ -119,9 +119,15 @@ export const getDataStatus = (keys = null) => {
 /**
  * 执行评估分析
  * @param {string[]} keys - 分析器 key 列表，空数组表示全部
+ * @param {Object} options - Agent 辅助选项
  */
-export const runAnalysis = (keys = []) => 
-  api.post('/analyze', { keys })
+export const runAnalysis = (keys = [], options = {}) =>
+  api.post('/analyze', {
+    keys,
+    agent_assist: !!options.agentAssist,
+    agent_assist_keys: options.agentAssistKeys || [],
+    agent_assist_temperature: options.agentAssistTemperature ?? null,
+  })
 
 // ============================================
 // 健康检查 API

@@ -187,6 +187,9 @@ class AnalyzerInfo(BaseModel):
 class AnalyzeRequest(BaseModel):
     """分析请求"""
     keys: list[str] = Field(default=[], description="要执行的分析器 key 列表，空列表表示全部")
+    agent_assist: bool = Field(default=False, description="是否启用 Agent 辅助评估")
+    agent_assist_keys: list[str] = Field(default=[], description="启用 Agent 辅助的 key 列表，空列表表示不额外限定")
+    agent_assist_temperature: Optional[float] = Field(default=None, description="Agent 辅助评估温度参数")
 
 
 class AnalyzeResult(BaseModel):
@@ -200,6 +203,7 @@ class AnalyzeResult(BaseModel):
     percentage: float
     reason: str
     evidence: list[str] = []
+    ai_assisted: bool = False
 
 
 class DimensionSummary(BaseModel):
