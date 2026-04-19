@@ -363,20 +363,21 @@ def main():
         help="仅检查数据就绪状态，不运行分析器"
     )
     parser.add_argument(
-        "--agent-data-ownership",
+        "--agent-assist",
         action="store_true",
-        help="为 data_ownership_clear 启用 Agent 语义评估（需配置 API_KEY/BASE_URL/MODEL_NAME）"
+        help="统一启用分析项的 Agent 辅助评估（需配置 API_KEY/BASE_URL/MODEL_NAME）"
     )
     parser.add_argument(
-        "--agent-manual",
-        action="store_true",
-        help="统一启用 manual 相关分析项的 Agent 语义评估（需配置 API_KEY/BASE_URL/MODEL_NAME）"
-    )
-    parser.add_argument(
-        "--agent-manual-keys",
+        "--agent-assist-keys",
         nargs="+",
         default=None,
-        help="仅对指定 key 启用 manual Agent 语义评估（需与 --agent-manual 一起使用）"
+        help="仅对指定 key 启用 Agent 辅助评估（需与 --agent-assist 一起使用）"
+    )
+    parser.add_argument(
+        "--agent-assist-temperature",
+        type=float,
+        default=None,
+        help="Agent 辅助评估温度参数（默认 0.1）"
     )
     
     args = parser.parse_args()
@@ -454,17 +455,20 @@ def main():
     
     print(f"输出文件: {output_path}")
 
-    if args.agent_data_ownership:
-        os.environ["SESORA_AGENT_ASSESS_DATA_OWNERSHIP"] = "1"
-        print("Agent 语义评估: 已启用 data_ownership_clear")
+    agent_assist_enabled = args.agent_assist
+    agent_assist_keys = args.agent_assist_keys
 
-    if args.agent_manual:
-        os.environ["SESORA_AGENT_ASSESS_MANUAL"] = "1"
-        print("Agent 语义评估: 已启用 manual 统一模式")
+    if agent_assist_enabled:
+        os.environ["SESORA_AGENT_ASSIST_ENABLED"] = "1"
+        print("Agent 辅助评估: 已启用")
 
-        if args.agent_manual_keys:
-            os.environ["SESORA_AGENT_ASSESS_MANUAL_KEYS"] = ",".join(args.agent_manual_keys)
-            print(f"Agent 语义评估: 仅启用 key: {', '.join(args.agent_manual_keys)}")
+        if agent_assist_keys:
+            os.environ["SESORA_AGENT_ASSIST_KEYS"] = ",".join(agent_assist_keys)
+            print(f"Agent 辅助评估: 仅启用 key: {', '.join(agent_assist_keys)}")
+
+        if args.agent_assist_temperature is not None:
+            os.environ["SESORA_AGENT_ASSIST_TEMPERATURE"] = str(args.agent_assist_temperature)
+            print(f"Agent 辅助评估: 温度={args.agent_assist_temperature}")
     
     # 运行分析器
     with SQLiteDataStore(db_path) as store:

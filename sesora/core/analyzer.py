@@ -216,8 +216,13 @@ class AnalyzerRegistry:
             else:
                 try:
                     result = analyzer.analyze(store)
-                    from sesora.utils.manual_semantic_assessor import maybe_apply_manual_agent_assessment
-                    result = maybe_apply_manual_agent_assessment(analyzer, store, result)
+                    from sesora.utils.agent_assisted_assessor import (
+                        is_agent_assist_enabled_for_analyzer,
+                        maybe_apply_agent_assisted_assessment,
+                    )
+
+                    if is_agent_assist_enabled_for_analyzer(analyzer.key()):
+                        result = maybe_apply_agent_assisted_assessment(analyzer, store, result)
                     results.append(result)
                 except Exception as e:
                     results.append(ScoreResult(
@@ -260,8 +265,13 @@ class AnalyzerRegistry:
             else:
                 try:
                     result = analyzer.analyze(store)
-                    from sesora.utils.manual_semantic_assessor import maybe_apply_manual_agent_assessment
-                    result = maybe_apply_manual_agent_assessment(analyzer, store, result)
+                    from sesora.utils.agent_assisted_assessor import (
+                        is_agent_assist_enabled_for_analyzer,
+                        maybe_apply_agent_assisted_assessment,
+                    )
+
+                    if is_agent_assist_enabled_for_analyzer(analyzer.key()):
+                        result = maybe_apply_agent_assisted_assessment(analyzer, store, result)
                     results.append(result)
                 except Exception as e:
                     results.append(ScoreResult(

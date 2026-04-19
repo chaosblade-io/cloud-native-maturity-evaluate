@@ -1,12 +1,12 @@
 """
-Manual Analyzer 的统一 Agent 语义评估增强。
+Analyzer 的统一 Agent 辅助评估增强。
 
 启用方式：
-- SESORA_AGENT_ASSESS_MANUAL=1
-- 可选：SESORA_AGENT_ASSESS_MANUAL_KEYS="k1,k2"
+- SESORA_AGENT_ASSIST_ENABLED=1
+- 可选：SESORA_AGENT_ASSIST_KEYS="k1,k2"
 
 说明：
-- 仅对 required_data 包含 manual.* 的分析器生效
+- 是否对某个 analyzer 启用由调用方先判断
 - Agent 失败时自动回退原规则评分
 """
 
@@ -24,21 +24,17 @@ import requests
 from sesora.core.analyzer import ScoreResult, ScoreState
 
 
-def _enabled_for_key(key: str) -> bool:
-    if os.getenv("SESORA_AGENT_ASSESS_MANUAL", "0") != "1":
+def is_agent_assist_enabled_for_analyzer(key: str) -> bool:
+    enabled = os.getenv("SESORA_AGENT_ASSIST_ENABLED", "0")
+    if enabled != "1":
         return False
 
-    keys_raw = os.getenv("SESORA_AGENT_ASSESS_MANUAL_KEYS", "").strip()
+    keys_raw = os.getenv("SESORA_AGENT_ASSIST_KEYS", "").strip()
     if not keys_raw:
         return True
 
     allow_keys = {k.strip() for k in keys_raw.split(",") if k.strip()}
     return key in allow_keys
-
-
-def _has_manual_dependency(analyzer: Any) -> bool:
-    required = analyzer.required_data() if hasattr(analyzer, "required_data") else []
-    return any(str(name).startswith("manual.") for name in required)
 
 
 def _serialize_value(value: Any) -> Any:
@@ -102,13 +98,7 @@ def _state_from_score(score: int) -> ScoreState:
     return ScoreState.SCORED if score > 0 else ScoreState.NOT_SCORED
 
 
-def maybe_apply_manual_agent_assessment(analyzer: Any, store: Any, original: ScoreResult) -> ScoreResult:
-    key = original.key
-
-    if not _enabled_for_key(key):
-        return original
-    if not _has_manual_dependency(analyzer):
-        return original
+def maybe_apply_agent_assisted_assessment(analyzer: Any, store: Any, original: ScoreResult) -> ScoreResult:
     if original.state == ScoreState.NOT_EVALUATED:
         return original
 
@@ -120,17 +110,17 @@ def maybe_apply_manual_agent_assessment(analyzer: Any, store: Any, original: Sco
             score=original.score,
             max_score=original.max_score,
             reason=original.reason,
-            evidence=original.evidence + ["ℹ️ Agent 语义评估未生效：缺少 API_KEY/BASE_URL/MODEL_NAME，已回退规则评分"],
+            evidence=original.evidence + ["ℹ️ Agent 辅助评估未生效：缺少 API_KEY/BASE_URL/MODEL_NAME，已回退规则评分"],
         )
 
     api_key, base_url, model_name = config
     payload = {
-        "metric_key": key,
+        "metric_key": original.key,
         "dimension": analyzer.dimension(),
         "category": analyzer.category(),
         "max_score": analyzer.max_score(),
         "method": {
-            "step_1": "Evidence Extraction: 从 manual 与相关可选数据中提取证据 E_m",
+            "step_1": "Evidence Extraction: 从相关数据中提取证据 E_m",
             "step_2": "Evidence-Based Scoring: 基于 E_m 给出 0-max_score 分值与理由",
         },
         "rule_based_result": {
@@ -164,7 +154,10 @@ def maybe_apply_manual_agent_assessment(analyzer: Any, store: Any, original: Sco
             },
             json={
                 "model": model_name,
-                "temperature": float(os.getenv("SESORA_AGENT_TEMPERATURE", "0.1")),
+                "temperature": float(
+                    os.getenv("SESORA_AGENT_ASSIST_TEMPERATURE")
+                    or os.getenv("SESORA_AGENT_TEMPERATURE", "0.1")
+                ),
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
@@ -182,13 +175,13 @@ def maybe_apply_manual_agent_assessment(analyzer: Any, store: Any, original: Sco
         if score > analyzer.max_score():
             score = analyzer.max_score()
 
-        reason = str(parsed.get("reason") or "Agent 语义评估完成")
+        reason = str(parsed.get("reason") or "Agent 辅助评估完成")
 
         evidence_raw = parsed.get("evidence") or []
         if not isinstance(evidence_raw, list):
             evidence_raw = [str(evidence_raw)]
 
-        evidence = ["ℹ️ 使用 Agent 语义评估（manual-unified）"]
+        evidence = ["ℹ️ 使用 Agent 辅助评估（agent-assist）"]
         evidence.extend(str(item) for item in evidence_raw[:10])
 
         gaps = parsed.get("data_gaps") or []
@@ -197,7 +190,7 @@ def maybe_apply_manual_agent_assessment(analyzer: Any, store: Any, original: Sco
 
         confidence = parsed.get("confidence")
         if confidence is not None:
-            evidence.append(f"ℹ️ 语义评估置信度: {confidence}")
+            evidence.append(f"ℹ️ 辅助评估置信度: {confidence}")
 
         return ScoreResult(
             key=original.key,
@@ -214,5 +207,5 @@ def maybe_apply_manual_agent_assessment(analyzer: Any, store: Any, original: Sco
             score=original.score,
             max_score=original.max_score,
             reason=original.reason,
-            evidence=original.evidence + ["ℹ️ Agent 语义评估失败，已回退规则评分"],
+            evidence=original.evidence + ["ℹ️ Agent 辅助评估失败，已回退规则评分"],
         )
