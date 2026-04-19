@@ -163,6 +163,23 @@ python run_pipeline/run_analyzer.py data/sesora.db --config run_pipeline/run_cas
 python run_pipeline/run_analyzer.py data/sesora.db --key ha_redundancy,mon_metrics_depth
 ```
 
+#### 方式四：运行改进建议 Agent
+
+该工具会直接复用 SQLite 原始数据和评分结果，执行两阶段建议生成：
+
+```bash
+# 首轮诊断
+python run_pipeline/run_guidance_agent.py --all
+
+# 首轮诊断后进入交互式 refinement
+python run_pipeline/run_guidance_agent.py --all --interactive
+
+# 带反馈批量运行 refinement
+python run_pipeline/run_guidance_agent.py --all --feedback "先做低成本项" "仅关注可观测性"
+```
+
+默认读取 .env 中的 API_KEY、BASE_URL、MODEL_NAME，并将结果输出到 results 目录下的 JSON 文件。
+
 ## 评估维度
 
 ### 1. Automation（自动化）
