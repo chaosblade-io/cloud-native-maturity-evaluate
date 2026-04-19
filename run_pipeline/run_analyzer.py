@@ -367,6 +367,17 @@ def main():
         action="store_true",
         help="为 data_ownership_clear 启用 Agent 语义评估（需配置 API_KEY/BASE_URL/MODEL_NAME）"
     )
+    parser.add_argument(
+        "--agent-manual",
+        action="store_true",
+        help="统一启用 manual 相关分析项的 Agent 语义评估（需配置 API_KEY/BASE_URL/MODEL_NAME）"
+    )
+    parser.add_argument(
+        "--agent-manual-keys",
+        nargs="+",
+        default=None,
+        help="仅对指定 key 启用 manual Agent 语义评估（需与 --agent-manual 一起使用）"
+    )
     
     args = parser.parse_args()
     
@@ -446,6 +457,14 @@ def main():
     if args.agent_data_ownership:
         os.environ["SESORA_AGENT_ASSESS_DATA_OWNERSHIP"] = "1"
         print("Agent 语义评估: 已启用 data_ownership_clear")
+
+    if args.agent_manual:
+        os.environ["SESORA_AGENT_ASSESS_MANUAL"] = "1"
+        print("Agent 语义评估: 已启用 manual 统一模式")
+
+        if args.agent_manual_keys:
+            os.environ["SESORA_AGENT_ASSESS_MANUAL_KEYS"] = ",".join(args.agent_manual_keys)
+            print(f"Agent 语义评估: 仅启用 key: {', '.join(args.agent_manual_keys)}")
     
     # 运行分析器
     with SQLiteDataStore(db_path) as store:
