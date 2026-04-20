@@ -60,6 +60,25 @@ SYSTEM_PROMPT = """
 """.strip()
 
 
+PLANNER_PROMPT = """
+你是云原生成熟度改进顾问的诊断规划器。
+请先基于聚合分数定位首轮重点，再仅按需请求必要细节。
+
+要求：
+1. 重点关注低得分区域（低 S_g）和低覆盖区域（低 C_g）。
+2. 不要一次性请求所有指标细节，只请求支撑首轮建议所需的最小集合。
+3. 仅输出合法 JSON，不要输出 Markdown。
+
+输出 JSON 结构：
+{
+    "focus_keys": ["metric_key1", "metric_key2"],
+    "required_metric_keys": ["metric_keyA", "metric_keyB"],
+    "required_dataitems": ["dataitem.name1", "dataitem.name2"],
+    "rationale": "一句话说明为何选这些重点"
+}
+""".strip()
+
+
 @contextmanager
 def agent_assist_env(
     enabled: bool,
@@ -168,6 +187,61 @@ def build_hierarchy_context(report: AssessmentReport, metadata: dict[str, dict[s
                     "evaluated_count": category.evaluated_count,
                     "not_evaluated_count": category.not_evaluated_count,
                     "items": item_payload,
+                }
+            )
+
+        dimensions_payload.append(
+            {
+                "dimension": dimension.dimension,
+                "score": dimension.dimension_score,
+                "max_score": dimension.dimension_max,
+                "score_percentage": round(dimension.score_percentage, 2),
+                "coverage_ratio": round(dimension.coverage_ratio, 2),
+                "evaluated_count": dimension.evaluated_count,
+                "not_evaluated_count": dimension.not_evaluated_count,
+                "categories": categories_payload,
+            }
+        )
+
+    return {
+        "task_id": report.task_id,
+        "executed_at": report.executed_at.isoformat() if report.executed_at else None,
+        "summary": {
+            "evaluated_score": report.summary.evaluated_score if report.summary else 0,
+            "evaluated_max": report.summary.evaluated_max if report.summary else 0,
+            "maturity_percentage": round(report.summary.maturity_percentage, 2) if report.summary else 0,
+            "coverage_ratio": round(report.summary.coverage_ratio, 2) if report.summary else 0,
+            "evaluated_items": report.summary.evaluated_items if report.summary else 0,
+            "not_evaluated_items": report.summary.not_evaluated_items if report.summary else 0,
+        },
+        "dimensions": dimensions_payload,
+    }
+
+
+def build_hierarchy_summary_context(report: AssessmentReport, metadata: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    dimensions_payload = []
+    for dimension in report.dimensions:
+        categories_payload = []
+        for category in dimension.categories:
+            total_items = len(category.items)
+            coverage_ratio = round((category.evaluated_count / total_items * 100), 2) if total_items else 0.0
+
+            scored_items = [item for item in category.items if item.state.value != "not_evaluated"]
+            weak_items = sorted(
+                scored_items,
+                key=lambda item: (item.score_percentage, -item.max_score, item.key),
+            )[:3]
+
+            categories_payload.append(
+                {
+                    "category": category.category,
+                    "score": category.category_score,
+                    "max_score": category.category_max,
+                    "score_percentage": round(category.score_percentage, 2),
+                    "coverage_ratio": coverage_ratio,
+                    "evaluated_count": category.evaluated_count,
+                    "not_evaluated_count": category.not_evaluated_count,
+                    "weak_item_keys": [item.key for item in weak_items],
                 }
             )
 
@@ -317,6 +391,97 @@ def build_prompt(
     return json.dumps(prompt_payload, ensure_ascii=False, indent=2)
 
 
+def build_planner_prompt(
+    stage: str,
+    hierarchy_summary_context: dict[str, Any],
+    candidate_focus_keys: list[str],
+    max_focus: int,
+    previous_guidance: Optional[dict[str, Any]] = None,
+    feedback: str = "",
+) -> str:
+    payload = {
+        "stage": stage,
+        "task": "从聚合成熟度结果中定位重点并请求最小必要细节",
+        "max_focus": max_focus,
+        "candidate_focus_keys": candidate_focus_keys,
+        "hierarchy_summary_context": hierarchy_summary_context,
+    }
+    if previous_guidance is not None:
+        payload["previous_guidance"] = previous_guidance
+    if feedback:
+        payload["user_feedback"] = feedback
+    return json.dumps(payload, ensure_ascii=False, indent=2)
+
+
+def parse_planner_result(
+    planner_result: dict[str, Any],
+    fallback_focus_keys: list[str],
+    max_focus: int,
+) -> tuple[list[str], list[str], list[str]]:
+    raw_focus = planner_result.get("focus_keys") or []
+    raw_metric_keys = planner_result.get("required_metric_keys") or []
+    raw_dataitems = planner_result.get("required_dataitems") or []
+
+    focus_keys = [str(key) for key in raw_focus if str(key).strip()]
+    if not focus_keys:
+        focus_keys = fallback_focus_keys[:max_focus]
+
+    required_metric_keys = [str(key) for key in raw_metric_keys if str(key).strip()]
+    for key in focus_keys:
+        if key not in required_metric_keys:
+            required_metric_keys.append(key)
+
+    required_dataitems = [str(name) for name in raw_dataitems if str(name).strip()]
+    return focus_keys[:max_focus], required_metric_keys, required_dataitems
+
+
+def build_metric_detail_bundle(
+    flat_items: list[dict[str, Any]],
+    metric_keys: list[str],
+    max_evidence: int = 4,
+) -> list[dict[str, Any]]:
+    lookup = {item["key"]: item for item in flat_items}
+    details: list[dict[str, Any]] = []
+    for key in metric_keys:
+        item = lookup.get(key)
+        if item is None:
+            continue
+        details.append(
+            {
+                "key": item["key"],
+                "dimension": item["dimension"],
+                "category": item["category"],
+                "state": item["state"],
+                "score": item["score"],
+                "max_score": item["max_score"],
+                "score_percentage": item["score_percentage"],
+                "reason": item["reason"],
+                "evidence": item.get("evidence", [])[:max_evidence],
+                "required_data": item.get("required_data", []),
+                "optional_data": item.get("optional_data", []),
+            }
+        )
+    return details
+
+
+def build_selected_raw_data_snapshot(
+    store: SQLiteDataStore,
+    dataitems: list[str],
+    max_dataitems: int,
+    max_records: int,
+) -> dict[str, Any]:
+    snapshot: dict[str, Any] = {}
+    for dataitem in dataitems[:max_dataitems]:
+        available = store.available(dataitem)
+        records = store.get(dataitem) if available else []
+        snapshot[dataitem] = {
+            "available": available,
+            "records_count": len(records),
+            "sample_records": [serialize_value(record) for record in records[:max_records]],
+        }
+    return snapshot
+
+
 def resolve_llm_config(
     api_key: Optional[str] = None,
     base_url: Optional[str] = None,
@@ -381,6 +546,37 @@ def call_llm(
     return extract_json_object(content), content
 
 
+def call_llm_with_prompt(
+    api_key: str,
+    base_url: str,
+    model_name: str,
+    temperature: float,
+    system_prompt: str,
+    prompt: str,
+) -> tuple[dict[str, Any], str]:
+    response = requests.post(
+        f"{base_url}/chat/completions",
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        json={
+            "model": model_name,
+            "temperature": temperature,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": prompt},
+            ],
+        },
+        timeout=180,
+    )
+    response.raise_for_status()
+
+    payload = response.json()
+    content = payload["choices"][0]["message"]["content"]
+    return extract_json_object(content), content
+
+
 def _run_report(
     store: SQLiteDataStore,
     keys: Optional[list[str]] = None,
@@ -433,14 +629,62 @@ def create_guidance_session(
     )
 
     flat_items = flatten_report(report, metadata)
-    hierarchy_context = build_hierarchy_context(report, metadata)
+    hierarchy_context = build_hierarchy_summary_context(report, metadata)
     ranked_focus_keys = rank_focus_items(flat_items, focus_keys, "", max_focus)
-    raw_snapshot = build_raw_data_snapshot(store, metadata, ranked_focus_keys, max_dataitems, max_records)
+
+    planner_prompt = build_planner_prompt(
+        stage="Initial Diagnosis",
+        hierarchy_summary_context=hierarchy_context,
+        candidate_focus_keys=ranked_focus_keys,
+        max_focus=max_focus,
+    )
+    planner_result, planner_raw_response = call_llm_with_prompt(
+        api_key=resolved_api_key,
+        base_url=resolved_base_url,
+        model_name=resolved_model_name,
+        temperature=temperature,
+        system_prompt=PLANNER_PROMPT,
+        prompt=planner_prompt,
+    )
+
+    selected_focus_keys, requested_metric_keys, requested_dataitems = parse_planner_result(
+        planner_result=planner_result,
+        fallback_focus_keys=ranked_focus_keys,
+        max_focus=max_focus,
+    )
+
+    detail_metrics = build_metric_detail_bundle(flat_items, requested_metric_keys)
+    requested_dataitems = list(dict.fromkeys(requested_dataitems))
+
+    metadata_dataitems: list[str] = []
+    for key in selected_focus_keys:
+        item_meta = metadata.get(key, {})
+        for dataitem in item_meta.get("required_data", []):
+            if dataitem not in metadata_dataitems:
+                metadata_dataitems.append(dataitem)
+        for dataitem in item_meta.get("optional_data", []):
+            if dataitem not in metadata_dataitems:
+                metadata_dataitems.append(dataitem)
+
+    for dataitem in metadata_dataitems:
+        if dataitem not in requested_dataitems:
+            requested_dataitems.append(dataitem)
+
+    raw_snapshot = build_selected_raw_data_snapshot(
+        store=store,
+        dataitems=requested_dataitems,
+        max_dataitems=max_dataitems,
+        max_records=max_records,
+    )
+
     prompt = build_prompt(
         stage="Initial Diagnosis",
         hierarchy_context=hierarchy_context,
-        focus_keys=ranked_focus_keys,
-        raw_snapshot=raw_snapshot,
+        focus_keys=selected_focus_keys,
+        raw_snapshot={
+            "selected_metric_details": detail_metrics,
+            "selected_raw_data": raw_snapshot,
+        },
     )
     guidance, raw_response = call_llm(
         api_key=resolved_api_key,
@@ -469,8 +713,11 @@ def create_guidance_session(
         "turns": [
             {
                 "stage": "initial_diagnosis",
-                "focus_keys": ranked_focus_keys,
+                "focus_keys": selected_focus_keys,
                 "raw_data_items": list(raw_snapshot.keys()),
+                "requested_metric_keys": requested_metric_keys,
+                "planner": planner_result,
+                "planner_raw_response": planner_raw_response,
                 "guidance": guidance,
                 "raw_response": raw_response,
             }
@@ -512,19 +759,63 @@ def refine_guidance_session(
     resolved_temperature = temperature if temperature is not None else float(session.get("temperature", 0.1))
 
     refinement_focus = rank_focus_items(flat_items, None, feedback, resolved_max_focus)
-    refinement_snapshot = build_raw_data_snapshot(
-        store,
-        metadata,
-        refinement_focus,
-        resolved_max_dataitems,
-        resolved_max_records,
-    )
     previous_guidance = turns[-1].get("guidance")
+
+    planner_prompt = build_planner_prompt(
+        stage="Iterative Refinement",
+        hierarchy_summary_context=hierarchy_context,
+        candidate_focus_keys=refinement_focus,
+        max_focus=resolved_max_focus,
+        previous_guidance=previous_guidance,
+        feedback=feedback,
+    )
+    planner_result, planner_raw_response = call_llm_with_prompt(
+        api_key=resolved_api_key,
+        base_url=resolved_base_url,
+        model_name=resolved_model_name,
+        temperature=resolved_temperature,
+        system_prompt=PLANNER_PROMPT,
+        prompt=planner_prompt,
+    )
+
+    selected_focus_keys, requested_metric_keys, requested_dataitems = parse_planner_result(
+        planner_result=planner_result,
+        fallback_focus_keys=refinement_focus,
+        max_focus=resolved_max_focus,
+    )
+
+    detail_metrics = build_metric_detail_bundle(flat_items, requested_metric_keys)
+    requested_dataitems = list(dict.fromkeys(requested_dataitems))
+
+    metadata_dataitems: list[str] = []
+    for key in selected_focus_keys:
+        item_meta = metadata.get(key, {})
+        for dataitem in item_meta.get("required_data", []):
+            if dataitem not in metadata_dataitems:
+                metadata_dataitems.append(dataitem)
+        for dataitem in item_meta.get("optional_data", []):
+            if dataitem not in metadata_dataitems:
+                metadata_dataitems.append(dataitem)
+
+    for dataitem in metadata_dataitems:
+        if dataitem not in requested_dataitems:
+            requested_dataitems.append(dataitem)
+
+    refinement_snapshot = build_selected_raw_data_snapshot(
+        store=store,
+        dataitems=requested_dataitems,
+        max_dataitems=resolved_max_dataitems,
+        max_records=resolved_max_records,
+    )
+
     prompt = build_prompt(
         stage="Iterative Refinement",
         hierarchy_context=hierarchy_context,
-        focus_keys=refinement_focus,
-        raw_snapshot=refinement_snapshot,
+        focus_keys=selected_focus_keys,
+        raw_snapshot={
+            "selected_metric_details": detail_metrics,
+            "selected_raw_data": refinement_snapshot,
+        },
         previous_guidance=previous_guidance,
         feedback=feedback,
     )
@@ -542,8 +833,11 @@ def refine_guidance_session(
         {
             "stage": "iterative_refinement",
             "feedback": feedback,
-            "focus_keys": refinement_focus,
+            "focus_keys": selected_focus_keys,
             "raw_data_items": list(refinement_snapshot.keys()),
+            "requested_metric_keys": requested_metric_keys,
+            "planner": planner_result,
+            "planner_raw_response": planner_raw_response,
             "guidance": guidance,
             "raw_response": raw_response,
         }
