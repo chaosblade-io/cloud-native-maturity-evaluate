@@ -199,6 +199,10 @@
                   <span class="stat-value">{{ analyzeResult.results?.length || 0 }}</span>
                   <span class="stat-label">评估项</span>
                 </div>
+                <div class="stat-item coverage">
+                  <span class="stat-value">{{ overallCoverage }}%</span>
+                  <span class="stat-label">覆盖率</span>
+                </div>
               </div>
               <div class="action-section">
                 <el-button @click="exportReport">
@@ -244,6 +248,9 @@
                 />
                 <div class="summary-meta">
                   {{ dim.score }}/{{ dim.max_score }} · {{ dim.count }}项
+                </div>
+                <div class="summary-meta coverage-meta">
+                  覆盖率 {{ getDimensionCoverage(dim) }}%
                 </div>
               </div>
             </div>
@@ -710,6 +717,14 @@ const getStateLabel = (state) => {
   return labels[state] || state
 }
 
+const COVERED_STATES = new Set(['scored', 'not_scored'])
+
+const calcCoverage = (results = []) => {
+  if (!results.length) return 0
+  const coveredCount = results.filter(r => COVERED_STATES.has(r.state)).length
+  return Math.round((coveredCount / results.length) * 1000) / 10
+}
+
 // 维度选择状态
 const isDimensionSelected = (dimName) => {
   const items = analyzersByDimension.value[dimName] || []
@@ -779,6 +794,22 @@ const filteredResults = computed(() => {
     (r.reason && r.reason.toLowerCase().includes(keyword))
   )
 })
+
+const overallCoverage = computed(() => {
+  const backendCoverage = analyzeResult.value?.coverage_ratio
+  if (typeof backendCoverage === 'number') {
+    return Math.round(backendCoverage * 10) / 10
+  }
+  return calcCoverage(analyzeResult.value?.results || [])
+})
+
+const getDimensionCoverage = (dim) => {
+  if (typeof dim?.coverage_ratio === 'number') {
+    return Math.round(dim.coverage_ratio * 10) / 10
+  }
+  const rows = (analyzeResult.value?.results || []).filter(r => r.dimension === dim.dimension)
+  return calcCoverage(rows)
+}
 
 // 当前维度的结果
 const dimensionResults = computed(() => {
@@ -1384,6 +1415,10 @@ onMounted(() => {
   color: #667eea;
 }
 
+.stat-item.coverage .stat-value {
+  color: #0f766e;
+}
+
 .stat-item .stat-label {
   font-size: 12px;
   color: #94a3b8;
@@ -1445,6 +1480,11 @@ onMounted(() => {
   font-size: 12px;
   color: #94a3b8;
   margin-top: 8px;
+}
+
+.summary-meta.coverage-meta {
+  color: #0f766e;
+  margin-top: 4px;
 }
 
 /* 详情表格 */
