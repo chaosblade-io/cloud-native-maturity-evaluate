@@ -18,7 +18,7 @@ load_dotenv(dotenv_path=env_path, override=True)
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.routers import config, mock_data, collect, analyze
+from api.routers import config, mock_data, collect, analyze, knowledge
 
 # 创建 FastAPI 应用
 app = FastAPI(
@@ -44,6 +44,7 @@ app.include_router(config.router, prefix="/api")
 app.include_router(mock_data.router, prefix="/api")
 app.include_router(collect.router, prefix="/api")
 app.include_router(analyze.router, prefix="/api")
+app.include_router(knowledge.router, prefix="/api")
 
 
 @app.get("/api/health")
@@ -67,6 +68,7 @@ async def api_info():
             "mock": "/api/mock - Mock数据管理",
             "collect": "/api/collect - 数据采集",
             "analyze": "/api/analyze - 评估分析",
+            "knowledge": "/api/knowledge - 知识库管理",
         }
     }
 

@@ -29,6 +29,10 @@
           <el-icon><Connection /></el-icon>
           <template #title>数据采集</template>
         </el-menu-item>
+        <el-menu-item index="/knowledge">
+          <el-icon><FolderOpened /></el-icon>
+          <template #title>知识库</template>
+        </el-menu-item>
         <el-menu-item index="/analyze">
           <el-icon><TrendCharts /></el-icon>
           <template #title>评估分析</template>

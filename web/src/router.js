@@ -27,6 +27,12 @@ const routes = [
     meta: { title: '数据采集' },
   },
   {
+    path: '/knowledge',
+    name: 'Knowledge',
+    component: () => import('./views/KnowledgeView.vue'),
+    meta: { title: '知识库' },
+  },
+  {
     path: '/analyze',
     name: 'Analyze',
     component: () => import('./views/AnalyzeView.vue'),

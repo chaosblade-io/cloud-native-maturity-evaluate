@@ -378,8 +378,6 @@
                   multiple
                   filterable
                   clearable
-                  collapse-tags
-                  collapse-tags-tooltip
                   placeholder="选择知识库文档"
                 >
                   <el-option
@@ -400,6 +398,9 @@
               </div>
               <div class="guidance-config-hint">
                 文档由服务端知识库统一维护，前端仅提交文档 ID。
+              </div>
+              <div class="guidance-config-hint">
+                已选择 {{ selectedKnowledgeDocIds.length }} / {{ knowledgeDocs.length }} 份文档。
               </div>
             </div>
 
@@ -883,10 +884,7 @@ const loadKnowledgeDocs = async () => {
   try {
     const result = await getKnowledgeDocs()
     if (result.success) {
-      knowledgeDocs.value = result.data?.docs || []
-      if (!selectedKnowledgeDocIds.value.length && knowledgeDocs.value.length) {
-        selectedKnowledgeDocIds.value = knowledgeDocs.value.map(doc => doc.id)
-      }
+      knowledgeDocs.value = result.docs || []
       return
     }
     ElMessage.error(result.message || '加载知识库文档失败')

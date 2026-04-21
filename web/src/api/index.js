@@ -119,7 +119,34 @@ export const getDataStatus = (keys = null) => {
 /**
  * 获取服务端维护的知识库文档列表
  */
-export const getKnowledgeDocs = () => api.get('/analyze/knowledge-docs')
+export const getKnowledgeDocs = () => api.get('/knowledge/docs')
+
+/**
+ * 上传知识库 Markdown 文档
+ */
+export const uploadKnowledgeDoc = (files = [], tags = []) => {
+  const formData = new FormData()
+  ;(files || []).forEach((file) => {
+    formData.append('files', file)
+  })
+  formData.append('tags', (tags || []).join(','))
+  return api.post('/knowledge/docs/upload', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  })
+}
+
+/**
+ * 更新知识库文档标签
+ */
+export const updateKnowledgeDocTags = (docId, tags = []) =>
+  api.put(`/knowledge/docs/${docId}/tags`, { tags })
+
+/**
+ * 删除知识库文档
+ */
+export const deleteKnowledgeDoc = (docId) => api.delete(`/knowledge/docs/${docId}`)
 
 /**
  * 执行评估分析

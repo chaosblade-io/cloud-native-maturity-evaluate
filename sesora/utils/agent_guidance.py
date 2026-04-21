@@ -16,10 +16,10 @@ from sesora.core.context import AssessmentContext
 from sesora.core.report import AssessmentReport
 from sesora.engine import AssessmentEngine
 from sesora.store.sqlite_store import SQLiteDataStore
+from sesora.utils.knowledge_base import get_knowledge_doc_paths
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-KNOWLEDGE_BASE_DIR = PROJECT_ROOT / "data" / "docs"
 load_dotenv(PROJECT_ROOT / ".env", override=True)
 
 
@@ -487,52 +487,6 @@ def build_selected_raw_data_snapshot(
     return snapshot
 
 
-def list_available_knowledge_docs() -> list[dict[str, str]]:
-    docs: list[dict[str, str]] = []
-    if not KNOWLEDGE_BASE_DIR.exists():
-        return docs
-
-    for path in sorted(KNOWLEDGE_BASE_DIR.glob("*.md")):
-        title = path.stem
-        try:
-            text = _safe_read_text(path)
-            for raw_line in text.splitlines():
-                line = raw_line.strip()
-                if line.startswith("#"):
-                    title = line.lstrip("#").strip() or title
-                    break
-        except Exception:
-            pass
-
-        docs.append(
-            {
-                "id": path.name,
-                "name": path.name,
-                "title": title,
-            }
-        )
-    return docs
-
-
-def resolve_knowledge_doc_paths(doc_ids: Optional[list[str]]) -> tuple[list[Path], list[str]]:
-    available = {item["id"]: KNOWLEDGE_BASE_DIR / item["id"] for item in list_available_knowledge_docs()}
-    warnings: list[str] = []
-    if not doc_ids:
-        return [], warnings
-
-    resolved: list[Path] = []
-    for doc_id in doc_ids:
-        normalized_id = str(doc_id).strip()
-        if not normalized_id:
-            continue
-        path = available.get(normalized_id)
-        if path is None:
-            warnings.append(f"知识库文档不存在: {normalized_id}")
-            continue
-        resolved.append(path)
-    return resolved, warnings
-
-
 def resolve_external_md_paths(
     raw_paths: Optional[list[str]],
     raw_globs: Optional[list[str]],
@@ -828,7 +782,7 @@ def create_guidance_session(
     )
     metadata = get_analyzer_metadata()
     if knowledge_doc_ids is not None:
-        external_md_files, external_md_warnings = resolve_knowledge_doc_paths(knowledge_doc_ids)
+        external_md_files, external_md_warnings = get_knowledge_doc_paths(knowledge_doc_ids)
     else:
         external_md_files, external_md_warnings = resolve_external_md_paths(
             raw_paths=external_md_paths,
@@ -1026,7 +980,7 @@ def refine_guidance_session(
     )
 
     if knowledge_doc_ids is not None or external_knowledge_config.get("knowledge_doc_ids") is not None:
-        external_md_files, external_md_warnings = resolve_knowledge_doc_paths(resolved_knowledge_doc_ids)
+        external_md_files, external_md_warnings = get_knowledge_doc_paths(resolved_knowledge_doc_ids)
     else:
         external_md_files, external_md_warnings = resolve_external_md_paths(
             raw_paths=external_md_paths,

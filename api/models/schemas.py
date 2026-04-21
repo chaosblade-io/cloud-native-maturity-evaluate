@@ -22,6 +22,32 @@ class DataResponse(BaseResponse):
     data: Any = None
 
 
+class KnowledgeDoc(BaseModel):
+    """知识库文档"""
+    id: str
+    name: str
+    title: str
+    tags: list[str] = []
+    size: int = 0
+    created_at: str = ""
+    updated_at: str = ""
+
+
+class KnowledgeDocTagsRequest(BaseModel):
+    """知识库文档标签更新请求"""
+    tags: list[str] = Field(default=[], description="文档标签列表")
+
+
+class KnowledgeDocsResponse(BaseResponse):
+    """知识库文档列表响应"""
+    docs: list[KnowledgeDoc] = []
+
+
+class KnowledgeDocResponse(BaseResponse):
+    """单个知识库文档响应"""
+    doc: Optional[KnowledgeDoc] = None
+
+
 # ============================================
 # 配置相关模型
 # ============================================
@@ -287,6 +313,10 @@ class DataStatusResponse(BaseResponse):
 __all__ = [
     "BaseResponse",
     "DataResponse",
+    "KnowledgeDoc",
+    "KnowledgeDocTagsRequest",
+    "KnowledgeDocsResponse",
+    "KnowledgeDocResponse",
     "ConfigItem",
     "ConfigGroup",
     "ConfigData",

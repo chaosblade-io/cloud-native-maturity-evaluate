@@ -14,9 +14,9 @@ from sesora.store.sqlite_store import SQLiteDataStore
 from sesora.utils.agent_guidance import (
     create_guidance_session,
     current_guidance_turn,
-    list_available_knowledge_docs,
     refine_guidance_session,
 )
+from sesora.utils.knowledge_base import list_knowledge_docs
 
 
 class GuidanceService:
@@ -27,7 +27,7 @@ class GuidanceService:
 
     @classmethod
     def list_knowledge_docs(cls) -> list[dict]:
-        return list_available_knowledge_docs()
+        return list_knowledge_docs()
 
     @classmethod
     def generate_guidance(
