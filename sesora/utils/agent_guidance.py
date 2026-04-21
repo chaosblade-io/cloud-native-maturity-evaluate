@@ -19,6 +19,7 @@ from sesora.store.sqlite_store import SQLiteDataStore
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+KNOWLEDGE_BASE_DIR = PROJECT_ROOT / "data" / "docs"
 load_dotenv(PROJECT_ROOT / ".env", override=True)
 
 
@@ -486,6 +487,52 @@ def build_selected_raw_data_snapshot(
     return snapshot
 
 
+def list_available_knowledge_docs() -> list[dict[str, str]]:
+    docs: list[dict[str, str]] = []
+    if not KNOWLEDGE_BASE_DIR.exists():
+        return docs
+
+    for path in sorted(KNOWLEDGE_BASE_DIR.glob("*.md")):
+        title = path.stem
+        try:
+            text = _safe_read_text(path)
+            for raw_line in text.splitlines():
+                line = raw_line.strip()
+                if line.startswith("#"):
+                    title = line.lstrip("#").strip() or title
+                    break
+        except Exception:
+            pass
+
+        docs.append(
+            {
+                "id": path.name,
+                "name": path.name,
+                "title": title,
+            }
+        )
+    return docs
+
+
+def resolve_knowledge_doc_paths(doc_ids: Optional[list[str]]) -> tuple[list[Path], list[str]]:
+    available = {item["id"]: KNOWLEDGE_BASE_DIR / item["id"] for item in list_available_knowledge_docs()}
+    warnings: list[str] = []
+    if not doc_ids:
+        return [], warnings
+
+    resolved: list[Path] = []
+    for doc_id in doc_ids:
+        normalized_id = str(doc_id).strip()
+        if not normalized_id:
+            continue
+        path = available.get(normalized_id)
+        if path is None:
+            warnings.append(f"知识库文档不存在: {normalized_id}")
+            continue
+        resolved.append(path)
+    return resolved, warnings
+
+
 def resolve_external_md_paths(
     raw_paths: Optional[list[str]],
     raw_globs: Optional[list[str]],
@@ -772,6 +819,7 @@ def create_guidance_session(
     external_knowledge_max_chars: int = 12000,
     external_knowledge_max_chunks: int = 12,
     external_knowledge_chunk_chars: int = 800,
+    knowledge_doc_ids: Optional[list[str]] = None,
 ) -> dict[str, Any]:
     resolved_api_key, resolved_base_url, resolved_model_name = resolve_llm_config(
         api_key=api_key,
@@ -779,10 +827,13 @@ def create_guidance_session(
         model_name=model_name,
     )
     metadata = get_analyzer_metadata()
-    external_md_files, external_md_warnings = resolve_external_md_paths(
-        raw_paths=external_md_paths,
-        raw_globs=external_md_globs,
-    )
+    if knowledge_doc_ids is not None:
+        external_md_files, external_md_warnings = resolve_knowledge_doc_paths(knowledge_doc_ids)
+    else:
+        external_md_files, external_md_warnings = resolve_external_md_paths(
+            raw_paths=external_md_paths,
+            raw_globs=external_md_globs,
+        )
     external_knowledge_chunks, external_knowledge_warnings = load_external_knowledge(
         external_md_files,
         max_chunk_chars=max(200, int(external_knowledge_chunk_chars)),
@@ -890,8 +941,7 @@ def create_guidance_session(
         "max_records": max_records,
         "temperature": temperature,
         "external_knowledge": {
-            "files": [str(path) for path in external_md_files],
-            "globs": external_md_globs or [],
+            "knowledge_doc_ids": knowledge_doc_ids or [],
             "max_chars": int(external_knowledge_max_chars),
             "max_chunks": int(external_knowledge_max_chunks),
             "chunk_chars": int(external_knowledge_chunk_chars),
@@ -932,6 +982,7 @@ def refine_guidance_session(
     external_knowledge_max_chars: Optional[int] = None,
     external_knowledge_max_chunks: Optional[int] = None,
     external_knowledge_chunk_chars: Optional[int] = None,
+    knowledge_doc_ids: Optional[list[str]] = None,
 ) -> dict[str, Any]:
     if not feedback or not feedback.strip():
         raise ValueError("反馈内容不能为空")
@@ -955,8 +1006,9 @@ def refine_guidance_session(
     resolved_temperature = temperature if temperature is not None else float(session.get("temperature", 0.1))
 
     external_knowledge_config = session.get("external_knowledge") or {}
-    resolved_external_md_paths = external_md_paths if external_md_paths is not None else external_knowledge_config.get("files", [])
-    resolved_external_md_globs = external_md_globs if external_md_globs is not None else external_knowledge_config.get("globs", [])
+    resolved_knowledge_doc_ids = (
+        knowledge_doc_ids if knowledge_doc_ids is not None else external_knowledge_config.get("knowledge_doc_ids", [])
+    )
     resolved_external_max_chars = (
         int(external_knowledge_max_chars)
         if external_knowledge_max_chars is not None
@@ -973,10 +1025,13 @@ def refine_guidance_session(
         else int(external_knowledge_config.get("chunk_chars", 800))
     )
 
-    external_md_files, external_md_warnings = resolve_external_md_paths(
-        raw_paths=resolved_external_md_paths,
-        raw_globs=resolved_external_md_globs,
-    )
+    if knowledge_doc_ids is not None or external_knowledge_config.get("knowledge_doc_ids") is not None:
+        external_md_files, external_md_warnings = resolve_knowledge_doc_paths(resolved_knowledge_doc_ids)
+    else:
+        external_md_files, external_md_warnings = resolve_external_md_paths(
+            raw_paths=external_md_paths,
+            raw_globs=external_md_globs,
+        )
     external_knowledge_chunks, external_knowledge_warnings = load_external_knowledge(
         external_md_files,
         max_chunk_chars=max(200, resolved_external_chunk_chars),
@@ -1069,8 +1124,7 @@ def refine_guidance_session(
     session["updated_at"] = datetime.now().isoformat()
     session["model"] = resolved_model_name
     session["external_knowledge"] = {
-        "files": [str(path) for path in external_md_files],
-        "globs": resolved_external_md_globs,
+        "knowledge_doc_ids": resolved_knowledge_doc_ids,
         "max_chars": resolved_external_max_chars,
         "max_chunks": resolved_external_max_chunks,
         "chunk_chars": resolved_external_chunk_chars,

@@ -82,6 +82,24 @@ async def get_data_status(keys: str = None):
         )
 
 
+@router.get("/knowledge-docs", response_model=DataResponse)
+async def get_knowledge_docs():
+    """获取服务端维护的知识库文档列表"""
+    try:
+        docs = GuidanceService.list_knowledge_docs()
+        return DataResponse(
+            success=True,
+            message=f"共 {len(docs)} 份知识库文档",
+            data={"docs": docs},
+        )
+    except Exception as e:
+        return DataResponse(
+            success=False,
+            message=f"获取知识库文档失败: {str(e)}",
+            data={"docs": []},
+        )
+
+
 @router.post("", response_model=AnalyzeResponse)
 async def run_analysis(request: AnalyzeRequest):
     """
@@ -153,11 +171,10 @@ async def generate_guidance(request: GuidanceRequest):
             agent_assist=request.agent_assist,
             agent_assist_keys=request.agent_assist_keys if request.agent_assist_keys else None,
             agent_assist_temperature=request.agent_assist_temperature,
-            external_md_paths=request.external_md_paths if request.external_md_paths else None,
-            external_md_globs=request.external_md_globs if request.external_md_globs else None,
             external_knowledge_max_chars=request.external_knowledge_max_chars,
             external_knowledge_max_chunks=request.external_knowledge_max_chunks,
             external_knowledge_chunk_chars=request.external_knowledge_chunk_chars,
+            knowledge_doc_ids=request.knowledge_doc_ids if request.knowledge_doc_ids else None,
         )
 
         return GuidanceResponse(
@@ -194,11 +211,10 @@ async def refine_guidance(request: GuidanceRefineRequest):
             api_key=request.api_key,
             base_url=request.base_url,
             model_name=request.model_name,
-            external_md_paths=request.external_md_paths,
-            external_md_globs=request.external_md_globs,
             external_knowledge_max_chars=request.external_knowledge_max_chars,
             external_knowledge_max_chunks=request.external_knowledge_max_chunks,
             external_knowledge_chunk_chars=request.external_knowledge_chunk_chars,
+            knowledge_doc_ids=request.knowledge_doc_ids,
         )
 
         return GuidanceResponse(

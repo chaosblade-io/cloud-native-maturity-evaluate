@@ -14,6 +14,7 @@ from sesora.store.sqlite_store import SQLiteDataStore
 from sesora.utils.agent_guidance import (
     create_guidance_session,
     current_guidance_turn,
+    list_available_knowledge_docs,
     refine_guidance_session,
 )
 
@@ -23,6 +24,10 @@ class GuidanceService:
 
     DB_DIR = PROJECT_ROOT / "data"
     DEFAULT_DB = DB_DIR / "sesora.db"
+
+    @classmethod
+    def list_knowledge_docs(cls) -> list[dict]:
+        return list_available_knowledge_docs()
 
     @classmethod
     def generate_guidance(
@@ -40,11 +45,10 @@ class GuidanceService:
         agent_assist: bool = False,
         agent_assist_keys: Optional[list[str]] = None,
         agent_assist_temperature: Optional[float] = None,
-        external_md_paths: Optional[list[str]] = None,
-        external_md_globs: Optional[list[str]] = None,
         external_knowledge_max_chars: int = 12000,
         external_knowledge_max_chunks: int = 12,
         external_knowledge_chunk_chars: int = 800,
+        knowledge_doc_ids: Optional[list[str]] = None,
     ) -> tuple[dict, dict]:
         db_path = cls.DB_DIR / db_name
         if not db_path.exists():
@@ -65,11 +69,10 @@ class GuidanceService:
                 agent_assist=agent_assist,
                 agent_assist_keys=agent_assist_keys,
                 agent_assist_temperature=agent_assist_temperature,
-                external_md_paths=external_md_paths,
-                external_md_globs=external_md_globs,
                 external_knowledge_max_chars=external_knowledge_max_chars,
                 external_knowledge_max_chunks=external_knowledge_max_chunks,
                 external_knowledge_chunk_chars=external_knowledge_chunk_chars,
+                knowledge_doc_ids=knowledge_doc_ids,
             )
         session["db_name"] = db_name
         return session, current_guidance_turn(session)
@@ -87,11 +90,10 @@ class GuidanceService:
         api_key: Optional[str] = None,
         base_url: Optional[str] = None,
         model_name: Optional[str] = None,
-        external_md_paths: Optional[list[str]] = None,
-        external_md_globs: Optional[list[str]] = None,
         external_knowledge_max_chars: Optional[int] = None,
         external_knowledge_max_chunks: Optional[int] = None,
         external_knowledge_chunk_chars: Optional[int] = None,
+        knowledge_doc_ids: Optional[list[str]] = None,
     ) -> tuple[dict, dict]:
         target_db_name = db_name or session.get("db_name") or "sesora.db"
         db_path = cls.DB_DIR / target_db_name
@@ -110,11 +112,10 @@ class GuidanceService:
                 api_key=api_key,
                 base_url=base_url,
                 model_name=model_name,
-                external_md_paths=external_md_paths,
-                external_md_globs=external_md_globs,
                 external_knowledge_max_chars=external_knowledge_max_chars,
                 external_knowledge_max_chunks=external_knowledge_max_chunks,
                 external_knowledge_chunk_chars=external_knowledge_chunk_chars,
+                knowledge_doc_ids=knowledge_doc_ids,
             )
         updated_session["db_name"] = target_db_name
         return updated_session, current_guidance_turn(updated_session)

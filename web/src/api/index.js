@@ -117,6 +117,11 @@ export const getDataStatus = (keys = null) => {
 }
 
 /**
+ * 获取服务端维护的知识库文档列表
+ */
+export const getKnowledgeDocs = () => api.get('/analyze/knowledge-docs')
+
+/**
  * 执行评估分析
  * @param {string[]} keys - 分析器 key 列表，空数组表示全部
  * @param {Object} options - Agent 辅助选项

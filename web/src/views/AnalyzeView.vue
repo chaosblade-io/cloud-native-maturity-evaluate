@@ -373,22 +373,33 @@
             <div v-if="lastAnalysisRequest.keys.length" class="guidance-block guidance-config">
               <div class="guidance-title">外部知识文档（可选）</div>
               <div class="guidance-config-grid">
-                <el-input
-                  v-model="guidanceExternalMdGlobs"
-                  placeholder="通配路径，多个用英文逗号分隔。例如: data/docs/*.md"
+                <el-select
+                  v-model="selectedKnowledgeDocIds"
+                  multiple
+                  filterable
                   clearable
-                />
-                <el-input
-                  v-model="guidanceExternalMdPaths"
-                  placeholder="文件路径，多个用英文逗号分隔"
-                  clearable
-                />
+                  collapse-tags
+                  collapse-tags-tooltip
+                  placeholder="选择知识库文档"
+                >
+                  <el-option
+                    v-for="doc in knowledgeDocs"
+                    :key="doc.id"
+                    :label="doc.title || doc.name || doc.id"
+                    :value="doc.id"
+                  >
+                    <div class="knowledge-option">
+                      <span>{{ doc.title || doc.name || doc.id }}</span>
+                      <span class="knowledge-option-id">{{ doc.id }}</span>
+                    </div>
+                  </el-option>
+                </el-select>
                 <el-input-number v-model="guidanceExternalMaxChars" :min="1000" :max="120000" :step="1000" />
                 <el-input-number v-model="guidanceExternalMaxChunks" :min="1" :max="100" />
                 <el-input-number v-model="guidanceExternalChunkChars" :min="200" :max="5000" :step="100" />
               </div>
               <div class="guidance-config-hint">
-                优先使用通配路径；建议先填写 data/docs/*.md 进行验证。
+                文档由服务端知识库统一维护，前端仅提交文档 ID。
               </div>
             </div>
 
@@ -589,7 +600,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { getAnalyzers, getDataStatus, runAnalysis, generateGuidance, refineGuidance } from '../api'
+import { getAnalyzers, getDataStatus, getKnowledgeDocs, runAnalysis, generateGuidance, refineGuidance } from '../api'
 
 // 状态
 const loadingAnalyzers = ref(false)
@@ -665,8 +676,8 @@ const analyzeResult = ref(null)
 const searchKey = ref('')
 const guidanceSession = ref(null)
 const guidanceFeedback = ref('')
-const guidanceExternalMdGlobs = ref('data/docs/*.md')
-const guidanceExternalMdPaths = ref('')
+const knowledgeDocs = ref([])
+const selectedKnowledgeDocIds = ref([])
 const guidanceExternalMaxChars = ref(12000)
 const guidanceExternalMaxChunks = ref(12)
 const guidanceExternalChunkChars = ref(800)
@@ -861,21 +872,28 @@ const clearGuidanceSession = () => {
   guidanceFeedback.value = ''
 }
 
-const splitCsvInput = (value) => {
-  if (!value) return []
-  return value
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean)
-}
-
 const buildExternalKnowledgePayload = () => ({
-  external_md_globs: splitCsvInput(guidanceExternalMdGlobs.value),
-  external_md_paths: splitCsvInput(guidanceExternalMdPaths.value),
+  knowledge_doc_ids: [...selectedKnowledgeDocIds.value],
   external_knowledge_max_chars: Number(guidanceExternalMaxChars.value || 12000),
   external_knowledge_max_chunks: Number(guidanceExternalMaxChunks.value || 12),
   external_knowledge_chunk_chars: Number(guidanceExternalChunkChars.value || 800),
 })
+
+const loadKnowledgeDocs = async () => {
+  try {
+    const result = await getKnowledgeDocs()
+    if (result.success) {
+      knowledgeDocs.value = result.data?.docs || []
+      if (!selectedKnowledgeDocIds.value.length && knowledgeDocs.value.length) {
+        selectedKnowledgeDocIds.value = knowledgeDocs.value.map(doc => doc.id)
+      }
+      return
+    }
+    ElMessage.error(result.message || '加载知识库文档失败')
+  } catch (error) {
+    ElMessage.error('加载知识库文档失败: ' + error.message)
+  }
+}
 
 // 加载分析器列表
 const loadAnalyzers = async () => {
@@ -1036,6 +1054,7 @@ const exportReport = () => {
 
 onMounted(() => {
   loadAnalyzers()
+  loadKnowledgeDocs()
 })
 </script>
 
@@ -1320,6 +1339,17 @@ onMounted(() => {
   margin-top: 8px;
   font-size: 12px;
   color: #64748b;
+}
+
+.knowledge-option {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.knowledge-option-id {
+  color: #94a3b8;
+  font-size: 12px;
 }
 
 .history-list {
