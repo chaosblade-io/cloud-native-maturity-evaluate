@@ -368,6 +368,7 @@ def build_prompt(
     hierarchy_context: dict[str, Any],
     focus_keys: list[str],
     raw_snapshot: dict[str, Any],
+    external_knowledge: Optional[dict[str, Any]] = None,
     previous_guidance: Optional[dict[str, Any]] = None,
     feedback: str = "",
 ) -> str:
@@ -382,6 +383,9 @@ def build_prompt(
         "hierarchy_context": hierarchy_context,
         "raw_data_snapshot": raw_snapshot,
     }
+
+    if external_knowledge:
+        prompt_payload["external_knowledge"] = external_knowledge
 
     if previous_guidance is not None:
         prompt_payload["previous_guidance"] = previous_guidance
@@ -480,6 +484,156 @@ def build_selected_raw_data_snapshot(
             "sample_records": [serialize_value(record) for record in records[:max_records]],
         }
     return snapshot
+
+
+def resolve_external_md_paths(
+    raw_paths: Optional[list[str]],
+    raw_globs: Optional[list[str]],
+) -> tuple[list[Path], list[str]]:
+    selected: dict[str, Path] = {}
+    warnings: list[str] = []
+
+    for raw in raw_paths or []:
+        candidate = Path(raw)
+        if not candidate.is_absolute():
+            candidate = PROJECT_ROOT / candidate
+        if not candidate.exists():
+            warnings.append(f"外部知识文件不存在: {candidate}")
+            continue
+        if candidate.suffix.lower() != ".md":
+            warnings.append(f"已跳过非 Markdown 文件: {candidate}")
+            continue
+        if not candidate.is_file():
+            warnings.append(f"已跳过非文件路径: {candidate}")
+            continue
+        selected[str(candidate.resolve())] = candidate.resolve()
+
+    for pattern in raw_globs or []:
+        for matched in PROJECT_ROOT.glob(pattern):
+            if not matched.is_file() or matched.suffix.lower() != ".md":
+                continue
+            selected[str(matched.resolve())] = matched.resolve()
+
+    return sorted(selected.values()), warnings
+
+
+def _safe_read_text(path: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        return path.read_text(encoding="utf-8", errors="ignore")
+
+
+def _split_markdown_chunks(path: Path, content: str, max_chunk_chars: int) -> list[dict[str, str]]:
+    chunks: list[dict[str, str]] = []
+    heading = ""
+    buffer: list[str] = []
+
+    def flush_buffer() -> None:
+        if not buffer:
+            return
+        paragraph = "\n".join(buffer).strip()
+        buffer.clear()
+        if not paragraph:
+            return
+        chunks.append(
+            {
+                "source": str(path),
+                "heading": heading,
+                "content": paragraph[:max_chunk_chars],
+            }
+        )
+
+    for raw_line in content.splitlines():
+        line = raw_line.strip()
+        if line.startswith("#"):
+            flush_buffer()
+            heading = line.lstrip("#").strip()
+            continue
+        if not line:
+            flush_buffer()
+            continue
+        buffer.append(raw_line)
+
+    flush_buffer()
+    return chunks
+
+
+def load_external_knowledge(md_paths: list[Path], max_chunk_chars: int) -> tuple[list[dict[str, str]], list[str]]:
+    chunks: list[dict[str, str]] = []
+    warnings: list[str] = []
+    for path in md_paths:
+        try:
+            text = _safe_read_text(path)
+        except Exception as exc:
+            warnings.append(f"读取外部知识失败: {path} ({exc})")
+            continue
+        if not text.strip():
+            warnings.append(f"外部知识文件为空: {path}")
+            continue
+        chunks.extend(_split_markdown_chunks(path, text, max_chunk_chars=max_chunk_chars))
+    return chunks, warnings
+
+
+def _tokenize(text: str) -> list[str]:
+    if not text:
+        return []
+    return [token for token in re.split(r"[^a-zA-Z0-9_\-\u4e00-\u9fff]+", text.lower()) if len(token) >= 2]
+
+
+def select_external_knowledge_chunks(
+    knowledge_chunks: list[dict[str, str]],
+    flat_items: list[dict[str, Any]],
+    focus_keys: list[str],
+    feedback: str,
+    max_chars: int,
+    max_chunks: int,
+) -> list[dict[str, str]]:
+    if not knowledge_chunks:
+        return []
+
+    item_lookup = {item["key"]: item for item in flat_items}
+    query_tokens: list[str] = []
+    for key in focus_keys:
+        query_tokens.extend(_tokenize(key))
+        item = item_lookup.get(key)
+        if item:
+            query_tokens.extend(_tokenize(str(item.get("dimension", ""))))
+            query_tokens.extend(_tokenize(str(item.get("category", ""))))
+            query_tokens.extend(_tokenize(str(item.get("reason", ""))))
+    query_tokens.extend(_tokenize(feedback))
+    dedup_tokens = list(dict.fromkeys(query_tokens))
+
+    scored: list[tuple[int, dict[str, str]]] = []
+    for chunk in knowledge_chunks:
+        text = f"{chunk.get('heading', '')}\n{chunk.get('content', '')}".lower()
+        score = 0
+        for token in dedup_tokens:
+            if token in text:
+                score += 1
+        if score <= 0 and dedup_tokens:
+            continue
+        scored.append((score, chunk))
+
+    if not dedup_tokens:
+        scored = [(0, chunk) for chunk in knowledge_chunks]
+
+    scored.sort(key=lambda item: item[0], reverse=True)
+
+    selected: list[dict[str, str]] = []
+    total_chars = 0
+    for _, chunk in scored:
+        content = chunk.get("content", "")
+        if not content:
+            continue
+        if len(selected) >= max_chunks:
+            break
+        if total_chars + len(content) > max_chars:
+            continue
+        selected.append(chunk)
+        total_chars += len(content)
+
+    return selected
 
 
 def resolve_llm_config(
@@ -613,6 +767,11 @@ def create_guidance_session(
     agent_assist: bool = False,
     agent_assist_keys: Optional[list[str]] = None,
     agent_assist_temperature: Optional[float] = None,
+    external_md_paths: Optional[list[str]] = None,
+    external_md_globs: Optional[list[str]] = None,
+    external_knowledge_max_chars: int = 12000,
+    external_knowledge_max_chunks: int = 12,
+    external_knowledge_chunk_chars: int = 800,
 ) -> dict[str, Any]:
     resolved_api_key, resolved_base_url, resolved_model_name = resolve_llm_config(
         api_key=api_key,
@@ -620,6 +779,14 @@ def create_guidance_session(
         model_name=model_name,
     )
     metadata = get_analyzer_metadata()
+    external_md_files, external_md_warnings = resolve_external_md_paths(
+        raw_paths=external_md_paths,
+        raw_globs=external_md_globs,
+    )
+    external_knowledge_chunks, external_knowledge_warnings = load_external_knowledge(
+        external_md_files,
+        max_chunk_chars=max(200, int(external_knowledge_chunk_chars)),
+    )
     analysis_keys, report = _run_report(
         store,
         keys=keys,
@@ -677,6 +844,15 @@ def create_guidance_session(
         max_records=max_records,
     )
 
+    selected_external_chunks = select_external_knowledge_chunks(
+        knowledge_chunks=external_knowledge_chunks,
+        flat_items=flat_items,
+        focus_keys=selected_focus_keys,
+        feedback="",
+        max_chars=max(1000, int(external_knowledge_max_chars)),
+        max_chunks=max(1, int(external_knowledge_max_chunks)),
+    )
+
     prompt = build_prompt(
         stage="Initial Diagnosis",
         hierarchy_context=hierarchy_context,
@@ -685,6 +861,12 @@ def create_guidance_session(
             "selected_metric_details": detail_metrics,
             "selected_raw_data": raw_snapshot,
         },
+        external_knowledge={
+            "selection_policy": "token_overlap_with_focus_and_feedback",
+            "selected_chunks": selected_external_chunks,
+        }
+        if selected_external_chunks
+        else None,
     )
     guidance, raw_response = call_llm(
         api_key=resolved_api_key,
@@ -707,6 +889,14 @@ def create_guidance_session(
         "max_dataitems": max_dataitems,
         "max_records": max_records,
         "temperature": temperature,
+        "external_knowledge": {
+            "files": [str(path) for path in external_md_files],
+            "globs": external_md_globs or [],
+            "max_chars": int(external_knowledge_max_chars),
+            "max_chunks": int(external_knowledge_max_chunks),
+            "chunk_chars": int(external_knowledge_chunk_chars),
+            "warnings": external_md_warnings + external_knowledge_warnings,
+        },
         "summary": hierarchy_context["summary"],
         "hierarchy_context": hierarchy_context,
         "flat_items": flat_items,
@@ -718,6 +908,7 @@ def create_guidance_session(
                 "requested_metric_keys": requested_metric_keys,
                 "planner": planner_result,
                 "planner_raw_response": planner_raw_response,
+                "external_knowledge_selected": selected_external_chunks,
                 "guidance": guidance,
                 "raw_response": raw_response,
             }
@@ -736,6 +927,11 @@ def refine_guidance_session(
     api_key: Optional[str] = None,
     base_url: Optional[str] = None,
     model_name: Optional[str] = None,
+    external_md_paths: Optional[list[str]] = None,
+    external_md_globs: Optional[list[str]] = None,
+    external_knowledge_max_chars: Optional[int] = None,
+    external_knowledge_max_chunks: Optional[int] = None,
+    external_knowledge_chunk_chars: Optional[int] = None,
 ) -> dict[str, Any]:
     if not feedback or not feedback.strip():
         raise ValueError("反馈内容不能为空")
@@ -757,6 +953,34 @@ def refine_guidance_session(
     resolved_max_dataitems = max_dataitems if max_dataitems is not None else int(session.get("max_dataitems", 12))
     resolved_max_records = max_records if max_records is not None else int(session.get("max_records", 3))
     resolved_temperature = temperature if temperature is not None else float(session.get("temperature", 0.1))
+
+    external_knowledge_config = session.get("external_knowledge") or {}
+    resolved_external_md_paths = external_md_paths if external_md_paths is not None else external_knowledge_config.get("files", [])
+    resolved_external_md_globs = external_md_globs if external_md_globs is not None else external_knowledge_config.get("globs", [])
+    resolved_external_max_chars = (
+        int(external_knowledge_max_chars)
+        if external_knowledge_max_chars is not None
+        else int(external_knowledge_config.get("max_chars", 12000))
+    )
+    resolved_external_max_chunks = (
+        int(external_knowledge_max_chunks)
+        if external_knowledge_max_chunks is not None
+        else int(external_knowledge_config.get("max_chunks", 12))
+    )
+    resolved_external_chunk_chars = (
+        int(external_knowledge_chunk_chars)
+        if external_knowledge_chunk_chars is not None
+        else int(external_knowledge_config.get("chunk_chars", 800))
+    )
+
+    external_md_files, external_md_warnings = resolve_external_md_paths(
+        raw_paths=resolved_external_md_paths,
+        raw_globs=resolved_external_md_globs,
+    )
+    external_knowledge_chunks, external_knowledge_warnings = load_external_knowledge(
+        external_md_files,
+        max_chunk_chars=max(200, resolved_external_chunk_chars),
+    )
 
     refinement_focus = rank_focus_items(flat_items, None, feedback, resolved_max_focus)
     previous_guidance = turns[-1].get("guidance")
@@ -808,6 +1032,15 @@ def refine_guidance_session(
         max_records=resolved_max_records,
     )
 
+    selected_external_chunks = select_external_knowledge_chunks(
+        knowledge_chunks=external_knowledge_chunks,
+        flat_items=flat_items,
+        focus_keys=selected_focus_keys,
+        feedback=feedback,
+        max_chars=max(1000, resolved_external_max_chars),
+        max_chunks=max(1, resolved_external_max_chunks),
+    )
+
     prompt = build_prompt(
         stage="Iterative Refinement",
         hierarchy_context=hierarchy_context,
@@ -816,6 +1049,12 @@ def refine_guidance_session(
             "selected_metric_details": detail_metrics,
             "selected_raw_data": refinement_snapshot,
         },
+        external_knowledge={
+            "selection_policy": "token_overlap_with_focus_and_feedback",
+            "selected_chunks": selected_external_chunks,
+        }
+        if selected_external_chunks
+        else None,
         previous_guidance=previous_guidance,
         feedback=feedback,
     )
@@ -829,6 +1068,14 @@ def refine_guidance_session(
 
     session["updated_at"] = datetime.now().isoformat()
     session["model"] = resolved_model_name
+    session["external_knowledge"] = {
+        "files": [str(path) for path in external_md_files],
+        "globs": resolved_external_md_globs,
+        "max_chars": resolved_external_max_chars,
+        "max_chunks": resolved_external_max_chunks,
+        "chunk_chars": resolved_external_chunk_chars,
+        "warnings": external_md_warnings + external_knowledge_warnings,
+    }
     session["turns"].append(
         {
             "stage": "iterative_refinement",
@@ -838,6 +1085,7 @@ def refine_guidance_session(
             "requested_metric_keys": requested_metric_keys,
             "planner": planner_result,
             "planner_raw_response": planner_raw_response,
+            "external_knowledge_selected": selected_external_chunks,
             "guidance": guidance,
             "raw_response": raw_response,
         }

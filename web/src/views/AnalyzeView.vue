@@ -370,7 +370,29 @@
               </el-empty>
             </div>
 
-            <div v-else-if="currentGuidanceTurn" class="guidance-content">
+            <div v-if="lastAnalysisRequest.keys.length" class="guidance-block guidance-config">
+              <div class="guidance-title">外部知识文档（可选）</div>
+              <div class="guidance-config-grid">
+                <el-input
+                  v-model="guidanceExternalMdGlobs"
+                  placeholder="通配路径，多个用英文逗号分隔。例如: data/docs/*.md"
+                  clearable
+                />
+                <el-input
+                  v-model="guidanceExternalMdPaths"
+                  placeholder="文件路径，多个用英文逗号分隔"
+                  clearable
+                />
+                <el-input-number v-model="guidanceExternalMaxChars" :min="1000" :max="120000" :step="1000" />
+                <el-input-number v-model="guidanceExternalMaxChunks" :min="1" :max="100" />
+                <el-input-number v-model="guidanceExternalChunkChars" :min="200" :max="5000" :step="100" />
+              </div>
+              <div class="guidance-config-hint">
+                优先使用通配路径；建议先填写 data/docs/*.md 进行验证。
+              </div>
+            </div>
+
+            <div v-if="currentGuidanceTurn" class="guidance-content">
               <div class="guidance-meta">
                 <el-tag type="primary" effect="plain">
                   {{ currentGuidanceTurn.stage === 'initial_diagnosis' ? 'Initial Diagnosis' : 'Iterative Refinement' }}
@@ -643,6 +665,11 @@ const analyzeResult = ref(null)
 const searchKey = ref('')
 const guidanceSession = ref(null)
 const guidanceFeedback = ref('')
+const guidanceExternalMdGlobs = ref('data/docs/*.md')
+const guidanceExternalMdPaths = ref('')
+const guidanceExternalMaxChars = ref(12000)
+const guidanceExternalMaxChunks = ref(12)
+const guidanceExternalChunkChars = ref(800)
 const lastAnalysisRequest = ref({
   keys: [],
   agentAssist: false,
@@ -834,6 +861,22 @@ const clearGuidanceSession = () => {
   guidanceFeedback.value = ''
 }
 
+const splitCsvInput = (value) => {
+  if (!value) return []
+  return value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
+}
+
+const buildExternalKnowledgePayload = () => ({
+  external_md_globs: splitCsvInput(guidanceExternalMdGlobs.value),
+  external_md_paths: splitCsvInput(guidanceExternalMdPaths.value),
+  external_knowledge_max_chars: Number(guidanceExternalMaxChars.value || 12000),
+  external_knowledge_max_chunks: Number(guidanceExternalMaxChunks.value || 12),
+  external_knowledge_chunk_chars: Number(guidanceExternalChunkChars.value || 800),
+})
+
 // 加载分析器列表
 const loadAnalyzers = async () => {
   loadingAnalyzers.value = true
@@ -924,6 +967,7 @@ const handleGenerateGuidance = async () => {
       keys: lastAnalysisRequest.value.keys,
       agent_assist: lastAnalysisRequest.value.agentAssist,
       agent_assist_keys: lastAnalysisRequest.value.agentAssistKeys,
+      ...buildExternalKnowledgePayload(),
     })
 
     if (result.success) {
@@ -955,6 +999,7 @@ const handleRefineGuidance = async () => {
     const result = await refineGuidance({
       session: guidanceSession.value,
       feedback: guidanceFeedback.value.trim(),
+      ...buildExternalKnowledgePayload(),
     })
 
     if (result.success) {
@@ -1264,6 +1309,17 @@ onMounted(() => {
   margin-top: 12px;
   display: flex;
   justify-content: flex-end;
+}
+
+.guidance-config-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.guidance-config-hint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #64748b;
 }
 
 .history-list {

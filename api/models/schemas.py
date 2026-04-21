@@ -240,6 +240,11 @@ class GuidanceRequest(BaseModel):
     agent_assist: bool = Field(default=False, description="是否启用 Agent 辅助评估")
     agent_assist_keys: list[str] = Field(default=[], description="启用 Agent 辅助的 key 列表")
     agent_assist_temperature: Optional[float] = Field(default=None, description="Agent 辅助评估温度参数")
+    external_md_paths: list[str] = Field(default=[], description="外部知识 Markdown 文件路径列表")
+    external_md_globs: list[str] = Field(default=[], description="外部知识 Markdown 通配路径列表")
+    external_knowledge_max_chars: int = Field(default=12000, description="每轮外部知识总字符上限")
+    external_knowledge_max_chunks: int = Field(default=12, description="每轮外部知识最大片段数")
+    external_knowledge_chunk_chars: int = Field(default=800, description="单个外部知识片段字符上限")
 
 
 class GuidanceRefineRequest(BaseModel):
@@ -254,6 +259,11 @@ class GuidanceRefineRequest(BaseModel):
     api_key: Optional[str] = Field(default=None, description="覆盖环境变量 API_KEY")
     base_url: Optional[str] = Field(default=None, description="覆盖环境变量 BASE_URL")
     model_name: Optional[str] = Field(default=None, description="覆盖环境变量 MODEL_NAME")
+    external_md_paths: Optional[list[str]] = Field(default=None, description="覆盖 session 的外部知识 Markdown 文件路径列表")
+    external_md_globs: Optional[list[str]] = Field(default=None, description="覆盖 session 的外部知识 Markdown 通配路径列表")
+    external_knowledge_max_chars: Optional[int] = Field(default=None, description="覆盖 session 的外部知识总字符上限")
+    external_knowledge_max_chunks: Optional[int] = Field(default=None, description="覆盖 session 的外部知识最大片段数")
+    external_knowledge_chunk_chars: Optional[int] = Field(default=None, description="覆盖 session 的单片段字符上限")
 
 
 class GuidanceResponse(BaseResponse):
