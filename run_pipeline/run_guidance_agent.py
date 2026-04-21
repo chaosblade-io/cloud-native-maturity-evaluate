@@ -108,6 +108,36 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--api-key", dest="api_key", default=None, help="覆盖环境变量 API_KEY")
     parser.add_argument("--base-url", dest="base_url", default=None, help="覆盖环境变量 BASE_URL")
     parser.add_argument("--model", dest="model_name", default=None, help="覆盖环境变量 MODEL_NAME")
+    parser.add_argument(
+        "--knowledge-md",
+        nargs="*",
+        default=[],
+        help="外部知识 Markdown 文件路径（可指定多个）",
+    )
+    parser.add_argument(
+        "--knowledge-md-glob",
+        nargs="*",
+        default=[],
+        help="外部知识 Markdown 通配路径（相对项目根目录，如 docs/**/*.md）",
+    )
+    parser.add_argument(
+        "--knowledge-max-chars",
+        type=int,
+        default=12000,
+        help="每轮注入外部知识的总字符上限",
+    )
+    parser.add_argument(
+        "--knowledge-max-chunks",
+        type=int,
+        default=12,
+        help="每轮最多注入的外部知识片段数",
+    )
+    parser.add_argument(
+        "--knowledge-chunk-chars",
+        type=int,
+        default=800,
+        help="单个外部知识片段最大字符数",
+    )
     parser.add_argument("--output", "-o", default=None, help="输出 JSON 文件路径")
     return parser.parse_args()
 
@@ -328,6 +358,7 @@ def build_prompt(
     hierarchy_context: dict[str, Any],
     focus_keys: list[str],
     raw_snapshot: dict[str, Any],
+    external_knowledge: Optional[dict[str, Any]] = None,
     previous_guidance: Optional[dict[str, Any]] = None,
     feedback: str = "",
 ) -> str:
@@ -342,6 +373,9 @@ def build_prompt(
         "hierarchy_context": hierarchy_context,
         "raw_data_snapshot": raw_snapshot,
     }
+
+    if external_knowledge:
+        prompt_payload["external_knowledge"] = external_knowledge
 
     if previous_guidance is not None:
         prompt_payload["previous_guidance"] = previous_guidance
@@ -463,6 +497,160 @@ def build_output_path(raw_output: Optional[str]) -> Path:
     return PROJECT_ROOT / "results" / timestamp / f"guidance_session_{timestamp}.json"
 
 
+def resolve_external_md_paths(raw_paths: list[str], raw_globs: list[str]) -> tuple[list[Path], list[str]]:
+    selected: dict[str, Path] = {}
+    warnings: list[str] = []
+
+    for raw in raw_paths:
+        candidate = Path(raw)
+        if not candidate.is_absolute():
+            candidate = PROJECT_ROOT / candidate
+        if not candidate.exists():
+            warnings.append(f"外部知识文件不存在: {candidate}")
+            continue
+        if candidate.suffix.lower() != ".md":
+            warnings.append(f"已跳过非 Markdown 文件: {candidate}")
+            continue
+        if not candidate.is_file():
+            warnings.append(f"已跳过非文件路径: {candidate}")
+            continue
+        selected[str(candidate.resolve())] = candidate.resolve()
+
+    for pattern in raw_globs:
+        pattern_path = Path(pattern)
+        if pattern_path.is_absolute():
+            base_dir = pattern_path.anchor if pattern_path.anchor else "/"
+            matches = list(Path(base_dir).glob(str(pattern_path).lstrip("/")))
+        else:
+            matches = list(PROJECT_ROOT.glob(pattern))
+        for matched in matches:
+            if not matched.is_file() or matched.suffix.lower() != ".md":
+                continue
+            selected[str(matched.resolve())] = matched.resolve()
+
+    return sorted(selected.values()), warnings
+
+
+def _safe_read_text(path: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        return path.read_text(encoding="utf-8", errors="ignore")
+
+
+def _split_markdown_chunks(path: Path, content: str, max_chunk_chars: int) -> list[dict[str, str]]:
+    chunks: list[dict[str, str]] = []
+    heading = ""
+    buffer: list[str] = []
+
+    def flush_buffer() -> None:
+        if not buffer:
+            return
+        paragraph = "\n".join(buffer).strip()
+        buffer.clear()
+        if not paragraph:
+            return
+        chunks.append(
+            {
+                "source": str(path),
+                "heading": heading,
+                "content": paragraph[:max_chunk_chars],
+            }
+        )
+
+    for raw_line in content.splitlines():
+        line = raw_line.strip()
+        if line.startswith("#"):
+            flush_buffer()
+            heading = line.lstrip("#").strip()
+            continue
+        if not line:
+            flush_buffer()
+            continue
+        buffer.append(raw_line)
+
+    flush_buffer()
+    return chunks
+
+
+def load_external_knowledge(md_paths: list[Path], max_chunk_chars: int) -> tuple[list[dict[str, str]], list[str]]:
+    chunks: list[dict[str, str]] = []
+    warnings: list[str] = []
+    for path in md_paths:
+        try:
+            text = _safe_read_text(path)
+        except Exception as exc:
+            warnings.append(f"读取外部知识失败: {path} ({exc})")
+            continue
+        if not text.strip():
+            warnings.append(f"外部知识文件为空: {path}")
+            continue
+        chunks.extend(_split_markdown_chunks(path, text, max_chunk_chars=max_chunk_chars))
+    return chunks, warnings
+
+
+def _tokenize(text: str) -> list[str]:
+    if not text:
+        return []
+    return [token for token in re.split(r"[^a-zA-Z0-9_\-\u4e00-\u9fff]+", text.lower()) if len(token) >= 2]
+
+
+def select_external_knowledge_chunks(
+    knowledge_chunks: list[dict[str, str]],
+    flat_items: list[dict[str, Any]],
+    focus_keys: list[str],
+    feedback: str,
+    max_chars: int,
+    max_chunks: int,
+) -> list[dict[str, str]]:
+    if not knowledge_chunks:
+        return []
+
+    item_lookup = {item["key"]: item for item in flat_items}
+    query_tokens: list[str] = []
+    for key in focus_keys:
+        query_tokens.extend(_tokenize(key))
+        item = item_lookup.get(key)
+        if item:
+            query_tokens.extend(_tokenize(str(item.get("dimension", ""))))
+            query_tokens.extend(_tokenize(str(item.get("category", ""))))
+            query_tokens.extend(_tokenize(str(item.get("reason", ""))))
+    query_tokens.extend(_tokenize(feedback))
+
+    dedup_tokens = list(dict.fromkeys(query_tokens))
+
+    scored = []
+    for chunk in knowledge_chunks:
+        text = f"{chunk.get('heading', '')}\n{chunk.get('content', '')}".lower()
+        score = 0
+        for token in dedup_tokens:
+            if token in text:
+                score += 1
+        if score <= 0 and dedup_tokens:
+            continue
+        scored.append((score, chunk))
+
+    if not dedup_tokens:
+        scored = [(0, chunk) for chunk in knowledge_chunks]
+
+    scored.sort(key=lambda item: item[0], reverse=True)
+
+    selected: list[dict[str, str]] = []
+    total_chars = 0
+    for _, chunk in scored:
+        content = chunk.get("content", "")
+        if not content:
+            continue
+        if len(selected) >= max_chunks:
+            break
+        if total_chars + len(content) > max_chars:
+            continue
+        selected.append(chunk)
+        total_chars += len(content)
+
+    return selected
+
+
 def collect_feedback_loop(initial_feedbacks: list[str], interactive: bool) -> list[str]:
     feedbacks = [feedback for feedback in initial_feedbacks if feedback]
     if not interactive:
@@ -491,6 +679,11 @@ def main() -> int:
     metadata = get_analyzer_metadata()
     output_path = build_output_path(args.output)
     requested_keys = resolve_keys(args)
+    external_md_paths, external_md_path_warnings = resolve_external_md_paths(args.knowledge_md, args.knowledge_md_glob)
+    external_knowledge_chunks, external_knowledge_warnings = load_external_knowledge(
+        external_md_paths,
+        max_chunk_chars=max(200, args.knowledge_chunk_chars),
+    )
 
     print("=" * 70)
     print("SESORA Agent-Based Improvement Guidance")
@@ -498,6 +691,10 @@ def main() -> int:
     print(f"数据库: {db_path}")
     print(f"模型: {model_name}")
     print(f"输出: {output_path}")
+    if external_md_paths:
+        print(f"外部知识文件数: {len(external_md_paths)}")
+    for warning in external_md_path_warnings + external_knowledge_warnings:
+        print(f"警告: {warning}")
 
     with SQLiteDataStore(db_path) as store:
         engine = AssessmentEngine(store=store)
@@ -517,6 +714,19 @@ def main() -> int:
             hierarchy_context=hierarchy_context,
             focus_keys=focus_keys,
             raw_snapshot=raw_snapshot,
+            external_knowledge={
+                "selection_policy": "token_overlap_with_focus_and_feedback",
+                "selected_chunks": select_external_knowledge_chunks(
+                    knowledge_chunks=external_knowledge_chunks,
+                    flat_items=flat_items,
+                    focus_keys=focus_keys,
+                    feedback="",
+                    max_chars=max(1000, args.knowledge_max_chars),
+                    max_chunks=max(1, args.knowledge_max_chunks),
+                ),
+            }
+            if external_knowledge_chunks
+            else None,
         )
         initial_guidance, initial_raw_response = call_llm(
             api_key=api_key,
@@ -533,11 +743,20 @@ def main() -> int:
             "db_path": str(db_path),
             "model": model_name,
             "summary": hierarchy_context["summary"],
+            "external_knowledge_files": [str(path) for path in external_md_paths],
             "turns": [
                 {
                     "stage": "initial_diagnosis",
                     "focus_keys": focus_keys,
                     "raw_data_items": list(raw_snapshot.keys()),
+                    "external_knowledge_selected": select_external_knowledge_chunks(
+                        knowledge_chunks=external_knowledge_chunks,
+                        flat_items=flat_items,
+                        focus_keys=focus_keys,
+                        feedback="",
+                        max_chars=max(1000, args.knowledge_max_chars),
+                        max_chunks=max(1, args.knowledge_max_chunks),
+                    ),
                     "guidance": initial_guidance,
                     "raw_response": initial_raw_response,
                 }
@@ -562,6 +781,19 @@ def main() -> int:
                 hierarchy_context=hierarchy_context,
                 focus_keys=refinement_focus,
                 raw_snapshot=refinement_snapshot,
+                external_knowledge={
+                    "selection_policy": "token_overlap_with_focus_and_feedback",
+                    "selected_chunks": select_external_knowledge_chunks(
+                        knowledge_chunks=external_knowledge_chunks,
+                        flat_items=flat_items,
+                        focus_keys=refinement_focus,
+                        feedback=feedback,
+                        max_chars=max(1000, args.knowledge_max_chars),
+                        max_chunks=max(1, args.knowledge_max_chunks),
+                    ),
+                }
+                if external_knowledge_chunks
+                else None,
                 previous_guidance=previous_guidance,
                 feedback=feedback,
             )
@@ -580,6 +812,14 @@ def main() -> int:
                     "feedback": feedback,
                     "focus_keys": refinement_focus,
                     "raw_data_items": list(refinement_snapshot.keys()),
+                    "external_knowledge_selected": select_external_knowledge_chunks(
+                        knowledge_chunks=external_knowledge_chunks,
+                        flat_items=flat_items,
+                        focus_keys=refinement_focus,
+                        feedback=feedback,
+                        max_chars=max(1000, args.knowledge_max_chars),
+                        max_chunks=max(1, args.knowledge_max_chunks),
+                    ),
                     "guidance": refinement_guidance,
                     "raw_response": refinement_raw_response,
                 }
