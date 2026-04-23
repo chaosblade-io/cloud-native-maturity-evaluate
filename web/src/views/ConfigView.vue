@@ -1,32 +1,26 @@
 <template>
-  <div class="config-view">
-    <el-card class="config-card" v-loading="loading">
-      <template #header>
-        <div class="card-header">
-          <div class="header-title">
-            <el-icon class="header-icon"><Setting /></el-icon>
-            <span>环境变量配置</span>
-          </div>
-          <div class="header-actions">
-            <el-upload
-              ref="uploadRef"
-              :auto-upload="false"
-              :show-file-list="false"
-              :on-change="handleFileChange"
-            >
-              <el-button>
-                <el-icon><Upload /></el-icon>
-                上传 .env 文件
-              </el-button>
-            </el-upload>
-            <el-button type="primary" @click="handleSave" :loading="saving">
-              <el-icon><Check /></el-icon>
-              保存配置
-            </el-button>
-          </div>
-        </div>
-      </template>
-      
+  <div class="config-view" v-loading="loading">
+    <div class="section-header">
+      <span class="section-title">环境变量配置</span>
+      <div class="section-actions">
+        <el-upload
+          ref="uploadRef"
+          :auto-upload="false"
+          :show-file-list="false"
+          :on-change="handleFileChange"
+        >
+          <el-button>
+            <el-icon><Upload /></el-icon>
+            上传 .env 文件
+          </el-button>
+        </el-upload>
+        <el-button type="primary" @click="handleSave" :loading="saving">
+          <el-icon><Check /></el-icon>
+          保存配置
+        </el-button>
+      </div>
+    </div>
+    <div class="section-body">
       <el-alert
         title="配置说明"
         type="info"
@@ -36,7 +30,7 @@
       >
         配置将保存到项目根目录的 .env 文件中。你可以手动填写，也可以上传已有的 .env 文件自动加载。
       </el-alert>
-      
+
       <el-collapse v-model="activeGroups" class="config-collapse">
         <el-collapse-item
           v-for="group in groups"
@@ -52,11 +46,11 @@
               </el-tag>
             </div>
           </template>
-          
+
           <div class="group-desc" v-if="group.description">
             {{ group.description }}
           </div>
-          
+
           <div class="config-grid">
             <div
               v-for="item in group.items"
@@ -80,7 +74,7 @@
           </div>
         </el-collapse-item>
       </el-collapse>
-    </el-card>
+    </div>
   </div>
 </template>
 
@@ -175,32 +169,8 @@ onMounted(() => {
   margin: 0 auto;
 }
 
-.config-card {
-  border-radius: 8px;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.header-actions {
-  display: flex;
-  gap: 12px;
-}
-
-.header-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.header-icon {
-  font-size: 16px;
-  color: var(--color-primary);
+.config-view {
+  min-height: 100%;
 }
 
 .config-tip {

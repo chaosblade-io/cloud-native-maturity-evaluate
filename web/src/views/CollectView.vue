@@ -1,85 +1,67 @@
 <template>
   <div class="collect-view">
-    <el-row :gutter="24">
-      <!-- 采集器选择 -->
-      <el-col :span="10">
-        <el-card class="collector-card">
-          <template #header>
-            <div class="card-header">
-              <div class="header-title">
-                <el-icon class="header-icon"><Connection /></el-icon>
-                <span>选择采集器</span>
-              </div>
-              <div class="header-actions">
-                <el-button size="small" text @click="selectAll">全选</el-button>
-                <el-button size="small" text @click="selectNone">清空</el-button>
-              </div>
-            </div>
-          </template>
-          
-          <div class="collector-list">
-            <div
-              v-for="collector in collectors"
-              :key="collector.name"
-              class="collector-item"
-              :class="{ active: selectedCollectors.includes(collector.name) }"
-              @click="toggleCollector(collector.name)"
-            >
-              <el-checkbox
-                :model-value="selectedCollectors.includes(collector.name)"
-                @change="toggleCollector(collector.name)"
-              />
-              <div class="collector-info">
-                <div class="collector-label">{{ collector.label }}</div>
-                <div class="collector-desc">{{ collector.description }}</div>
-              </div>
-              <el-icon class="collector-arrow"><ArrowRight /></el-icon>
-            </div>
+    <div class="page-two-col">
+      <!-- 左侧：采集器选择 -->
+      <div class="page-two-col-left">
+        <div class="section-header">
+          <span class="section-title">选择采集器</span>
+          <div class="section-actions">
+            <el-button size="small" text @click="selectAll">全选</el-button>
+            <el-button size="small" text @click="selectNone">清空</el-button>
           </div>
-          
-          <div class="action-bar">
-            <el-button
-              type="primary"
-              size="large"
-              :loading="isCollecting"
-              :disabled="isCollecting || selectedCollectors.length === 0"
-              @click="handleCollect"
-              class="action-btn"
-            >
-              <el-icon><VideoPlay /></el-icon>
-              采集选中 ({{ selectedCollectors.length }})
-            </el-button>
-            <el-button
-              type="success"
-              size="large"
-              :disabled="isCollecting"
-              @click="handleCollectAll"
-              class="action-btn"
-            >
-              <el-icon><Refresh /></el-icon>
-              采集全部
-            </el-button>
-          </div>
-        </el-card>
-      </el-col>
-      
-      <!-- 采集结果 -->
-      <el-col :span="14">
-        <el-card class="result-card">
-          <template #header>
-            <div class="card-header">
-              <div class="header-title">
-                <el-icon class="header-icon"><DataBoard /></el-icon>
-                <span>采集结果</span>
-              </div>
-              <div v-if="progressList.length" class="result-summary">
-                <el-tag type="success" effect="dark">{{ doneCount }} 成功</el-tag>
-                <el-tag v-if="failCount > 0" type="danger" effect="dark">{{ failCount }} 失败</el-tag>
-                <el-tag v-if="isCollecting" type="warning" effect="dark">{{ pendingCount }} 等待</el-tag>
-              </div>
+        </div>
+        <div class="section-body collector-scroll">
+          <div
+            v-for="collector in collectors"
+            :key="collector.name"
+            class="collector-item"
+            :class="{ active: selectedCollectors.includes(collector.name) }"
+            @click="toggleCollector(collector.name)"
+          >
+            <el-checkbox
+              :model-value="selectedCollectors.includes(collector.name)"
+              @change="toggleCollector(collector.name)"
+            />
+            <div class="collector-info">
+              <div class="collector-label">{{ collector.label }}</div>
+              <div class="collector-desc">{{ collector.description }}</div>
             </div>
-          </template>
-          
+            <el-icon class="collector-arrow"><ArrowRight /></el-icon>
+          </div>
+        </div>
+        <div class="section-footer action-bar">
+          <el-button
+            type="primary"
+            :loading="isCollecting"
+            :disabled="isCollecting || selectedCollectors.length === 0"
+            @click="handleCollect"
+            class="action-btn"
+          >
+            <el-icon><VideoPlay /></el-icon>
+            采集选中 ({{ selectedCollectors.length }})
+          </el-button>
+          <el-button
+            :disabled="isCollecting"
+            @click="handleCollectAll"
+            class="action-btn"
+          >
+            <el-icon><Refresh /></el-icon>
+            采集全部
+          </el-button>
+        </div>
+      </div>
+
+      <!-- 右侧：采集结果 + 采集说明 -->
+      <div class="page-two-col-right">
+        <div class="section-header">
+          <span class="section-title">采集结果</span>
+          <div v-if="progressList.length" class="section-actions">
+            <el-tag type="success" effect="plain">{{ doneCount }} 成功</el-tag>
+            <el-tag v-if="failCount > 0" type="danger" effect="plain">{{ failCount }} 失败</el-tag>
+            <el-tag v-if="isCollecting" type="warning" effect="plain">{{ pendingCount }} 等待</el-tag>
+          </div>
+        </div>
+        <div class="section-body">
           <!-- 空状态 -->
           <div v-if="!progressList.length" class="empty-state">
             <el-empty description="选择采集器并点击开始采集">
@@ -88,8 +70,7 @@
               </template>
             </el-empty>
           </div>
-          
-          <!-- 进度列表（采集中实时更新 + 完成后展示） -->
+          <!-- 进度列表 -->
           <div v-else class="result-list">
             <div
               v-for="item in progressList"
@@ -110,14 +91,16 @@
               <div class="result-time" v-if="item.elapsed !== null">{{ item.elapsed.toFixed(1) }}s</div>
             </div>
           </div>
-        </el-card>
-        
-        <!-- 采集提示 -->
-        <el-card class="tip-card">
+        </div>
+
+        <hr class="section-divider" />
+        <div class="section-header">
+          <span class="section-title">采集说明</span>
+        </div>
+        <div class="section-body tip-body">
           <div class="tip-content">
             <el-icon class="tip-icon"><InfoFilled /></el-icon>
             <div class="tip-text">
-              <h4>采集说明</h4>
               <ul>
                 <li>采集前请确保已正确配置环境变量</li>
                 <li>部分采集器需要特定的凭证和配置才能正常工作</li>
@@ -125,9 +108,9 @@
               </ul>
             </div>
           </div>
-        </el-card>
-      </el-col>
-    </el-row>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -241,50 +224,20 @@ onMounted(() => {
 
 <style scoped>
 .collect-view {
-  max-width: 1200px;
-  margin: 0 auto;
+  min-height: 100%;
 }
 
-.collector-card,
-.result-card,
-.tip-card {
-  border-radius: 8px;
-  margin-bottom: 16px;
-}
-
-.card-header {
+.action-bar {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.header-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.header-icon {
-  font-size: 16px;
-  color: var(--color-primary);
-}
-
-.header-actions {
-  display: flex;
-  gap: 4px;
-}
-
-.result-summary {
-  display: flex;
-  gap: 8px;
+  gap: 10px;
 }
 
 /* 采集器列表 */
-.collector-list {
-  max-height: 400px;
+.collector-scroll {
+  max-height: 500px;
   overflow-y: auto;
+  padding-top: 8px;
+  padding-bottom: 8px;
 }
 
 .collector-item {
@@ -336,17 +289,8 @@ onMounted(() => {
 }
 
 /* 操作按钮 */
-.action-bar {
-  display: flex;
-  gap: 10px;
-  margin-top: 16px;
-}
-
 .action-btn {
   flex: 1;
-  height: 40px;
-  border-radius: 6px;
-  font-weight: 500;
 }
 
 /* 空状态 */
@@ -432,11 +376,6 @@ onMounted(() => {
 }
 
 /* 提示卡片 */
-.tip-card {
-  background: #E8F4FF;
-  border: 1px solid #B8DCFF !important;
-}
-
 .tip-content {
   display: flex;
   gap: 12px;

@@ -1,18 +1,12 @@
 <template>
   <div class="mock-view">
-    <el-row :gutter="24">
-      <!-- 上传区域 -->
-      <el-col :span="12">
-        <el-card class="upload-card">
-          <template #header>
-            <div class="card-header">
-              <div class="header-title">
-                <el-icon class="header-icon"><UploadFilled /></el-icon>
-                <span>上传 Mock 数据</span>
-              </div>
-            </div>
-          </template>
-          
+    <div class="page-two-col">
+      <!-- 左侧：上传区域 + 结果 -->
+      <div class="page-two-col-left mock-left">
+        <div class="section-header">
+          <span class="section-title">上传 Mock 数据</span>
+        </div>
+        <div class="section-body">
           <el-upload
             ref="uploadRef"
             class="upload-area"
@@ -56,53 +50,55 @@
             <el-icon><Upload /></el-icon>
             导入数据库
           </el-button>
-        </el-card>
-        
+        </div>
+    
         <!-- 上传结果 -->
         <transition name="fade">
-          <el-card v-if="uploadResult" class="result-card">
-            <el-result
-              :icon="uploadResult.success ? 'success' : 'error'"
-              :title="uploadResult.success ? '导入成功' : '导入失败'"
-              :sub-title="uploadResult.message"
-            >
-              <template #extra v-if="uploadResult.success && uploadResult.items">
-                <div class="result-stats">
-                  <div class="stat-item">
-                    <span class="stat-value">{{ uploadResult.items_count }}</span>
-                    <span class="stat-label">数据项</span>
-                  </div>
-                  <div class="stat-item">
-                    <span class="stat-value">{{ uploadResult.records_count }}</span>
-                    <span class="stat-label">总记录</span>
-                  </div>
-                </div>
-                <el-table :data="Object.entries(uploadResult.items).map(([k, v]) => ({name: k, count: v}))" size="small" class="result-table">
-                  <el-table-column prop="name" label="数据项" />
-                  <el-table-column prop="count" label="记录数" width="80" align="center" />
-                </el-table>
-              </template>
-            </el-result>
-          </el-card>
-        </transition>
-      </el-col>
-      
-      <!-- 示例数据 -->
-      <el-col :span="12">
-        <el-card class="sample-card">
-          <template #header>
-            <div class="card-header">
-              <div class="header-title">
-                <el-icon class="header-icon"><Document /></el-icon>
-                <span>数据格式示例</span>
-              </div>
-              <el-button size="small" @click="loadFullTemplate" :loading="loadingTemplate">
-                <el-icon><FolderOpened /></el-icon>
-                查看完整模板
-              </el-button>
+          <div v-if="uploadResult">
+            <hr class="section-divider" />
+            <div class="section-header">
+              <span class="section-title">{{ uploadResult.success ? '导入成功' : '导入失败' }}</span>
             </div>
-          </template>
-          
+            <div class="section-body">
+              <el-result
+                :icon="uploadResult.success ? 'success' : 'error'"
+                :title="uploadResult.success ? '导入成功' : '导入失败'"
+                :sub-title="uploadResult.message"
+              >
+                <template #extra v-if="uploadResult.success && uploadResult.items">
+                  <div class="result-stats">
+                    <div class="stat-item">
+                      <span class="stat-value">{{ uploadResult.items_count }}</span>
+                      <span class="stat-label">数据项</span>
+                    </div>
+                    <div class="stat-item">
+                      <span class="stat-value">{{ uploadResult.records_count }}</span>
+                      <span class="stat-label">总记录</span>
+                    </div>
+                  </div>
+                  <el-table :data="Object.entries(uploadResult.items).map(([k, v]) => ({name: k, count: v}))" size="small" class="result-table">
+                    <el-table-column prop="name" label="数据项" />
+                    <el-table-column prop="count" label="记录数" width="80" align="center" />
+                  </el-table>
+                </template>
+              </el-result>
+            </div>
+          </div>
+        </transition>
+      </div>
+    <!-- 完整模板弹窗 -->
+      <!-- 右侧：示例数据 -->
+      <div class="page-two-col-right">
+        <div class="section-header">
+          <span class="section-title">数据格式示例</span>
+          <div class="section-actions">
+            <el-button size="small" @click="loadFullTemplate" :loading="loadingTemplate">
+              <el-icon><FolderOpened /></el-icon>
+              查看完整模板
+            </el-button>
+          </div>
+        </div>
+        <div class="section-body">
           <el-alert
             type="info"
             :closable="false"
@@ -119,17 +115,15 @@
               </ul>
             </template>
           </el-alert>
-          
+
           <div class="sample-container" v-loading="loadingSample">
             <el-scrollbar height="420px">
               <pre class="sample-json">{{ JSON.stringify(sampleData, null, 2) }}</pre>
             </el-scrollbar>
           </div>
-        </el-card>
-      </el-col>
-    </el-row>
-    
-    <!-- 完整模板弹窗 -->
+        </div>
+      </div>
+    </div>
     <el-dialog
       v-model="showTemplateDialog"
       title="完整 Mock 数据模板"
@@ -270,34 +264,11 @@ onMounted(() => {
 
 <style scoped>
 .mock-view {
-  max-width: 1200px;
-  margin: 0 auto;
+  min-height: 100%;
 }
 
-.upload-card,
-.sample-card,
-.result-card {
-  border-radius: 8px;
-  margin-bottom: 16px;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.header-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.header-icon {
-  font-size: 16px;
-  color: var(--color-primary);
+.mock-left {
+  width: 440px;
 }
 
 /* 上传区域 */

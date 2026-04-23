@@ -1,14 +1,11 @@
 <template>
   <div class="knowledge-view">
-    <el-row :gutter="20">
-      <el-col :span="8">
-        <el-card class="knowledge-card">
-          <template #header>
-            <div class="card-header">
-              <span>上传文档</span>
-            </div>
-          </template>
-
+    <div class="page-two-col">
+      <div class="page-two-col-left">
+        <div class="section-header">
+          <span class="section-title">上传文档</span>
+        </div>
+        <div class="section-body">
           <el-upload
             class="knowledge-uploader"
             drag
@@ -26,7 +23,7 @@
             </template>
           </el-upload>
 
-          <div class="upload-panel" v-if="pendingFiles.length">
+          <div v-if="pendingFiles.length" class="upload-panel">
             <div class="pending-file">待上传 {{ pendingFiles.length }} 个文件</div>
             <div class="pending-files-list">
               <el-tag v-for="file in pendingFiles" :key="file.name + file.size" closable @close="removePendingFile(file)">
@@ -43,18 +40,20 @@
               <el-button type="primary" :loading="uploading" @click="submitUpload">上传</el-button>
             </div>
           </div>
-        </el-card>
-      </el-col>
+        </div>
+      </div>
 
-      <el-col :span="16">
-        <el-card class="knowledge-card">
-          <template #header>
-            <div class="card-header">
-              <span>知识库文档</span>
-              <el-button text @click="loadDocs">刷新</el-button>
-            </div>
-          </template>
-
+      <div class="page-two-col-right">
+        <div class="section-header">
+          <span class="section-title">知识库文档</span>
+          <div class="section-actions">
+            <el-button size="small" @click="loadDocs">
+              <el-icon><Refresh /></el-icon>
+              刷新
+            </el-button>
+          </div>
+        </div>
+        <div class="section-body">
           <el-table :data="docs" v-loading="loading" empty-text="暂无知识库文档">
             <el-table-column prop="title" label="标题" min-width="220" show-overflow-tooltip />
             <el-table-column prop="name" label="文件名" min-width="180" show-overflow-tooltip />
@@ -70,7 +69,7 @@
               <template #default="{ row }">{{ formatSize(row.size) }}</template>
             </el-table-column>
             <el-table-column prop="updated_at" label="更新时间" min-width="180" />
-            <el-table-column label="操作" width="220" fixed="right">
+            <el-table-column label="操作" width="160" fixed="right">
               <template #default="{ row }">
                 <div class="row-actions">
                   <el-button size="small" @click="openTagsDialog(row)">标签</el-button>
@@ -79,9 +78,9 @@
               </template>
             </el-table-column>
           </el-table>
-        </el-card>
-      </el-col>
-    </el-row>
+        </div>
+      </div>
+    </div>
 
     <el-dialog v-model="showTagsDialog" title="编辑标签" width="480px">
       <div class="dialog-content">
@@ -241,19 +240,7 @@ onMounted(() => {
 
 <style scoped>
 .knowledge-view {
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.knowledge-card {
-  border-radius: 8px;
-  margin-bottom: 16px;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  min-height: 100%;
 }
 
 .knowledge-uploader {

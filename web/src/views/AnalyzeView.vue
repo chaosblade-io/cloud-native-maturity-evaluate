@@ -1,35 +1,28 @@
 <template>
   <div class="analyze-view">
-    <el-row :gutter="24">
+    <div class="page-two-col">
       <!-- 左侧：分析器选择 -->
-      <el-col :span="10">
-        <el-card class="selector-card" v-loading="loadingAnalyzers">
-          <template #header>
-            <div class="card-header">
-              <div class="header-title">
-                <el-icon class="header-icon"><Grid /></el-icon>
-                <span>选择评估项</span>
-              </div>
-              <div class="header-actions">
-                <el-button size="small" text @click="importConfig">
-                  <el-icon><Upload /></el-icon>
-                  导入配置
-                </el-button>
-                <el-button size="small" text @click="selectAll">全选</el-button>
-                <el-button size="small" text @click="selectNone">清空</el-button>
-              </div>
-              <!-- 隐藏的文件输入框 -->
-              <input
-                ref="jsonFileInput"
-                type="file"
-                accept=".json,application/json"
-                style="display: none"
-                @change="handleJsonFileChange"
-              />
-            </div>
-          </template>
-          
-          <!-- 按维度分组 -->
+      <div class="page-two-col-left" v-loading="loadingAnalyzers">
+        <div class="section-header">
+          <span class="section-title">选择评估项</span>
+          <div class="section-actions">
+            <el-button size="small" text @click="importConfig">
+              <el-icon><Upload /></el-icon>
+              导入配置
+            </el-button>
+            <el-button size="small" text @click="selectAll">全选</el-button>
+            <el-button size="small" text @click="selectNone">清空</el-button>
+          </div>
+          <input
+            ref="jsonFileInput"
+            type="file"
+            accept=".json,application/json"
+            style="display: none"
+            @change="handleJsonFileChange"
+          />
+        </div>
+
+        <div class="section-body analyzer-scroll">
           <el-collapse v-model="expandedDimensions" class="dimension-collapse">
             <el-collapse-item
               v-for="(items, dimName) in analyzersByDimension"
@@ -53,7 +46,7 @@
                   </el-tag>
                 </div>
               </template>
-              
+
               <div class="analyzer-list">
                 <div
                   v-for="analyzer in items"
@@ -77,94 +70,98 @@
               </div>
             </el-collapse-item>
           </el-collapse>
-          
-          <!-- 操作按钮 -->
-          <div class="action-bar">
-            <div class="assist-options">
-              <el-switch
-                v-model="agentAssistEnabled"
-                inline-prompt
-                active-text="AI辅助"
-                inactive-text="规则"
-              />
-              <el-checkbox v-model="agentAssistOnlySelected" :disabled="!agentAssistEnabled">
-                仅当前选中项
-              </el-checkbox>
-            </div>
-            <el-button
-              type="primary"
-              size="large"
-              :loading="analyzing"
-              :disabled="selectedKeys.length === 0"
-              @click="handleAnalyze"
-              class="action-btn"
-            >
-              <el-icon><VideoPlay /></el-icon>
-              运行评估 ({{ selectedKeys.length }})
-            </el-button>
+        </div>
+
+        <div class="section-footer action-bar">
+          <div class="assist-options">
+            <el-switch
+              v-model="agentAssistEnabled"
+              inline-prompt
+              active-text="AI辅助"
+              inactive-text="规则"
+            />
+            <el-checkbox v-model="agentAssistOnlySelected" :disabled="!agentAssistEnabled">
+              仅当前选中项
+            </el-checkbox>
           </div>
-        </el-card>
-        
-        <!-- 数据状态 -->
-        <el-card class="status-card" v-if="dataStatus">
-          <template #header>
-            <div class="card-header">
-              <div class="header-title">
-                <el-icon class="header-icon"><Document /></el-icon>
-                <span>数据就绪状态</span>
-              </div>
+          <el-button
+            type="primary"
+            :loading="analyzing"
+            :disabled="selectedKeys.length === 0"
+            @click="handleAnalyze"
+            class="action-btn"
+          >
+            <el-icon><VideoPlay /></el-icon>
+            运行评估 ({{ selectedKeys.length }})
+          </el-button>
+        </div>
+
+        <div v-if="dataStatus">
+          <hr class="section-divider" />
+          <div class="section-header">
+            <span class="section-title">数据就绪状态</span>
+            <div class="section-actions">
               <el-button size="small" @click="checkDataStatus" :loading="checkingStatus">
                 <el-icon><Refresh /></el-icon>
                 刷新
               </el-button>
             </div>
-          </template>
-          
-          <div class="status-summary">
-            <div class="status-item">
-              <span class="status-label">必需数据</span>
-              <span class="status-value" :class="{ warning: dataStatus.required.some(d => !d.available) }">
-                {{ dataStatus.required.filter(d => d.available).length }}/{{ dataStatus.required.length }}
-              </span>
-            </div>
-            <div class="status-item">
-              <span class="status-label">可选数据</span>
-              <span class="status-value">
-                {{ dataStatus.optional.filter(d => d.available).length }}/{{ dataStatus.optional.length }}
-              </span>
-            </div>
           </div>
-          
-          <el-alert
-            v-if="dataStatus.required.some(d => !d.available)"
-            type="warning"
-            :closable="false"
-            show-icon
-            class="status-alert"
-          >
-            部分必需数据缺失，可能影响评估结果
-          </el-alert>
-        </el-card>
-      </el-col>
-      
+          <div class="section-body">
+            <div class="status-summary">
+              <div class="status-item">
+                <span class="status-label">必需数据</span>
+                <span class="status-value" :class="{ warning: dataStatus.required.some(d => !d.available) }">
+                  {{ dataStatus.required.filter(d => d.available).length }}/{{ dataStatus.required.length }}
+                </span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">可选数据</span>
+                <span class="status-value">
+                  {{ dataStatus.optional.filter(d => d.available).length }}/{{ dataStatus.optional.length }}
+                </span>
+              </div>
+            </div>
+            <el-alert
+              v-if="dataStatus.required.some(d => !d.available)"
+              type="warning"
+              :closable="false"
+              show-icon
+              class="status-alert"
+            >
+              部分必需数据缺失，可能影响评估结果
+            </el-alert>
+          </div>
+        </div>
+      </div>
+
       <!-- 右侧：评估结果 -->
-      <el-col :span="14">
-        <!-- 加载状态 -->
-        <el-card v-if="analyzing" class="loading-card">
-          <div class="loading-content">
-            <div class="loading-animation">
-              <el-icon class="is-loading" :size="64"><Loading /></el-icon>
-            </div>
-            <h2>正在进行评估分析</h2>
-            <p>系统正在分析各项指标，请稍候...</p>
-            <el-progress :percentage="analyzeProgress" :show-text="false" :stroke-width="8" class="loading-progress" />
+      <div class="page-two-col-right">
+        <div v-if="analyzing" class="loading-content">
+          <div class="loading-animation">
+            <el-icon class="is-loading" :size="64"><Loading /></el-icon>
           </div>
-        </el-card>
-        
-        <!-- 评估结果 -->
+          <h2>正在进行评估分析</h2>
+          <p>系统正在分析各项指标，请稍候...</p>
+          <el-progress
+            :percentage="analyzeProgress"
+            :show-text="false"
+            :stroke-width="8"
+            class="loading-progress"
+          />
+        </div>
+
         <template v-else-if="analyzeResult">
-          <!-- 总分概览 -->
-          <el-card class="overview-card">
+          <div class="section-header">
+            <span class="section-title">评估概览</span>
+            <div class="section-actions">
+              <el-button @click="exportReport" size="small">
+                <el-icon><Download /></el-icon>
+                导出报告
+              </el-button>
+            </div>
+          </div>
+          <div class="section-body overview-body">
             <div class="overview-content">
               <div class="score-section">
                 <el-progress
@@ -204,23 +201,14 @@
                   <span class="stat-label">覆盖率</span>
                 </div>
               </div>
-              <div class="action-section">
-                <el-button @click="exportReport">
-                  <el-icon><Download /></el-icon>
-                  导出报告
-                </el-button>
-              </div>
             </div>
-          </el-card>
-          
-          <!-- 维度汇总 -->
-          <el-card class="summary-card">
-            <template #header>
-              <div class="card-header">
-                <span>维度汇总</span>
-              </div>
-            </template>
-            
+          </div>
+
+          <hr class="section-divider" />
+          <div class="section-header">
+            <span class="section-title">维度汇总</span>
+          </div>
+          <div class="section-body">
             <div class="summary-grid">
               <div
                 v-for="dim in analyzeResult.summary"
@@ -254,27 +242,26 @@
                 </div>
               </div>
             </div>
-          </el-card>
-          
-          <!-- 详细结果 -->
-          <el-card class="detail-card">
-            <template #header>
-              <div class="card-header">
-                <span>评估详情</span>
-                <el-input
-                  v-model="searchKey"
-                  placeholder="搜索..."
-                  clearable
-                  style="width: 200px"
-                  size="small"
-                >
-                  <template #prefix>
-                    <el-icon><Search /></el-icon>
-                  </template>
-                </el-input>
-              </div>
-            </template>
-            
+          </div>
+
+          <hr class="section-divider" />
+          <div class="section-header">
+            <span class="section-title">评估详情</span>
+            <div class="section-actions">
+              <el-input
+                v-model="searchKey"
+                placeholder="搜索..."
+                clearable
+                style="width: 200px"
+                size="small"
+              >
+                <template #prefix>
+                  <el-icon><Search /></el-icon>
+                </template>
+              </el-input>
+            </div>
+          </div>
+          <div class="section-body">
             <el-table
               :data="filteredResults"
               :default-sort="{ prop: 'percentage', order: 'descending' }"
@@ -329,35 +316,33 @@
                 </template>
               </el-table-column>
             </el-table>
-          </el-card>
+          </div>
 
-          <el-card class="guidance-card">
-            <template #header>
-              <div class="card-header">
-                <span>改进建议</span>
-                <div class="header-actions">
-                  <el-button
-                    size="small"
-                    type="primary"
-                    plain
-                    :disabled="!lastAnalysisRequest.keys.length"
-                    :loading="generatingGuidance"
-                    @click="handleGenerateGuidance"
-                  >
-                    生成建议
-                  </el-button>
-                  <el-button
-                    size="small"
-                    text
-                    :disabled="!guidanceSession"
-                    @click="clearGuidanceSession"
-                  >
-                    清空
-                  </el-button>
-                </div>
-              </div>
-            </template>
-
+          <hr class="section-divider" />
+          <div class="section-header">
+            <span class="section-title">改进建议</span>
+            <div class="section-actions">
+              <el-button
+                size="small"
+                type="primary"
+                plain
+                :disabled="!lastAnalysisRequest.keys.length"
+                :loading="generatingGuidance"
+                @click="handleGenerateGuidance"
+              >
+                生成建议
+              </el-button>
+              <el-button
+                size="small"
+                text
+                :disabled="!guidanceSession"
+                @click="clearGuidanceSession"
+              >
+                清空
+              </el-button>
+            </div>
+          </div>
+          <div class="section-body">
             <div v-if="!lastAnalysisRequest.keys.length" class="guidance-empty">
               <el-empty description="运行评估后可生成改进建议" />
             </div>
@@ -522,21 +507,19 @@
                 </div>
               </div>
             </div>
-          </el-card>
+          </div>
         </template>
-        
-        <!-- 空状态 -->
-        <el-card v-else class="empty-card">
+
+        <div v-else class="empty-state">
           <el-empty description="选择评估项并点击运行评估">
             <template #image>
               <el-icon :size="80" class="empty-icon"><TrendCharts /></el-icon>
             </template>
           </el-empty>
-        </el-card>
-      </el-col>
-    </el-row>
-    
-    <!-- 维度详情弹窗 -->
+        </div>
+      </div>
+    </div>
+
     <el-drawer
       v-model="showDetail"
       :title="currentDimension ? getDimensionLabel(currentDimension.dimension) + ' 详情' : ''"
@@ -559,9 +542,9 @@
             </el-tag>
           </div>
         </div>
-        
+
         <el-divider>评估项列表 ({{ dimensionResults.length }})</el-divider>
-        
+
         <div class="indicator-list">
           <div
             v-for="result in dimensionResults"
@@ -1058,44 +1041,7 @@ onMounted(() => {
 
 <style scoped>
 .analyze-view {
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.selector-card,
-.status-card,
-.loading-card,
-.overview-card,
-.summary-card,
-.guidance-card,
-.detail-card,
-.empty-card {
-  border-radius: 8px;
-  margin-bottom: 16px;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.header-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.header-icon {
-  font-size: 16px;
-  color: var(--color-primary);
-}
-
-.header-actions {
-  display: flex;
-  gap: 4px;
+  min-height: 100%;
 }
 
 /* 维度折叠面板 */
@@ -1143,6 +1089,11 @@ onMounted(() => {
 }
 
 /* 分析器列表 */
+.analyzer-scroll {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
 .analyzer-list {
   padding: 0 4px;
 }
@@ -1190,14 +1141,15 @@ onMounted(() => {
 
 /* 操作按钮 */
 .action-bar {
-  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .assist-options {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 10px;
 }
 
 .action-btn {
@@ -1520,10 +1472,6 @@ onMounted(() => {
   color: var(--color-text-placeholder);
 }
 
-.action-section {
-  margin-left: auto;
-}
-
 /* 维度汇总 */
 .summary-grid {
   display: grid;
@@ -1597,8 +1545,10 @@ onMounted(() => {
 }
 
 /* 空状态 */
-.empty-card {
+.empty-state {
   padding: 60px 0;
+  display: flex;
+  justify-content: center;
 }
 
 .empty-icon {

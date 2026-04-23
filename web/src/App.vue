@@ -256,8 +256,8 @@ html, body, #app {
 
 /* 主内容区 */
 .app-main {
-  padding: 20px 24px;
-  background: var(--color-bg-body);
+  padding: 0;
+  background: var(--color-bg-white);
   overflow-y: auto;
   flex: 1;
 }
