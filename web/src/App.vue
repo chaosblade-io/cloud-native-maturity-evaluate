@@ -1,14 +1,10 @@
 <template>
   <el-container class="app-container">
     <!-- 侧边栏 -->
-    <el-aside width="240px" class="app-aside">
+    <el-aside width="72px" class="app-aside app-aside-collapsed">
       <div class="logo">
         <div class="logo-icon">
           <el-icon :size="32"><Cloudy /></el-icon>
-        </div>
-        <div class="logo-text">
-          <h1>SESORA</h1>
-          <p>云原生成熟度评估</p>
         </div>
       </div>
       
@@ -16,33 +12,34 @@
         :default-active="$route.path"
         router
         class="app-menu"
+        :collapse="true"
+        :collapse-transition="false"
       >
         <el-menu-item index="/config">
-          <el-icon><Setting /></el-icon>
+          <el-icon :size="22"><Setting /></el-icon>
           <template #title>配置管理</template>
         </el-menu-item>
         <el-menu-item index="/mock">
-          <el-icon><UploadFilled /></el-icon>
+          <el-icon :size="22"><UploadFilled /></el-icon>
           <template #title>Mock 数据</template>
         </el-menu-item>
         <el-menu-item index="/collect">
-          <el-icon><Connection /></el-icon>
+          <el-icon :size="22"><Connection /></el-icon>
           <template #title>数据采集</template>
         </el-menu-item>
         <el-menu-item index="/knowledge">
-          <el-icon><FolderOpened /></el-icon>
+          <el-icon :size="22"><FolderOpened /></el-icon>
           <template #title>知识库</template>
         </el-menu-item>
         <el-menu-item index="/analyze">
-          <el-icon><TrendCharts /></el-icon>
+          <el-icon :size="22"><TrendCharts /></el-icon>
           <template #title>评估分析</template>
         </el-menu-item>
       </el-menu>
       
       <div class="aside-footer">
-        <div class="version-info">
+        <div class="version-info" title="v1.0.0">
           <el-icon><InfoFilled /></el-icon>
-          <span>v1.0.0</span>
         </div>
       </div>
     </el-aside>
@@ -113,13 +110,14 @@ html, body, #app {
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--color-border);
+  overflow: hidden;
 }
 
 .logo {
-  padding: 20px 16px;
+  padding: 14px 0;
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
   border-bottom: 1px solid var(--color-border);
   height: 60px;
 }
@@ -136,19 +134,6 @@ html, body, #app {
   flex-shrink: 0;
 }
 
-.logo-text h1 {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--color-text-primary);
-  letter-spacing: 0.5px;
-}
-
-.logo-text p {
-  font-size: 11px;
-  color: var(--color-text-tertiary);
-  margin-top: 1px;
-}
-
 /* 菜单样式 */
 .app-menu {
   flex: 1;
@@ -157,20 +142,58 @@ html, body, #app {
   padding: 8px 0;
 }
 
+.app-menu.el-menu--collapse {
+  width: 100%;
+}
+
 .app-menu .el-menu-item {
   height: 44px;
   line-height: 44px;
-  margin: 2px 8px;
+  margin: 2px 10px;
   border-radius: 6px;
   color: var(--color-text-secondary);
   font-size: 14px;
   transition: all 0.2s ease;
+  justify-content: center;
+  padding: 0 !important;
+}
+
+.app-menu.el-menu--collapse .el-menu-item {
+  width: calc(100% - 20px);
+}
+
+.app-menu.el-menu--collapse .el-menu-item > * {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-menu.el-menu--collapse .el-menu-tooltip__trigger,
+.app-menu.el-menu--collapse .el-tooltip__trigger {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 100% !important;
+  height: 100%;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.app-menu.el-menu--collapse .el-menu-tooltip__trigger .el-icon,
+.app-menu.el-menu--collapse .el-tooltip__trigger .el-icon {
+  width: auto;
+  flex: 0 0 auto;
 }
 
 .app-menu .el-menu-item .el-icon {
-  font-size: 16px;
-  margin-right: 8px;
+  font-size: 22px;
+  margin-right: 0;
   color: var(--color-text-tertiary);
+}
+
+.app-menu.el-menu--collapse .el-menu-item .el-icon {
+  width: 100%;
+  justify-content: center;
 }
 
 .app-menu .el-menu-item:hover {
@@ -193,14 +216,14 @@ html, body, #app {
 }
 
 .aside-footer {
-  padding: 12px 16px;
+  padding: 12px 0;
   border-top: 1px solid var(--color-border);
 }
 
 .version-info {
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
   color: var(--color-text-tertiary);
   font-size: 12px;
 }
