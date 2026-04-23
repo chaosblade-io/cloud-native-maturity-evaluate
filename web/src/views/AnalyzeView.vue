@@ -1388,20 +1388,20 @@ onMounted(() => {
 }
 
 .score-value {
-  font-size: 26px;
+  font-size: 30px;
   font-weight: 700;
   color: var(--color-text-primary);
 }
 
 .score-label {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--color-text-secondary);
 }
 
 .maturity-badge {
   padding: 3px 14px;
   border-radius: 4px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
 }
 
@@ -1449,7 +1449,7 @@ onMounted(() => {
 }
 
 .stat-item .stat-value {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--color-text-primary);
 }
@@ -1463,12 +1463,12 @@ onMounted(() => {
 }
 
 .stat-item .stat-label {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--color-text-tertiary);
 }
 
 .stat-divider {
-  font-size: 20px;
+  font-size: 22px;
   color: var(--color-text-placeholder);
 }
 
