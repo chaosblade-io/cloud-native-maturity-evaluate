@@ -176,7 +176,7 @@ onMounted(() => {
 }
 
 .config-card {
-  border-radius: 16px;
+  border-radius: 8px;
 }
 
 .card-header {
@@ -193,19 +193,19 @@ onMounted(() => {
 .header-title {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 16px;
+  gap: 8px;
+  font-size: 14px;
   font-weight: 600;
 }
 
 .header-icon {
-  font-size: 20px;
-  color: #667eea;
+  font-size: 16px;
+  color: var(--color-primary);
 }
 
 .config-tip {
-  margin-bottom: 20px;
-  border-radius: 8px;
+  margin-bottom: 16px;
+  border-radius: 6px;
 }
 
 .config-collapse {
@@ -213,12 +213,13 @@ onMounted(() => {
 }
 
 :deep(.el-collapse-item__header) {
-  height: 56px;
-  padding: 0 16px;
-  border-radius: 8px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  margin-bottom: 8px;
+  height: 48px;
+  padding: 0 12px;
+  border-radius: 6px;
+  background: var(--color-bg-1);
+  border: 1px solid var(--color-border);
+  margin-bottom: 6px;
+  font-size: 14px;
 }
 
 :deep(.el-collapse-item__wrap) {
@@ -226,24 +227,24 @@ onMounted(() => {
 }
 
 :deep(.el-collapse-item__content) {
-  padding: 16px 0;
+  padding: 12px 0;
 }
 
 .collapse-title {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
 }
 
 .group-icon {
-  color: #667eea;
-  font-size: 18px;
+  color: var(--color-primary);
+  font-size: 16px;
 }
 
 .group-name {
   font-weight: 500;
-  color: #1f2937;
+  color: var(--color-text-primary);
 }
 
 .group-count {
@@ -252,38 +253,37 @@ onMounted(() => {
 }
 
 .group-desc {
-  color: #64748b;
+  color: var(--color-text-secondary);
   font-size: 13px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   padding: 0 4px;
 }
 
 .config-grid {
   display: grid;
-  gap: 20px;
+  gap: 12px;
 }
 
 .config-item {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 16px;
-  background: #fafbfc;
-  border-radius: 10px;
-  border: 1px solid #e8ecf1;
-  transition: all 0.2s ease;
+  padding: 14px;
+  background: var(--color-bg-white);
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  transition: border-color 0.2s ease;
 }
 
 .config-item:hover {
-  border-color: #667eea;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+  border-color: var(--color-primary);
 }
 
 .item-label {
   font-family: 'Monaco', 'Menlo', monospace;
   font-size: 13px;
   font-weight: 500;
-  color: #374151;
+  color: var(--color-text-primary);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -294,16 +294,12 @@ onMounted(() => {
 }
 
 .item-input {
-  margin-top: 4px;
-}
-
-:deep(.item-input .el-input__wrapper) {
-  border-radius: 8px;
+  margin-top: 2px;
 }
 
 .item-desc {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--color-text-tertiary);
   line-height: 1.5;
 }
 </style>

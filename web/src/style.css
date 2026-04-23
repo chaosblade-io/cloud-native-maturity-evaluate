@@ -1,10 +1,44 @@
-/* 全局样式 - 基础重置 */
+/* 阿里云风格设计系统 */
 :root {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  line-height: 1.5;
+  /* 主色 */
+  --color-primary: #1677FF;
+  --color-primary-hover: #4096FF;
+  --color-primary-active: #0958D9;
+  --color-primary-bg: #E8F3FF;
+
+  /* 功能色 */
+  --color-success: #00B42A;
+  --color-warning: #FF7D00;
+  --color-danger: #F53F3F;
+  --color-info: #86909C;
+
+  /* 文字色 */
+  --color-text-primary: #1D2129;
+  --color-text-secondary: #4E5969;
+  --color-text-tertiary: #86909C;
+  --color-text-placeholder: #C9CDD4;
+
+  /* 背景色 */
+  --color-bg-body: #F2F3F5;
+  --color-bg-white: #FFFFFF;
+  --color-bg-1: #F7F8FA;
+  --color-bg-2: #F2F3F5;
+  --color-bg-3: #E5E6EB;
+
+  /* 边框色 */
+  --color-border: #E5E6EB;
+  --color-border-2: #C9CDD4;
+
+  /* 阴影 */
+  --shadow-1: 0 1px 4px rgba(0, 0, 0, 0.06);
+  --shadow-2: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-3: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei','Helvetica Neue', Arial, sans-serif;
+  line-height: 1.5715;
   font-weight: 400;
-  color: #1f2937;
-  background-color: #f0f2f5;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-body);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -24,17 +58,56 @@ html, body, #app {
 
 a {
   font-weight: 500;
-  color: #667eea;
+  color: var(--color-primary);
   text-decoration: inherit;
 }
 
 a:hover {
-  color: #764ba2;
+  color: var(--color-primary-hover);
 }
 
-/* 消除 Element Plus 默认阴影 */
+/* Element Plus 主题覆盖 */
+:root {
+  --el-color-primary: #1677FF;
+  --el-color-primary-light-3: #4096FF;
+  --el-color-primary-light-5: #91CAFF;
+  --el-color-primary-light-7: #BAE0FF;
+  --el-color-primary-light-8: #E6F4FF;
+  --el-color-primary-light-9: #F0F9FF;
+  --el-color-primary-dark-2: #0958D9;
+  --el-border-radius-base: 6px;
+  --el-border-color: #E5E6EB;
+  --el-border-color-light: #F2F3F5;
+  --el-fill-color-blank: #FFFFFF;
+  --el-bg-color: #FFFFFF;
+  --el-text-color-primary: #1D2129;
+  --el-text-color-regular: #4E5969;
+  --el-text-color-secondary: #86909C;
+}
+
 .el-card {
-  --el-card-border-radius: 12px;
+  --el-card-border-radius: 8px;
+  --el-card-border-color: var(--color-border);
+  border: 1px solid var(--color-border) !important;
+  box-shadow: var(--shadow-1) !important;
+}
+
+.el-card__header {
+  padding: 14px 20px !important;
+  border-bottom: 1px solid var(--color-border) !important;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  font-size: 14px;
+}
+
+.el-button--primary {
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+}
+
+.el-button--primary:hover {
+  background-color: var(--color-primary-hover) !important;
+  border-color: var(--color-primary-hover) !important;
 }
 
 /* 统一滚动条样式 */
@@ -44,12 +117,12 @@ a:hover {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c0c4cc;
+  background: var(--color-bg-3);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #909399;
+  background: var(--color-border-2);
 }
 
 ::-webkit-scrollbar-track {

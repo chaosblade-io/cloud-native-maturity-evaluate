@@ -248,8 +248,8 @@ onMounted(() => {
 .collector-card,
 .result-card,
 .tip-card {
-  border-radius: 16px;
-  margin-bottom: 20px;
+  border-radius: 8px;
+  margin-bottom: 16px;
 }
 
 .card-header {
@@ -261,14 +261,14 @@ onMounted(() => {
 .header-title {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 16px;
+  gap: 8px;
+  font-size: 14px;
   font-weight: 600;
 }
 
 .header-icon {
-  font-size: 20px;
-  color: #667eea;
+  font-size: 16px;
+  color: var(--color-primary);
 }
 
 .header-actions {
@@ -290,23 +290,23 @@ onMounted(() => {
 .collector-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  border: 1px solid #e8ecf1;
-  border-radius: 12px;
-  margin-bottom: 10px;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  margin-bottom: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .collector-item:hover {
-  border-color: #667eea;
-  background: #f8faff;
+  border-color: var(--color-primary);
+  background: var(--color-primary-bg);
 }
 
 .collector-item.active {
-  border-color: #667eea;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+  border-color: var(--color-primary);
+  background: var(--color-primary-bg);
 }
 
 .collector-info {
@@ -315,73 +315,47 @@ onMounted(() => {
 
 .collector-label {
   font-weight: 500;
-  color: #1f2937;
+  color: var(--color-text-primary);
   margin-bottom: 2px;
+  font-size: 14px;
 }
 
 .collector-desc {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--color-text-tertiary);
 }
 
 .collector-arrow {
-  color: #cbd5e1;
+  color: var(--color-text-placeholder);
   transition: all 0.2s ease;
 }
 
 .collector-item:hover .collector-arrow,
 .collector-item.active .collector-arrow {
-  color: #667eea;
-  transform: translateX(4px);
+  color: var(--color-primary);
 }
 
 /* 操作按钮 */
 .action-bar {
   display: flex;
-  gap: 12px;
-  margin-top: 20px;
+  gap: 10px;
+  margin-top: 16px;
 }
 
 .action-btn {
   flex: 1;
-  height: 48px;
-  border-radius: 12px;
+  height: 40px;
+  border-radius: 6px;
   font-weight: 500;
 }
 
 /* 空状态 */
 .empty-state {
-  padding: 60px 0;
+  padding: 40px 0;
 }
 
 .empty-icon {
-  color: #cbd5e1;
-}
-
-/* 加载状态 */
-.loading-state {
-  padding: 60px 20px;
-  text-align: center;
-}
-
-.loading-animation {
-  margin-bottom: 20px;
-  color: #667eea;
-}
-
-.loading-state h3 {
-  color: #1f2937;
-  margin-bottom: 8px;
-}
-
-.loading-state p {
-  color: #94a3b8;
-  font-size: 14px;
-}
-
-.loading-progress {
-  max-width: 300px;
-  margin: 20px auto 0;
+  color: var(--color-bg-3);
 }
 
 /* 结果列表 */
@@ -393,22 +367,22 @@ onMounted(() => {
 .result-item {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 14px 16px;
-  border-radius: 12px;
-  margin-bottom: 10px;
-  background: #f8fafc;
-  border: 1px solid #e8ecf1;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  background: var(--color-bg-1);
+  border: 1px solid var(--color-border);
 }
 
 .result-item.success {
-  background: linear-gradient(135deg, rgba(103, 194, 58, 0.08) 0%, rgba(103, 194, 58, 0.04) 100%);
-  border-color: rgba(103, 194, 58, 0.3);
+  background: #F6FFED;
+  border-color: #B7EB8F;
 }
 
 .result-item.failed {
-  background: linear-gradient(135deg, rgba(245, 108, 108, 0.08) 0%, rgba(245, 108, 108, 0.04) 100%);
-  border-color: rgba(245, 108, 108, 0.3);
+  background: #FFF2F0;
+  border-color: #FFCCC7;
 }
 
 .result-status {
@@ -416,24 +390,23 @@ onMounted(() => {
 }
 
 .status-icon {
-  font-size: 24px;
+  font-size: 20px;
 }
 
 .status-icon.success {
-  color: #67c23a;
+  color: var(--color-success);
 }
 
 .status-icon.failed {
-  color: #f56c6c;
+  color: var(--color-danger);
 }
 
 .status-icon.running {
-  color: #667eea;
-  font-size: 24px;
+  color: var(--color-primary);
 }
 
 .status-icon.pending {
-  color: #c0c4cc;
+  color: var(--color-text-placeholder);
 }
 
 .result-info {
@@ -442,52 +415,53 @@ onMounted(() => {
 
 .result-name {
   font-weight: 500;
-  color: #1f2937;
+  color: var(--color-text-primary);
   margin-bottom: 2px;
+  font-size: 14px;
 }
 
 .result-message {
   font-size: 12px;
-  color: #64748b;
+  color: var(--color-text-secondary);
 }
 
 .result-time {
-  font-size: 13px;
-  color: #94a3b8;
+  font-size: 12px;
+  color: var(--color-text-tertiary);
   font-family: monospace;
 }
 
 /* 提示卡片 */
 .tip-card {
-  background: linear-gradient(135deg, #f0f7ff 0%, #e8f4fc 100%);
-  border: 1px solid #bde0fe;
+  background: #E8F4FF;
+  border: 1px solid #B8DCFF !important;
 }
 
 .tip-content {
   display: flex;
-  gap: 16px;
+  gap: 12px;
 }
 
 .tip-icon {
-  font-size: 24px;
-  color: #3b82f6;
+  font-size: 20px;
+  color: var(--color-primary);
   flex-shrink: 0;
 }
 
 .tip-text h4 {
-  color: #1e40af;
-  margin-bottom: 8px;
+  color: var(--color-primary-active);
+  margin-bottom: 6px;
   font-size: 14px;
 }
 
 .tip-text ul {
   margin: 0;
   padding-left: 16px;
-  color: #3b82f6;
+  color: var(--color-primary);
   font-size: 13px;
 }
 
 .tip-text li {
-  margin: 4px 0;
+  margin: 3px 0;
 }
 </style>

@@ -98,120 +98,110 @@ const refreshPage = () => {
 </script>
 
 <style>
-/* 全局样式重置 */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
 html, body, #app {
   height: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 .app-container {
   height: 100vh;
-  background: #f0f2f5;
+  background: var(--color-bg-body);
 }
 
 /* 侧边栏样式 */
 .app-aside {
-  background: linear-gradient(180deg, #1e3a5f 0%, #0d1b2a 100%);
+  background: var(--color-bg-white);
   display: flex;
   flex-direction: column;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+  border-right: 1px solid var(--color-border);
 }
 
 .logo {
-  padding: 24px 20px;
+  padding: 20px 16px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 10px;
+  border-bottom: 1px solid var(--color-border);
+  height: 60px;
 }
 
 .logo-icon {
-  width: 48px;
-  height: 48px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 12px;
+  width: 32px;
+  height: 32px;
+  background: var(--color-primary);
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  flex-shrink: 0;
 }
 
 .logo-text h1 {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 700;
-  color: #fff;
-  letter-spacing: 1px;
+  color: var(--color-text-primary);
+  letter-spacing: 0.5px;
 }
 
 .logo-text p {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.5);
-  margin-top: 2px;
+  color: var(--color-text-tertiary);
+  margin-top: 1px;
 }
 
 /* 菜单样式 */
 .app-menu {
   flex: 1;
   background: transparent;
-  border: none;
-  padding: 12px 0;
+  border: none !important;
+  padding: 8px 0;
 }
 
 .app-menu .el-menu-item {
-  height: 50px;
-  line-height: 50px;
-  margin: 4px 12px;
-  border-radius: 10px;
-  color: rgba(255, 255, 255, 0.7);
-  transition: all 0.3s ease;
+  height: 44px;
+  line-height: 44px;
+  margin: 2px 8px;
+  border-radius: 6px;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  transition: all 0.2s ease;
 }
 
 .app-menu .el-menu-item .el-icon {
-  font-size: 18px;
-  margin-right: 10px;
+  font-size: 16px;
+  margin-right: 8px;
+  color: var(--color-text-tertiary);
 }
 
 .app-menu .el-menu-item:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
+  background: var(--color-bg-1);
+  color: var(--color-text-primary);
+}
+
+.app-menu .el-menu-item:hover .el-icon {
+  color: var(--color-primary);
 }
 
 .app-menu .el-menu-item.is-active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+  font-weight: 500;
 }
 
-.menu-badge {
-  width: 18px;
-  height: 18px;
-  background: #f56c6c;
-  border-radius: 50%;
-  font-size: 12px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin-left: auto;
-  color: #fff;
+.app-menu .el-menu-item.is-active .el-icon {
+  color: var(--color-primary);
 }
 
 .aside-footer {
-  padding: 16px 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 12px 16px;
+  border-top: 1px solid var(--color-border);
 }
 
 .version-info {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--color-text-tertiary);
   font-size: 12px;
 }
 
@@ -219,25 +209,27 @@ html, body, #app {
 .main-container {
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 /* 头部样式 */
 .app-header {
-  background: #fff;
-  height: 70px;
+  background: var(--color-bg-white);
+  height: 60px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 24px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  border-bottom: 1px solid var(--color-border);
   z-index: 10;
+  flex-shrink: 0;
 }
 
 .header-left h2 {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
-  color: #1f2937;
-  margin-bottom: 4px;
+  color: var(--color-text-primary);
+  margin-bottom: 2px;
 }
 
 .header-left .el-breadcrumb {
@@ -247,97 +239,26 @@ html, body, #app {
 .header-right {
   display: flex;
   gap: 8px;
+  align-items: center;
 }
 
 .header-right .el-button {
-  border: none;
-  background: #f5f7fa;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-white);
+  color: var(--color-text-secondary);
 }
 
 .header-right .el-button:hover {
-  background: #e8f0fe;
-  color: #667eea;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
 }
 
 /* 主内容区 */
 .app-main {
-  padding: 24px;
-  background: #f0f2f5;
+  padding: 20px 24px;
+  background: var(--color-bg-body);
   overflow-y: auto;
-}
-
-/* 页面过渡动画 */
-.fade-slide-enter-active,
-.fade-slide-leave-active {
-  transition: all 0.25s ease;
-}
-
-.fade-slide-enter-from {
-  opacity: 0;
-  transform: translateY(10px);
-}
-
-.fade-slide-leave-to {
-  opacity: 0;
-  transform: translateY(-10px);
-}
-
-/* 配置弹窗 */
-.config-dialog .dialog-content {
-  text-align: center;
-  padding: 20px 0;
-}
-
-.config-dialog .dialog-icon {
-  color: #67c23a;
-  margin-bottom: 16px;
-}
-
-.config-dialog .dialog-content p {
-  color: #606266;
-  font-size: 14px;
-}
-
-/* 全局卡片样式优化 */
-.el-card {
-  border: none;
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-}
-
-.el-card__header {
-  border-bottom: 1px solid #f0f0f0;
-  padding: 16px 20px;
-  font-weight: 600;
-  color: #1f2937;
-}
-
-/* 按钮样式优化 */
-.el-button--primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border: none;
-}
-
-.el-button--primary:hover {
-  background: linear-gradient(135deg, #5a6fd6 0%, #6a4190 100%);
-}
-
-/* 滚动条样式 */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #c0c4cc;
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #909399;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
+  flex: 1;
 }
 </style>

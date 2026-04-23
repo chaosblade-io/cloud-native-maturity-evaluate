@@ -246,8 +246,8 @@ onMounted(() => {
 }
 
 .knowledge-card {
-  border-radius: 16px;
-  margin-bottom: 20px;
+  border-radius: 8px;
+  margin-bottom: 16px;
 }
 
 .card-header {
@@ -261,10 +261,10 @@ onMounted(() => {
 }
 
 .upload-panel {
-  margin-top: 16px;
+  margin-top: 14px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .pending-files-list {
@@ -276,7 +276,8 @@ onMounted(() => {
 .pending-file,
 .dialog-title,
 .empty-text {
-  color: #64748b;
+  color: var(--color-text-secondary);
+  font-size: 13px;
 }
 
 .upload-actions,
@@ -292,7 +293,7 @@ onMounted(() => {
 }
 
 .knowledge-option-id {
-  color: #94a3b8;
+  color: var(--color-text-tertiary);
 }
 
 .dialog-content {

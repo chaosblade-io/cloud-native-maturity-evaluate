@@ -703,12 +703,12 @@ const dimensionLabels = {
 
 // 维度颜色映射
 const dimensionColors = {
-  observability: '#667eea',
-  elasticity: '#f093fb',
-  resilience: '#4facfe',
-  automation: '#43e97b',
-  service_arch: '#fa709a',
-  serverless: '#fee140',
+  observability: '#1677FF',
+  elasticity: '#722ED1',
+  resilience: '#0ABF5B',
+  automation: '#FF7D00',
+  service_arch: '#EB2F96',
+  serverless: '#13C2C2',
 }
 
 // 维度图标映射
@@ -723,7 +723,7 @@ const dimensionIcons = {
 
 // 获取维度标签
 const getDimensionLabel = (name) => dimensionLabels[name] || name
-const getDimensionColor = (name) => dimensionColors[name] || '#667eea'
+const getDimensionColor = (name) => dimensionColors[name] || '#1677FF'
 const getDimensionIcon = (name) => dimensionIcons[name] || 'Document'
 
 // 获取分数颜色
@@ -1070,8 +1070,8 @@ onMounted(() => {
 .guidance-card,
 .detail-card,
 .empty-card {
-  border-radius: 16px;
-  margin-bottom: 20px;
+  border-radius: 8px;
+  margin-bottom: 16px;
 }
 
 .card-header {
@@ -1083,14 +1083,14 @@ onMounted(() => {
 .header-title {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 16px;
+  gap: 8px;
+  font-size: 14px;
   font-weight: 600;
 }
 
 .header-icon {
-  font-size: 20px;
-  color: #667eea;
+  font-size: 16px;
+  color: var(--color-primary);
 }
 
 .header-actions {
@@ -1104,12 +1104,13 @@ onMounted(() => {
 }
 
 :deep(.el-collapse-item__header) {
-  height: 50px;
+  height: 44px;
   padding: 0 12px;
-  border-radius: 8px;
-  background: #f8fafc;
-  border: 1px solid #e8ecf1;
+  border-radius: 6px;
+  background: var(--color-bg-1);
+  border: 1px solid var(--color-border);
   margin-bottom: 6px;
+  font-size: 14px;
 }
 
 :deep(.el-collapse-item__wrap) {
@@ -1123,17 +1124,17 @@ onMounted(() => {
 .dim-title {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
 }
 
 .dim-icon {
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .dim-name {
   font-weight: 500;
-  color: #1f2937;
+  color: var(--color-text-primary);
 }
 
 .dim-count {
@@ -1143,29 +1144,29 @@ onMounted(() => {
 
 /* 分析器列表 */
 .analyzer-list {
-  padding: 0 8px;
+  padding: 0 4px;
 }
 
 .analyzer-item {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
-  border: 1px solid #e8ecf1;
-  border-radius: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
   margin-bottom: 6px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
 .analyzer-item:hover {
-  border-color: #667eea;
-  background: #f8faff;
+  border-color: var(--color-primary);
+  background: var(--color-primary-bg);
 }
 
 .analyzer-item.active {
-  border-color: #667eea;
-  background: rgba(102, 126, 234, 0.08);
+  border-color: var(--color-primary);
+  background: var(--color-primary-bg);
 }
 
 .analyzer-info {
@@ -1175,13 +1176,13 @@ onMounted(() => {
 .analyzer-key {
   font-size: 13px;
   font-weight: 500;
-  color: #1f2937;
+  color: var(--color-text-primary);
   font-family: monospace;
 }
 
 .analyzer-meta {
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--color-text-tertiary);
   display: flex;
   gap: 12px;
   margin-top: 2px;
@@ -1189,7 +1190,7 @@ onMounted(() => {
 
 /* 操作按钮 */
 .action-bar {
-  margin-top: 16px;
+  margin-top: 14px;
 }
 
 .assist-options {
@@ -1201,13 +1202,13 @@ onMounted(() => {
 
 .action-btn {
   width: 100%;
-  height: 48px;
-  border-radius: 12px;
+  height: 40px;
+  border-radius: 6px;
   font-weight: 500;
 }
 
 .guidance-empty {
-  min-height: 220px;
+  min-height: 200px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1216,7 +1217,7 @@ onMounted(() => {
 .guidance-content {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 14px;
 }
 
 .guidance-meta {
@@ -1228,25 +1229,25 @@ onMounted(() => {
 
 .guidance-model {
   font-size: 12px;
-  color: #64748b;
+  color: var(--color-text-secondary);
 }
 
 .guidance-block {
-  border: 1px solid #e8ecf1;
-  border-radius: 12px;
-  padding: 16px;
-  background: #fbfdff;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 14px;
+  background: var(--color-bg-1);
 }
 
 .guidance-title {
   font-size: 14px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--color-text-primary);
   margin-bottom: 10px;
 }
 
 .guidance-text {
-  color: #334155;
+  color: var(--color-text-secondary);
   line-height: 1.7;
 }
 
@@ -1259,16 +1260,16 @@ onMounted(() => {
 .recommendation-item,
 .gap-item,
 .history-item {
-  border: 1px solid #e8ecf1;
-  border-radius: 10px;
-  padding: 14px;
-  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 12px;
+  background: var(--color-bg-white);
 }
 
 .recommendation-item + .recommendation-item,
 .gap-item + .gap-item,
 .history-item + .history-item {
-  margin-top: 12px;
+  margin-top: 10px;
 }
 
 .recommendation-header,
@@ -1285,21 +1286,21 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--color-text-primary);
 }
 
 .recommendation-scope,
 .gap-hint,
 .history-feedback,
 .history-summary {
-  color: #64748b;
+  color: var(--color-text-secondary);
   font-size: 13px;
 }
 
 .recommendation-text,
 .gap-text,
 .gap-scope {
-  color: #334155;
+  color: var(--color-text-secondary);
   line-height: 1.7;
 }
 
@@ -1308,13 +1309,13 @@ onMounted(() => {
   margin-bottom: 6px;
   font-size: 13px;
   font-weight: 600;
-  color: #475569;
+  color: var(--color-text-secondary);
 }
 
 .guidance-list {
   margin: 0;
   padding-left: 18px;
-  color: #334155;
+  color: var(--color-text-secondary);
   line-height: 1.7;
 }
 
@@ -1336,7 +1337,7 @@ onMounted(() => {
 .guidance-config-hint {
   margin-top: 8px;
   font-size: 12px;
-  color: #64748b;
+  color: var(--color-text-secondary);
 }
 
 .knowledge-option {
@@ -1346,7 +1347,7 @@ onMounted(() => {
 }
 
 .knowledge-option-id {
-  color: #94a3b8;
+  color: var(--color-text-tertiary);
   font-size: 12px;
 }
 
@@ -1370,46 +1371,47 @@ onMounted(() => {
 
 .status-label {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--color-text-tertiary);
 }
 
 .status-value {
   font-size: 18px;
   font-weight: 600;
-  color: #67c23a;
+  color: var(--color-success);
 }
 
 .status-value.warning {
-  color: #e6a23c;
+  color: var(--color-warning);
 }
 
 .status-alert {
-  border-radius: 8px;
+  border-radius: 6px;
 }
 
 /* 加载状态 */
 .loading-content {
-  padding: 80px 20px;
+  padding: 60px 20px;
   text-align: center;
 }
 
 .loading-animation {
-  color: #667eea;
-  margin-bottom: 24px;
+  color: var(--color-primary);
+  margin-bottom: 20px;
 }
 
 .loading-content h2 {
-  color: #1f2937;
+  color: var(--color-text-primary);
   margin-bottom: 8px;
+  font-size: 18px;
 }
 
 .loading-content p {
-  color: #64748b;
+  color: var(--color-text-secondary);
 }
 
 .loading-progress {
   max-width: 400px;
-  margin: 24px auto 0;
+  margin: 20px auto 0;
 }
 
 /* 总览卡片 */
@@ -1417,14 +1419,14 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 32px;
-  padding: 16px 0;
+  padding: 8px 0;
 }
 
 .score-section {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .score-inner {
@@ -1434,46 +1436,51 @@ onMounted(() => {
 }
 
 .score-value {
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--color-text-primary);
 }
 
 .score-label {
   font-size: 12px;
-  color: #64748b;
+  color: var(--color-text-secondary);
 }
 
 .maturity-badge {
-  padding: 4px 16px;
-  border-radius: 20px;
-  font-size: 14px;
+  padding: 3px 14px;
+  border-radius: 4px;
+  font-size: 13px;
   font-weight: 500;
 }
 
 .maturity-badge.excellent {
-  background: linear-gradient(135deg, #67c23a 0%, #95d475 100%);
-  color: #fff;
+  background: #F6FFED;
+  color: #389E0D;
+  border: 1px solid #B7EB8F;
 }
 
 .maturity-badge.good {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: #fff;
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+  border: 1px solid #91CAFF;
 }
 
 .maturity-badge.fair {
-  background: linear-gradient(135deg, #e6a23c 0%, #f5c77e 100%);
-  color: #fff;
+  background: #FFFBE6;
+  color: #D48806;
+  border: 1px solid #FFE58F;
 }
 
 .maturity-badge.basic {
-  background: #909399;
-  color: #fff;
+  background: var(--color-bg-2);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
 }
 
 .maturity-badge.none {
-  background: #f56c6c;
-  color: #fff;
+  background: #FFF2F0;
+  color: #CF1322;
+  border: 1px solid #FFCCC7;
 }
 
 .stats-section {
@@ -1490,27 +1497,27 @@ onMounted(() => {
 }
 
 .stat-item .stat-value {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--color-text-primary);
 }
 
 .stat-item.highlight .stat-value {
-  color: #667eea;
+  color: var(--color-primary);
 }
 
 .stat-item.coverage .stat-value {
-  color: #0f766e;
+  color: #0ABF5B;
 }
 
 .stat-item .stat-label {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--color-text-tertiary);
 }
 
 .stat-divider {
   font-size: 20px;
-  color: #cbd5e1;
+  color: var(--color-text-placeholder);
 }
 
 .action-section {
@@ -1521,53 +1528,53 @@ onMounted(() => {
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+  gap: 12px;
 }
 
 .summary-item {
-  padding: 16px;
-  background: #f8fafc;
-  border: 1px solid #e8ecf1;
-  border-radius: 12px;
+  padding: 14px;
+  background: var(--color-bg-1);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease;
 }
 
 .summary-item:hover {
-  border-color: #667eea;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+  border-color: var(--color-primary);
 }
 
 .summary-header {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   font-weight: 500;
-  color: #1f2937;
+  color: var(--color-text-primary);
+  font-size: 14px;
 }
 
 .summary-score {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .score-num {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--color-text-primary);
 }
 
 .summary-meta {
   font-size: 12px;
-  color: #94a3b8;
-  margin-top: 8px;
+  color: var(--color-text-tertiary);
+  margin-top: 6px;
 }
 
 .summary-meta.coverage-meta {
-  color: #0f766e;
+  color: #0ABF5B;
   margin-top: 4px;
 }
 
@@ -1586,16 +1593,16 @@ onMounted(() => {
 
 .reason-text {
   font-size: 12px;
-  color: #64748b;
+  color: var(--color-text-secondary);
 }
 
 /* 空状态 */
 .empty-card {
-  padding: 80px 0;
+  padding: 60px 0;
 }
 
 .empty-icon {
-  color: #cbd5e1;
+  color: var(--color-bg-3);
 }
 
 /* 抽屉内容 */
@@ -1607,8 +1614,8 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: 10px;
+  margin-bottom: 16px;
 }
 
 .drawer-meta {
@@ -1616,20 +1623,20 @@ onMounted(() => {
   align-items: center;
   gap: 12px;
   font-size: 14px;
-  color: #64748b;
+  color: var(--color-text-secondary);
 }
 
 .indicator-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .indicator-item {
-  padding: 14px;
-  background: #f8fafc;
-  border-radius: 10px;
-  border: 1px solid #e8ecf1;
+  padding: 12px;
+  background: var(--color-bg-1);
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
 }
 
 .indicator-header {
@@ -1648,19 +1655,19 @@ onMounted(() => {
   font-family: monospace;
   font-size: 13px;
   font-weight: 500;
-  color: #1f2937;
+  color: var(--color-text-primary);
 }
 
 .indicator-reason {
   font-size: 12px;
-  color: #64748b;
-  margin-top: 8px;
+  color: var(--color-text-secondary);
+  margin-top: 6px;
 }
 
 .indicator-evidence {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 8px;
+  margin-top: 6px;
 }
 </style>

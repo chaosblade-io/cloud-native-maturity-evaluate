@@ -277,8 +277,8 @@ onMounted(() => {
 .upload-card,
 .sample-card,
 .result-card {
-  border-radius: 16px;
-  margin-bottom: 20px;
+  border-radius: 8px;
+  margin-bottom: 16px;
 }
 
 .card-header {
@@ -290,14 +290,14 @@ onMounted(() => {
 .header-title {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 16px;
+  gap: 8px;
+  font-size: 14px;
   font-weight: 600;
 }
 
 .header-icon {
-  font-size: 20px;
-  color: #667eea;
+  font-size: 16px;
+  color: var(--color-primary);
 }
 
 /* 上传区域 */
@@ -306,52 +306,52 @@ onMounted(() => {
 }
 
 :deep(.el-upload-dragger) {
-  border: 2px dashed #e2e8f0;
-  border-radius: 12px;
-  background: #fafbfc;
-  transition: all 0.3s ease;
-  padding: 40px 20px;
+  border: 1px dashed var(--color-border-2);
+  border-radius: 6px;
+  background: var(--color-bg-1);
+  transition: all 0.2s ease;
+  padding: 32px 20px;
 }
 
 :deep(.el-upload-dragger:hover) {
-  border-color: #667eea;
-  background: #f8faff;
+  border-color: var(--color-primary);
+  background: var(--color-primary-bg);
 }
 
 .upload-content {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 }
 
 .upload-icon {
-  font-size: 48px;
-  color: #667eea;
+  font-size: 40px;
+  color: var(--color-primary);
 }
 
 .upload-text .main-text {
-  font-size: 16px;
-  color: #374151;
+  font-size: 15px;
+  color: var(--color-text-primary);
   font-weight: 500;
 }
 
 .upload-text .sub-text {
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--color-text-tertiary);
   margin-top: 4px;
 }
 
 .upload-text em {
-  color: #667eea;
+  color: var(--color-primary);
   font-style: normal;
 }
 
 /* 预览区域 */
 .preview-area {
-  margin-top: 20px;
-  border: 1px solid #e8ecf1;
-  border-radius: 12px;
+  margin-top: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
   overflow: hidden;
 }
 
@@ -359,11 +359,12 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
-  background: #f8fafc;
-  border-bottom: 1px solid #e8ecf1;
+  padding: 10px 14px;
+  background: var(--color-bg-1);
+  border-bottom: 1px solid var(--color-border);
   font-weight: 500;
-  color: #374151;
+  color: var(--color-text-primary);
+  font-size: 13px;
 }
 
 .preview-json,
@@ -375,15 +376,15 @@ onMounted(() => {
   white-space: pre-wrap;
   word-break: break-all;
   margin: 0;
-  padding: 16px;
-  color: #374151;
+  padding: 14px;
+  color: var(--color-text-primary);
 }
 
 .upload-btn {
-  margin-top: 20px;
+  margin-top: 16px;
   width: 100%;
-  height: 44px;
-  border-radius: 10px;
+  height: 40px;
+  border-radius: 6px;
 }
 
 /* 结果卡片 */
@@ -391,7 +392,7 @@ onMounted(() => {
   display: flex;
   justify-content: center;
   gap: 40px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .stat-item {
@@ -400,31 +401,31 @@ onMounted(() => {
 
 .stat-value {
   display: block;
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 700;
-  color: #667eea;
+  color: var(--color-primary);
 }
 
 .stat-label {
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--color-text-tertiary);
 }
 
 .result-table {
-  border-radius: 8px;
+  border-radius: 6px;
   overflow: hidden;
 }
 
 /* 示例卡片 */
 .format-tip {
-  margin-bottom: 16px;
-  border-radius: 10px;
+  margin-bottom: 14px;
+  border-radius: 6px;
 }
 
 .tip-list {
-  margin: 8px 0 0;
+  margin: 6px 0 0;
   padding-left: 16px;
-  color: #64748b;
+  color: var(--color-text-secondary);
   font-size: 13px;
 }
 
@@ -433,9 +434,9 @@ onMounted(() => {
 }
 
 .sample-container {
-  border: 1px solid #e8ecf1;
-  border-radius: 12px;
-  background: #fafbfc;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-bg-1);
   overflow: hidden;
 }
 
@@ -445,19 +446,7 @@ onMounted(() => {
 }
 
 .template-json {
-  background: #1e293b;
-  color: #e2e8f0;
-}
-
-/* 过渡动画 */
-.fade-enter-active,
-.fade-leave-active {
-  transition: all 0.3s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-  transform: translateY(-10px);
+  background: #1E2430;
+  color: #E5EBF3;
 }
 </style>
