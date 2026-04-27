@@ -15,6 +15,8 @@ from __future__ import annotations
 import json
 import os
 import re
+import random
+import hashlib
 from dataclasses import asdict, is_dataclass
 from datetime import datetime
 from typing import Any
@@ -22,6 +24,10 @@ from typing import Any
 import requests
 
 from sesora.core.analyzer import ScoreResult, ScoreState
+
+
+DEFAULT_SAMPLE_RECORDS = 10
+DEFAULT_SAMPLE_SEED = 42
 
 
 def is_agent_assist_enabled_for_analyzer(key: str) -> bool:
@@ -73,7 +79,19 @@ def _llm_config() -> tuple[str, str, str] | None:
     return api_key, base_url.rstrip("/"), model_name
 
 
-def _build_data_snapshot(analyzer: Any, store: Any, max_records: int = 3) -> dict[str, Any]:
+def _stable_sample(records: list[Any], sample_size: int, seed_basis: str) -> list[Any]:
+    if sample_size <= 0 or len(records) <= sample_size:
+        return records[:sample_size] if sample_size > 0 else []
+
+    digest = hashlib.sha256(seed_basis.encode("utf-8")).digest()
+    seed = int.from_bytes(digest[:8], "big")
+    rng = random.Random(seed)
+    selected_indices = sorted(rng.sample(range(len(records)), sample_size))
+    return [records[i] for i in selected_indices]
+
+
+def _build_data_snapshot(analyzer: Any, store: Any, max_records: int = DEFAULT_SAMPLE_RECORDS) -> dict[str, Any]:
+    # It is possible to iterate over the whole data store but may be inefficient, so sample a subset of data items for now.
     dataitems: list[str] = []
     for name in analyzer.required_data():
         if name not in dataitems:
@@ -86,10 +104,15 @@ def _build_data_snapshot(analyzer: Any, store: Any, max_records: int = 3) -> dic
     for name in dataitems:
         available = store.available(name)
         records = store.get(name) if available else []
+        sampled_records = _stable_sample(
+            records=records,
+            sample_size=max_records,
+            seed_basis=f"{DEFAULT_SAMPLE_SEED}:{analyzer.key()}:{name}:{len(records)}",
+        )
         snapshot[name] = {
             "available": available,
             "records_count": len(records),
-            "sample_records": [_serialize_value(r) for r in records[:max_records]],
+            "sample_records": [_serialize_value(r) for r in sampled_records],
         }
     return snapshot
 
