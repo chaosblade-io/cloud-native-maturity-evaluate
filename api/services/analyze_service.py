@@ -364,16 +364,22 @@ class AnalyzeService:
             incremental_info: dict = {"mode": "full", "recomputed_keys": [], "cached_keys": [], "dirty_dataitems": []}
 
             if incremental and tracker.has_cache():
+                cache = store.load_analysis_cache()
                 dirty_items = tracker.get_dirty_dataitems()
                 affected_keys = tracker.get_affected_keys()
-                # 只在 all_keys 范围内重算
-                recompute_keys = [k for k in affected_keys if k in set(all_keys)]
+                requested_key_set = set(all_keys)
+                missing_keys = [k for k in all_keys if k not in cache]
+
+                # 只在 all_keys 范围内重算，并强制补算缓存中不存在的请求项
+                recompute_set = {k for k in affected_keys if k in requested_key_set}
+                recompute_set.update(missing_keys)
+                recompute_keys = [k for k in all_keys if k in recompute_set]
 
                 incremental_info = {
                     "mode": "incremental",
                     "dirty_dataitems": dirty_items,
                     "recomputed_keys": recompute_keys,
-                    "cached_keys": [k for k in all_keys if k not in set(recompute_keys)],
+                    "cached_keys": [k for k in all_keys if k in cache and k not in recompute_set],
                 }
 
                 if recompute_keys:
@@ -386,7 +392,6 @@ class AnalyzeService:
 
                     merged_dicts = tracker.merge_with_cache(new_score_results, all_keys)
                     # 更新缓存
-                    cache = store.load_analysis_cache()
                     for r in new_score_results:
                         from sesora.utils.incremental import _score_result_to_dict
                         cache[r.key] = _score_result_to_dict(r)
