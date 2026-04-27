@@ -13,14 +13,26 @@
             <el-button size="small" text @click="selectAll">全选</el-button>
             <el-button size="small" text @click="selectNone">清空</el-button>
           </div>
-          <input
-            ref="jsonFileInput"
-            type="file"
-            accept=".json,application/json"
-            style="display: none"
-            @change="handleJsonFileChange"
-          />
         </div>
+        <div class="agent-assist-bar">
+          <span class="agent-assist-label">
+            <el-icon><MagicStick /></el-icon>
+            Agent 评估
+            <el-tag size="small" type="primary" effect="plain">{{ agentAssistKeys.length }} 项</el-tag>
+          </span>
+          <div class="agent-assist-actions">
+            <el-button size="small" text @click="applyDefaultAgentAssistKeys">使用预置</el-button>
+            <el-button size="small" text @click="useSelectedAsAgentAssistKeys">同步选中</el-button>
+            <el-button size="small" text @click="clearAgentAssistKeys">清空</el-button>
+          </div>
+        </div>
+        <input
+          ref="jsonFileInput"
+          type="file"
+          accept=".json,application/json"
+          style="display: none"
+          @change="handleJsonFileChange"
+        />
 
         <div class="section-body analyzer-scroll">
           <el-collapse v-model="expandedDimensions" class="dimension-collapse">
@@ -66,6 +78,13 @@
                       <span>满分: {{ analyzer.max_score }}</span>
                     </div>
                   </div>
+                  <el-tooltip content="切换 Agent 评估" placement="top" :show-after="400">
+                    <span
+                      class="agent-badge"
+                      :class="{ 'agent-badge-active': agentAssistKeys.includes(analyzer.key) }"
+                      @click.stop="toggleAgentAssist(analyzer.key)"
+                    >AI</span>
+                  </el-tooltip>
                 </div>
               </div>
             </el-collapse-item>
@@ -73,37 +92,11 @@
         </div>
 
         <div class="section-footer action-bar">
-          <div class="assist-options">
-            <div class="assist-label">Agent 指标集合</div>
-            <el-select
-              v-model="agentAssistKeys"
-              multiple
-              filterable
-              collapse-tags
-              collapse-tags-tooltip
-              placeholder="选择由 Agent 分析的 metrics"
-              style="width: 380px"
-            >
-              <el-option
-                v-for="item in analyzers"
-                :key="item.key"
-                :label="item.key"
-                :value="item.key"
-              />
-            </el-select>
-            <el-button size="small" text @click="applyDefaultAgentAssistKeys">使用预置</el-button>
-            <el-button size="small" text @click="useSelectedAsAgentAssistKeys">同步当前选中</el-button>
-            <el-button size="small" text @click="clearAgentAssistKeys">清空</el-button>
-            <el-tag size="small" type="info">{{ getCurrentAgentAssistKeys().length }} 项生效</el-tag>
-          </div>
           <div class="analyze-mode-bar">
             <el-radio-group v-model="analyzeMode" size="small">
               <el-radio-button value="full">全量评估</el-radio-button>
               <el-radio-button value="incremental">增量评估</el-radio-button>
             </el-radio-group>
-            <span class="analyze-mode-hint" v-if="analyzeMode === 'incremental'">
-              仅重算数据有变更的指标，其余使用上次结果
-            </span>
           </div>
           <el-button
             type="primary"
@@ -863,6 +856,16 @@ const toggleAnalyzer = (key) => {
   }
 }
 
+// 切换 Agent 评估
+const toggleAgentAssist = (key) => {
+  const idx = agentAssistKeys.value.indexOf(key)
+  if (idx === -1) {
+    agentAssistKeys.value.push(key)
+  } else {
+    agentAssistKeys.value.splice(idx, 1)
+  }
+}
+
 // 全选/清空
 const selectAll = () => {
   selectedKeys.value = analyzers.value.map(a => a.key)
@@ -1286,10 +1289,57 @@ onMounted(() => {
   gap: 10px;
 }
 
-.assist-options {
+/* Agent 评估快捷栏 */
+.agent-assist-bar {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: var(--el-color-primary-light-9);
+  border: 1px solid var(--el-color-primary-light-7);
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.agent-assist-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--el-color-primary-dark-2);
+}
+
+.agent-assist-actions {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+/* 分析器条目中的 AI 标记 */
+.agent-badge {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  color: var(--el-text-color-placeholder);
+  background: transparent;
+  user-select: none;
+  transition: all 0.15s ease;
+}
+
+.agent-badge:hover {
+  border-color: var(--el-color-primary-light-3);
+  color: var(--el-color-primary);
+}
+
+.agent-badge-active {
+  background: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+  color: #fff !important;
 }
 
 .action-btn {
