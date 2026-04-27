@@ -428,12 +428,6 @@
                     </div>
                   </el-option>
                 </el-select>
-                <el-input-number v-model="guidanceExternalMaxChars" :min="1000" :max="120000" :step="1000" />
-                <el-input-number v-model="guidanceExternalMaxChunks" :min="1" :max="100" />
-                <el-input-number v-model="guidanceExternalChunkChars" :min="200" :max="5000" :step="100" />
-              </div>
-              <div class="guidance-config-hint">
-                文档由服务端知识库统一维护，前端仅提交文档 ID。
               </div>
               <div class="guidance-config-hint">
                 已选择 {{ selectedKnowledgeDocIds.length }} / {{ knowledgeDocs.length }} 份文档。
@@ -713,9 +707,6 @@ const guidanceSession = ref(null)
 const guidanceFeedback = ref('')
 const knowledgeDocs = ref([])
 const selectedKnowledgeDocIds = ref([])
-const guidanceExternalMaxChars = ref(12000)
-const guidanceExternalMaxChunks = ref(12)
-const guidanceExternalChunkChars = ref(800)
 const lastAnalysisRequest = ref({
   keys: [],
   agentAssistKeys: [],
@@ -953,9 +944,6 @@ const clearGuidanceSession = () => {
 
 const buildExternalKnowledgePayload = () => ({
   knowledge_doc_ids: [...selectedKnowledgeDocIds.value],
-  external_knowledge_max_chars: Number(guidanceExternalMaxChars.value || 12000),
-  external_knowledge_max_chunks: Number(guidanceExternalMaxChunks.value || 12),
-  external_knowledge_chunk_chars: Number(guidanceExternalChunkChars.value || 800),
 })
 
 const loadKnowledgeDocs = async () => {
