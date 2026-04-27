@@ -96,6 +96,15 @@
             <el-button size="small" text @click="clearAgentAssistKeys">清空</el-button>
             <el-tag size="small" type="info">{{ getCurrentAgentAssistKeys().length }} 项生效</el-tag>
           </div>
+          <div class="analyze-mode-bar">
+            <el-radio-group v-model="analyzeMode" size="small">
+              <el-radio-button value="full">全量评估</el-radio-button>
+              <el-radio-button value="incremental">增量评估</el-radio-button>
+            </el-radio-group>
+            <span class="analyze-mode-hint" v-if="analyzeMode === 'incremental'">
+              仅重算数据有变更的指标，其余使用上次结果
+            </span>
+          </div>
           <el-button
             type="primary"
             :loading="analyzing"
@@ -216,6 +225,32 @@
             </div>
           </div>
 
+          <!-- 增量评估信息 -->
+          <div v-if="analyzeResult.incremental_info?.mode === 'incremental'" class="incremental-banner">
+            <el-icon class="incremental-icon"><Lightning /></el-icon>
+            <span class="incremental-label">增量评估</span>
+            <span class="incremental-detail">
+              重算 <strong>{{ analyzeResult.incremental_info.recomputed_keys.length }}</strong> 项
+              · 缓存 <strong>{{ analyzeResult.incremental_info.cached_keys.length }}</strong> 项
+              · 触发变更数据项 <strong>{{ analyzeResult.incremental_info.dirty_dataitems.length }}</strong> 个
+            </span>
+            <el-tooltip placement="bottom" :show-after="200">
+              <template #content>
+                <div style="max-width:320px">
+                  <div v-if="analyzeResult.incremental_info.dirty_dataitems.length">
+                    <strong>变更数据项：</strong>
+                    <div v-for="d in analyzeResult.incremental_info.dirty_dataitems" :key="d" style="font-size:12px">{{ d }}</div>
+                  </div>
+                  <div v-if="analyzeResult.incremental_info.recomputed_keys.length" style="margin-top:8px">
+                    <strong>重新评估的指标：</strong>
+                    <div v-for="k in analyzeResult.incremental_info.recomputed_keys" :key="k" style="font-size:12px">{{ k }}</div>
+                  </div>
+                </div>
+              </template>
+              <el-icon class="incremental-info-icon"><InfoFilled /></el-icon>
+            </el-tooltip>
+          </div>
+
           <hr class="section-divider" />
           <div class="section-header">
             <span class="section-title">维度汇总</span>
@@ -305,6 +340,17 @@
               <el-table-column label="AI" width="70" align="center">
                 <template #default="{ row }">
                   <el-tag v-if="row.ai_assisted" type="primary" size="small">AI</el-tag>
+                  <span v-else>-</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="来源" width="70" align="center">
+                <template #default="{ row }">
+                  <el-tag
+                    v-if="isKeyFromCache(row.key)"
+                    type="info"
+                    size="small"
+                    effect="plain"
+                  >缓存</el-tag>
                   <span v-else>-</span>
                 </template>
               </el-table-column>
@@ -600,6 +646,7 @@ import { getAnalyzers, getDataStatus, getKnowledgeDocs, runAnalysis, generateGui
 
 // 状态
 const loadingAnalyzers = ref(false)
+const analyzeMode = ref('full')  // 'full' | 'incremental'
 
 // JSON 配置导入
 const jsonFileInput = ref(null)
@@ -860,6 +907,13 @@ const dimensionResults = computed(() => {
   return analyzeResult.value.results.filter(r => r.dimension === currentDimension.value.dimension)
 })
 
+// 判断某个 key 是否来自缓存（增量模式下）
+const cachedKeySet = computed(() => {
+  const cached = analyzeResult.value?.incremental_info?.cached_keys
+  return cached ? new Set(cached) : new Set()
+})
+const isKeyFromCache = (key) => cachedKeySet.value.has(key)
+
 const guidanceTurns = computed(() => guidanceSession.value?.turns || [])
 
 const currentGuidanceTurn = computed(() => {
@@ -973,6 +1027,7 @@ const handleAnalyze = async () => {
   try {
     const result = await runAnalysis(analysisRequest.keys, {
       agentAssistKeys: analysisRequest.agentAssistKeys,
+      incremental: analyzeMode.value === 'incremental',
     })
     analyzeProgress.value = 100
     
@@ -1079,6 +1134,54 @@ onMounted(() => {
 <style scoped>
 .analyze-view {
   min-height: 100%;
+}
+
+/* 评估模式选择条 */
+.analyze-mode-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0 4px;
+}
+
+.analyze-mode-hint {
+  font-size: 12px;
+  color: var(--el-color-info);
+}
+
+/* 增量信息横幅 */
+.incremental-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 8px 12px;
+  background: var(--el-color-info-light-9);
+  border: 1px solid var(--el-color-info-light-5);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--el-color-info-dark-2);
+}
+
+.incremental-icon {
+  color: var(--el-color-warning);
+  font-size: 16px;
+}
+
+.incremental-label {
+  font-weight: 600;
+  color: var(--el-color-warning-dark-2);
+}
+
+.incremental-detail {
+  flex: 1;
+  color: var(--el-text-color-secondary);
+}
+
+.incremental-info-icon {
+  cursor: pointer;
+  color: var(--el-color-info);
+  font-size: 15px;
 }
 
 /* 维度折叠面板 */

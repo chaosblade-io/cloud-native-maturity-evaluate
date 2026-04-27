@@ -216,6 +216,7 @@ class AnalyzeRequest(BaseModel):
     agent_assist: bool = Field(default=False, description="是否启用 Agent 辅助评估")
     agent_assist_keys: list[str] = Field(default=[], description="启用 Agent 辅助的 key 列表，空列表表示不额外限定")
     agent_assist_temperature: Optional[float] = Field(default=None, description="Agent 辅助评估温度参数")
+    incremental: bool = Field(default=False, description="是否启用增量评估模式")
 
 
 class AnalyzeResult(BaseModel):
@@ -242,6 +243,14 @@ class DimensionSummary(BaseModel):
     count: int
 
 
+class IncrementalInfo(BaseModel):
+    """增量评估信息"""
+    mode: str = "full"  # full | incremental
+    dirty_dataitems: list[str] = []
+    recomputed_keys: list[str] = []
+    cached_keys: list[str] = []
+
+
 class AnalyzeResponse(BaseResponse):
     """分析响应"""
     results: list[AnalyzeResult] = []
@@ -250,6 +259,7 @@ class AnalyzeResponse(BaseResponse):
     total_max_score: int = 0
     total_percentage: float = 0
     overall_maturity: str = ""
+    incremental_info: Optional[IncrementalInfo] = None
 
 
 class GuidanceRequest(BaseModel):

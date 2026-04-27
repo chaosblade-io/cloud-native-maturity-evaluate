@@ -137,6 +137,81 @@ class AnalyzeService:
         return all_items, required_items, optional_items
     
     @classmethod
+    def _build_results_and_summary(
+        cls,
+        raw_results: list,
+        metadata: dict,
+    ) -> tuple[list[AnalyzeResult], list[DimensionSummary], int, int, float, str]:
+        """将 ScoreResult 列表转换为 API 响应需要的结构。"""
+        results = []
+        for r in raw_results:
+            info = metadata.get(r.key, {})
+            pct = (r.score / r.max_score * 100) if r.max_score > 0 else 0
+
+            results.append(AnalyzeResult(
+                key=r.key,
+                dimension=info.get("dimension", ""),
+                category=info.get("category", ""),
+                state=r.state.value if hasattr(r.state, "value") else str(r.state),
+                score=r.score,
+                max_score=r.max_score,
+                percentage=round(pct, 1),
+                reason=r.reason,
+                evidence=r.evidence[:10] if r.evidence else [],
+                ai_assisted=any(
+                    "使用 Agent 辅助评估（agent-assist）" in str(ev)
+                    for ev in (r.evidence or [])
+                ),
+            ))
+
+        by_dimension: dict[str, dict] = {}
+        total_score = 0
+        total_max = 0
+
+        for r in results:
+            dim = r.dimension or "Unknown"
+            if dim not in by_dimension:
+                by_dimension[dim] = {"score": 0, "max_score": 0, "count": 0}
+
+            if r.state in ("scored", "not_scored"):
+                by_dimension[dim]["score"] += r.score
+                by_dimension[dim]["max_score"] += r.max_score
+                by_dimension[dim]["count"] += 1
+                total_score += r.score
+                total_max += r.max_score
+
+        summary = []
+        for dim in sorted(by_dimension.keys()):
+            data = by_dimension[dim]
+            pct = (data["score"] / data["max_score"] * 100) if data["max_score"] > 0 else 0
+            summary.append(DimensionSummary(
+                dimension=dim,
+                score=data["score"],
+                max_score=data["max_score"],
+                percentage=round(pct, 1),
+                maturity_level=cls.get_maturity_level(pct),
+                count=data["count"],
+            ))
+
+        total_pct = (total_score / total_max * 100) if total_max > 0 else 0
+        overall_maturity = cls.get_maturity_level(total_pct)
+        return results, summary, total_score, total_max, round(total_pct, 1), overall_maturity
+
+    @classmethod
+    def _cached_dict_to_score_result(cls, d: dict):
+        """将缓存字典恢复为伪 ScoreResult 可迭代对象（鸭子类型）。"""
+        from sesora.core.analyzer import ScoreResult, ScoreState
+        state_map = {s.value: s for s in ScoreState}
+        return ScoreResult(
+            key=d["key"],
+            state=state_map.get(d["state"], ScoreState.NOT_EVALUATED),
+            score=d["score"],
+            max_score=d["max_score"],
+            reason=d["reason"],
+            evidence=d.get("evidence", []),
+        )
+
+    @classmethod
     def run_analysis(
         cls,
         keys: list[str] = None,
@@ -144,99 +219,89 @@ class AnalyzeService:
         agent_assist: bool = False,
         agent_assist_keys: Optional[list[str]] = None,
         agent_assist_temperature: Optional[float] = None,
-    ) -> tuple[list[AnalyzeResult], list[DimensionSummary], int, int, float, str]:
+        incremental: bool = False,
+    ) -> tuple[list[AnalyzeResult], list[DimensionSummary], int, int, float, str, dict]:
         """
-        执行评估分析
-        
+        执行评估分析（支持增量模式）
+
         Args:
             keys: 要执行的分析器 key 列表，None 表示全部
             db_name: 数据库文件名
-            
+            agent_assist: 是否启用 Agent 辅助
+            incremental: 是否使用增量评估模式
+
         Returns:
-            (results, summary, total_score, total_max, percentage, maturity) 元组
+            (results, summary, total_score, total_max, percentage, maturity, incremental_info) 元组
+            incremental_info 包含本次增量评估的元数据
         """
         from sesora.store.sqlite_store import SQLiteDataStore
         from sesora.engine import AssessmentEngine
-        from sesora.core.analyzer import ScoreState
         from sesora.analyzers import get_analyzer_metadata
-        
+        from sesora.utils.incremental import IncrementalTracker
+
         db_path = cls.DB_DIR / db_name
-        
+
         if not db_path.exists():
             raise FileNotFoundError(f"数据库文件不存在: {db_path}")
-        
+
         with SQLiteDataStore(db_path) as store:
             engine = AssessmentEngine(store=store)
             metadata = get_analyzer_metadata()
-            
-            # 确定要执行的分析器
-            if not keys:
-                all_analyzers = engine.registry.get_all()
-                keys = [a.key() for a in all_analyzers]
-            
-            # 执行分析
-            with agent_assist_env(
-                enabled=agent_assist,
-                keys=agent_assist_keys,
-                temperature=agent_assist_temperature,
-            ):
-                score_results = engine.registry.run_by_keys(store, keys)
-            
-            # 转换结果
-            results = []
-            for r in score_results:
-                info = metadata.get(r.key, {})
-                pct = (r.score / r.max_score * 100) if r.max_score > 0 else 0
-                
-                results.append(AnalyzeResult(
-                    key=r.key,
-                    dimension=info.get("dimension", ""),
-                    category=info.get("category", ""),
-                    state=r.state.value if hasattr(r.state, "value") else str(r.state),
-                    score=r.score,
-                    max_score=r.max_score,
-                    percentage=round(pct, 1),
-                    reason=r.reason,
-                    evidence=r.evidence[:10] if r.evidence else [],
-                    ai_assisted=any(
-                        "使用 Agent 辅助评估（agent-assist）" in str(ev)
-                        for ev in (r.evidence or [])
-                    ),
-                ))
-            
-            # 按维度汇总
-            by_dimension: dict[str, dict] = {}
-            total_score = 0
-            total_max = 0
-            
-            for r in results:
-                dim = r.dimension or "Unknown"
-                if dim not in by_dimension:
-                    by_dimension[dim] = {"score": 0, "max_score": 0, "count": 0}
-                
-                if r.state in ("scored", "not_scored"):
-                    by_dimension[dim]["score"] += r.score
-                    by_dimension[dim]["max_score"] += r.max_score
-                    by_dimension[dim]["count"] += 1
-                    total_score += r.score
-                    total_max += r.max_score
-            
-            # 生成维度汇总
-            summary = []
-            for dim in sorted(by_dimension.keys()):
-                data = by_dimension[dim]
-                pct = (data["score"] / data["max_score"] * 100) if data["max_score"] > 0 else 0
-                summary.append(DimensionSummary(
-                    dimension=dim,
-                    score=data["score"],
-                    max_score=data["max_score"],
-                    percentage=round(pct, 1),
-                    maturity_level=cls.get_maturity_level(pct),
-                    count=data["count"],
-                ))
-            
-            # 计算总体成熟度
-            total_pct = (total_score / total_max * 100) if total_max > 0 else 0
-            overall_maturity = cls.get_maturity_level(total_pct)
-            
-            return results, summary, total_score, total_max, round(total_pct, 1), overall_maturity
+
+            # 确定全部可用的 key 列表（保持顺序）
+            all_keys = keys if keys else [a.key() for a in engine.registry.get_all()]
+
+            tracker = IncrementalTracker(store, metadata)
+
+            incremental_info: dict = {"mode": "full", "recomputed_keys": [], "cached_keys": [], "dirty_dataitems": []}
+
+            if incremental and tracker.has_cache():
+                dirty_items = tracker.get_dirty_dataitems()
+                affected_keys = tracker.get_affected_keys()
+                # 只在 all_keys 范围内重算
+                recompute_keys = [k for k in affected_keys if k in set(all_keys)]
+
+                incremental_info = {
+                    "mode": "incremental",
+                    "dirty_dataitems": dirty_items,
+                    "recomputed_keys": recompute_keys,
+                    "cached_keys": [k for k in all_keys if k not in set(recompute_keys)],
+                }
+
+                if recompute_keys:
+                    with agent_assist_env(
+                        enabled=agent_assist,
+                        keys=agent_assist_keys,
+                        temperature=agent_assist_temperature,
+                    ):
+                        new_score_results = engine.registry.run_by_keys(store, recompute_keys)
+
+                    merged_dicts = tracker.merge_with_cache(new_score_results, all_keys)
+                    # 更新缓存
+                    cache = store.load_analysis_cache()
+                    for r in new_score_results:
+                        from sesora.utils.incremental import _score_result_to_dict
+                        cache[r.key] = _score_result_to_dict(r)
+                    store.save_analysis_cache(cache)
+                else:
+                    merged_dicts = tracker.load_cache(all_keys)
+
+                tracker.commit(recompute_keys)
+
+                # 将缓存字典转为 ScoreResult
+                score_results = [cls._cached_dict_to_score_result(d) for d in merged_dicts]
+            else:
+                # 全量评估
+                with agent_assist_env(
+                    enabled=agent_assist,
+                    keys=agent_assist_keys,
+                    temperature=agent_assist_temperature,
+                ):
+                    score_results = engine.registry.run_by_keys(store, all_keys)
+
+                tracker.save_full_cache(score_results)
+
+            results, summary, total_score, total_max, total_pct, overall_maturity = \
+                cls._build_results_and_summary(score_results, metadata)
+
+            return results, summary, total_score, total_max, total_pct, overall_maturity, incremental_info

@@ -125,7 +125,23 @@ class SQLiteDataStore(DataStore):
             CREATE TABLE IF NOT EXISTS data_items (
                 name TEXT PRIMARY KEY,
                 status TEXT CHECK(status IN ('available', 'unavailable', 'partial')),
-                updated_at INTEGER
+                updated_at INTEGER,
+                dirty INTEGER NOT NULL DEFAULT 1
+            )
+        """)
+
+        # 为旧表补充 dirty 列（若尚不存在）
+        try:
+            cursor.execute("ALTER TABLE data_items ADD COLUMN dirty INTEGER NOT NULL DEFAULT 1")
+        except Exception:
+            pass  # 列已存在，忽略
+
+        # 分析结果缓存表
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS analysis_cache (
+                cache_key TEXT PRIMARY KEY,
+                results_json TEXT NOT NULL,
+                saved_at INTEGER NOT NULL
             )
         """)
         
@@ -184,17 +200,18 @@ class SQLiteDataStore(DataStore):
         
         records_json = json.dumps(records_data, ensure_ascii=False, default=str)
         
-        # 插入或更新 data_items
+        # 插入或更新 data_items（写入时标记为脏）
         cursor.execute("""
-            INSERT INTO data_items (name, status, updated_at)
-            VALUES (?, 'available', ?)
+            INSERT INTO data_items (name, status, updated_at, dirty)
+            VALUES (?, 'available', ?, 1)
             ON CONFLICT(name) DO UPDATE SET
                 status = CASE 
                     WHEN excluded.status = 'available' OR data_items.status = 'available' 
                     THEN 'available' 
                     ELSE 'partial' 
                 END,
-                updated_at = excluded.updated_at
+                updated_at = excluded.updated_at,
+                dirty = 1
         """, (name, now))
         
         # 插入或更新 data_sources
@@ -452,7 +469,66 @@ class SQLiteDataStore(DataStore):
         cursor = self._conn.cursor()
         cursor.execute("SELECT name FROM data_items")
         return [row["name"] for row in cursor.fetchall()]
-    
+
+    # ------------------------------------------------------------------
+    # 增量评估：脏标记管理
+    # ------------------------------------------------------------------
+
+    def get_dirty_dataitems(self) -> list[str]:
+        """返回自上次分析以来被修改（dirty=1）的数据项名称列表。"""
+        cursor = self._conn.cursor()
+        cursor.execute("SELECT name FROM data_items WHERE dirty = 1")
+        return [row["name"] for row in cursor.fetchall()]
+
+    def clear_dirty_dataitems(self) -> None:
+        """将所有数据项的脏标记清零。"""
+        cursor = self._conn.cursor()
+        cursor.execute("UPDATE data_items SET dirty = 0")
+        self._conn.commit()
+
+    # ------------------------------------------------------------------
+    # 增量评估：分析结果缓存
+    # ------------------------------------------------------------------
+
+    def has_analysis_cache(self) -> bool:
+        """是否存在上次评估缓存。"""
+        cursor = self._conn.cursor()
+        cursor.execute("SELECT 1 FROM analysis_cache WHERE cache_key = 'last' LIMIT 1")
+        return cursor.fetchone() is not None
+
+    def save_analysis_cache(self, results: dict[str, Any]) -> None:
+        """
+        持久化评估结果缓存。
+
+        Args:
+            results: {analyzer_key -> result_dict} 字典
+        """
+        cursor = self._conn.cursor()
+        now = int(datetime.now().timestamp())
+        results_json = json.dumps(results, ensure_ascii=False, default=str)
+        cursor.execute("""
+            INSERT INTO analysis_cache (cache_key, results_json, saved_at)
+            VALUES ('last', ?, ?)
+            ON CONFLICT(cache_key) DO UPDATE SET
+                results_json = excluded.results_json,
+                saved_at = excluded.saved_at
+        """, (results_json, now))
+        self._conn.commit()
+
+    def load_analysis_cache(self) -> dict[str, Any]:
+        """
+        加载上次评估结果缓存。
+
+        Returns:
+            {analyzer_key -> result_dict}，若无缓存则返回空字典。
+        """
+        cursor = self._conn.cursor()
+        cursor.execute("SELECT results_json FROM analysis_cache WHERE cache_key = 'last'")
+        row = cursor.fetchone()
+        if row is None:
+            return {}
+        return json.loads(row["results_json"])
+
     def close(self) -> None:
         """关闭数据库连接"""
         self._conn.close()

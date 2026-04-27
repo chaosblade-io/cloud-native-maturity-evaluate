@@ -14,6 +14,7 @@ from api.models.schemas import (
     GuidanceRefineRequest,
     GuidanceRequest,
     GuidanceResponse,
+    IncrementalInfo,
 )
 from api.services.analyze_service import AnalyzeService
 from api.services.guidance_service import GuidanceService
@@ -112,24 +113,27 @@ async def run_analysis(request: AnalyzeRequest):
         effective_agent_assist = bool(effective_agent_assist_keys)
 
         # 在后台线程中执行，避免阻塞其他请求
-        results, summary, total_score, total_max, total_pct, maturity = \
+        results, summary, total_score, total_max, total_pct, maturity, incr_info = \
             await asyncio.to_thread(
                 AnalyzeService.run_analysis,
                 keys=request.keys if request.keys else None,
                 agent_assist=effective_agent_assist,
                 agent_assist_keys=effective_agent_assist_keys,
                 agent_assist_temperature=request.agent_assist_temperature,
+                incremental=request.incremental,
             )
-        
+
+        mode_label = "增量" if incr_info.get("mode") == "incremental" else "全量"
         return AnalyzeResponse(
             success=True,
-            message=f"分析完成: 共 {len(results)} 个评估项",
+            message=f"{mode_label}分析完成: 共 {len(results)} 个评估项",
             results=results,
             summary=summary,
             total_score=total_score,
             total_max_score=total_max,
             total_percentage=total_pct,
             overall_maturity=maturity,
+            incremental_info=IncrementalInfo(**incr_info),
         )
         
     except FileNotFoundError as e:
