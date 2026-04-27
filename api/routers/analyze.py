@@ -5,6 +5,7 @@
 """
 import asyncio
 from fastapi import APIRouter
+from fastapi.responses import PlainTextResponse
 
 from api.models.schemas import (
     AnalyzeRequest,
@@ -242,4 +243,32 @@ async def refine_guidance(request: GuidanceRefineRequest):
         return GuidanceResponse(
             success=False,
             message=f"更新改进建议失败: {str(e)}",
+        )
+
+
+@router.get("/export/prometheus", response_class=PlainTextResponse)
+async def export_prometheus(db_name: str = "sesora.db"):
+    """
+    导出 Prometheus 格式的成熟度评估指标（exposition format 0.0.4）。
+
+    从上次评估缓存中读取，按 metric / category / dimension / 总体四个层级导出 gauge。
+    需先执行一次评估，缓存写入后方可使用。
+    """
+    try:
+        text = await asyncio.to_thread(AnalyzeService.export_prometheus, db_name=db_name)
+        return PlainTextResponse(
+            content=text,
+            media_type="text/plain; version=0.0.4; charset=utf-8",
+        )
+    except FileNotFoundError as e:
+        return PlainTextResponse(
+            content=f"# ERROR: {e}\n",
+            status_code=404,
+            media_type="text/plain; version=0.0.4; charset=utf-8",
+        )
+    except Exception as e:
+        return PlainTextResponse(
+            content=f"# ERROR: {e}\n",
+            status_code=500,
+            media_type="text/plain; version=0.0.4; charset=utf-8",
         )

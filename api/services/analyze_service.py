@@ -135,7 +135,115 @@ class AnalyzeService:
                 ))
         
         return all_items, required_items, optional_items
-    
+
+    @classmethod
+    def export_prometheus(cls, db_name: str = "sesora.db") -> str:
+        """
+        将上次评估缓存导出为 Prometheus 文本格式（exposition format 0.0.4）。
+
+        各层级 gauge：
+        - sesora_metric_score / sesora_metric_max_score / sesora_metric_coverage
+        - sesora_category_score / sesora_category_max_score / sesora_category_coverage_ratio
+        - sesora_dimension_score / sesora_dimension_max_score / sesora_dimension_coverage_ratio
+        - sesora_maturity_score / sesora_maturity_max_score / sesora_maturity_percentage / sesora_maturity_coverage_ratio
+        """
+        from sesora.store.sqlite_store import SQLiteDataStore
+        from sesora.analyzers import get_analyzer_metadata
+
+        db_path = cls.DB_DIR / db_name
+        if not db_path.exists():
+            raise FileNotFoundError(f"数据库文件不存在: {db_path}")
+
+        with SQLiteDataStore(db_path) as store:
+            cache = store.load_analysis_cache()
+
+        if not cache:
+            return "# sesora: no analysis cache available\n"
+
+        metadata = get_analyzer_metadata()
+        lines: list[str] = []
+
+        def _lv(v: str) -> str:
+            return v.replace("\\", "\\\\").replace('"', '\\"')
+
+        # ---- Metric 层 ----
+        for metric_name, help_text, val_fn in [
+            ("sesora_metric_score", "Score of individual metric (evaluated items only)", lambda r: r["score"]),
+            ("sesora_metric_max_score", "Max score of individual metric", lambda r: r["max_score"]),
+            ("sesora_metric_coverage", "Whether metric was evaluated (1=evaluated, 0=not_evaluated)",
+             lambda r: 0 if r.get("state") == "not_evaluated" else 1),
+        ]:
+            lines += [f"# HELP {metric_name} {help_text}", f"# TYPE {metric_name} gauge"]
+            for key, r in cache.items():
+                meta = metadata.get(key, {})
+                labels = f'key="{_lv(key)}",dimension="{_lv(meta.get("dimension", ""))}",category="{_lv(meta.get("category", ""))}"'
+                lines.append(f"{metric_name}{{{labels}}} {val_fn(r)}")
+
+        # ---- Category 层聚合 ----
+        cat_agg: dict[tuple[str, str], dict] = {}
+        for key, r in cache.items():
+            meta = metadata.get(key, {})
+            dim, cat = meta.get("dimension", ""), meta.get("category", "")
+            b = cat_agg.setdefault((dim, cat), {"score": 0, "max_score": 0, "total": 0, "evaluated": 0})
+            b["total"] += 1
+            if r.get("state") != "not_evaluated":
+                b["score"] += r["score"]
+                b["max_score"] += r["max_score"]
+                b["evaluated"] += 1
+
+        for metric_name, help_text, val_fn in [
+            ("sesora_category_score", "Aggregated score per category (evaluated items only)", lambda b: b["score"]),
+            ("sesora_category_max_score", "Aggregated max score per category", lambda b: b["max_score"]),
+            ("sesora_category_coverage_ratio", "Coverage ratio per category (0-1)",
+             lambda b: round(b["evaluated"] / b["total"], 4) if b["total"] else 0.0),
+        ]:
+            lines += [f"# HELP {metric_name} {help_text}", f"# TYPE {metric_name} gauge"]
+            for (dim, cat), b in cat_agg.items():
+                labels = f'dimension="{_lv(dim)}",category="{_lv(cat)}"'
+                lines.append(f"{metric_name}{{{labels}}} {val_fn(b)}")
+
+        # ---- Dimension 层聚合 ----
+        dim_agg: dict[str, dict] = {}
+        for (dim, _), b in cat_agg.items():
+            bucket = dim_agg.setdefault(dim, {"score": 0, "max_score": 0, "total": 0, "evaluated": 0})
+            for k in ("score", "max_score", "total", "evaluated"):
+                bucket[k] += b[k]
+
+        for metric_name, help_text, val_fn in [
+            ("sesora_dimension_score", "Aggregated score per dimension (evaluated items only)", lambda b: b["score"]),
+            ("sesora_dimension_max_score", "Aggregated max score per dimension", lambda b: b["max_score"]),
+            ("sesora_dimension_coverage_ratio", "Coverage ratio per dimension (0-1)",
+             lambda b: round(b["evaluated"] / b["total"], 4) if b["total"] else 0.0),
+        ]:
+            lines += [f"# HELP {metric_name} {help_text}", f"# TYPE {metric_name} gauge"]
+            for dim, b in dim_agg.items():
+                lines.append(f'{metric_name}{{dimension="{_lv(dim)}"}} {val_fn(b)}')
+
+        # ---- 总体层 ----
+        total_score = sum(b["score"] for b in dim_agg.values())
+        total_max = sum(b["max_score"] for b in dim_agg.values())
+        total_items = sum(b["total"] for b in dim_agg.values())
+        evaluated_items = sum(b["evaluated"] for b in dim_agg.values())
+        total_pct = round(total_score / total_max * 100, 2) if total_max else 0.0
+        coverage = round(evaluated_items / total_items, 4) if total_items else 0.0
+
+        lines += [
+            "# HELP sesora_maturity_score Overall maturity score (evaluated items only)",
+            "# TYPE sesora_maturity_score gauge",
+            f"sesora_maturity_score {total_score}",
+            "# HELP sesora_maturity_max_score Overall max score",
+            "# TYPE sesora_maturity_max_score gauge",
+            f"sesora_maturity_max_score {total_max}",
+            "# HELP sesora_maturity_percentage Overall maturity percentage (0-100)",
+            "# TYPE sesora_maturity_percentage gauge",
+            f"sesora_maturity_percentage {total_pct}",
+            "# HELP sesora_maturity_coverage_ratio Overall evaluation coverage ratio (0-1)",
+            "# TYPE sesora_maturity_coverage_ratio gauge",
+            f"sesora_maturity_coverage_ratio {coverage}",
+        ]
+
+        return "\n".join(lines) + "\n"
+
     @classmethod
     def _build_results_and_summary(
         cls,
