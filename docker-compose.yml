@@ -33,3 +33,24 @@ services:
         condition: service_healthy
     ports:
       - "5173:80"
+
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    container_name: sesora-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=30d"
+      - "--web.enable-lifecycle"
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "9090:9090"
+
+volumes:
+  prometheus_data:
