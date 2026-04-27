@@ -372,26 +372,6 @@
           <hr class="section-divider" />
           <div class="section-header">
             <span class="section-title">改进建议</span>
-            <div class="section-actions">
-              <el-button
-                size="small"
-                type="primary"
-                plain
-                :disabled="!lastAnalysisRequest.keys.length"
-                :loading="generatingGuidance"
-                @click="handleGenerateGuidance"
-              >
-                生成建议
-              </el-button>
-              <el-button
-                size="small"
-                text
-                :disabled="!guidanceSession"
-                @click="clearGuidanceSession"
-              >
-                清空
-              </el-button>
-            </div>
           </div>
           <div class="section-body">
             <div v-if="!lastAnalysisRequest.keys.length" class="guidance-empty">
@@ -406,43 +386,40 @@
               </el-empty>
             </div>
 
-            <div v-if="lastAnalysisRequest.keys.length" class="guidance-block guidance-config">
-              <div class="guidance-title">外部知识文档（可选）</div>
-              <div class="guidance-config-grid">
-                <el-select
-                  v-model="selectedKnowledgeDocIds"
-                  multiple
-                  filterable
-                  clearable
-                  placeholder="选择知识库文档"
-                >
-                  <el-option
-                    v-for="doc in knowledgeDocs"
-                    :key="doc.id"
-                    :label="doc.title || doc.name || doc.id"
-                    :value="doc.id"
-                  >
-                    <div class="knowledge-option">
-                      <span>{{ doc.title || doc.name || doc.id }}</span>
-                      <span class="knowledge-option-id">{{ doc.id }}</span>
-                    </div>
-                  </el-option>
-                </el-select>
-              </div>
-              <div class="guidance-config-hint">
-                已选择 {{ selectedKnowledgeDocIds.length }} / {{ knowledgeDocs.length }} 份文档。
-              </div>
-            </div>
-
             <div v-if="currentGuidanceTurn" class="guidance-content">
               <div class="guidance-meta">
-                <el-tag type="primary" effect="plain">
-                  {{ currentGuidanceTurn.stage === 'initial_diagnosis' ? 'Initial Diagnosis' : 'Iterative Refinement' }}
-                </el-tag>
-                <el-tag type="info" effect="plain">
-                  聚焦 {{ currentGuidanceTurn.focus_keys?.length || 0 }} 项
-                </el-tag>
-                <span class="guidance-model">模型: {{ guidanceSession.model }}</span>
+                <div style="display: flex; align-items: center; gap: 12px; flex: 1; flex-wrap: wrap;">
+                  <el-tag type="primary" effect="plain">
+                    {{ currentGuidanceTurn.stage === 'initial_diagnosis' ? 'Initial Diagnosis' : 'Iterative Refinement' }}
+                  </el-tag>
+                  <el-tag type="info" effect="plain">
+                    聚焦 {{ currentGuidanceTurn.focus_keys?.length || 0 }} 项
+                  </el-tag>
+                  <span class="guidance-model">模型: {{ guidanceSession.model }}</span>
+                </div>
+                <div class="guidance-pagination" v-if="guidanceTurns.length > 1">
+                  <el-button-group>
+                    <el-button
+                      size="small"
+                      text
+                      :disabled="guidanceTurns.length === 0"
+                      @click="currentGuidanceTurnIndex = Math.max(0, currentGuidanceTurnIndex - 1)"
+                    >
+                      &lt;
+                    </el-button>
+                    <el-button size="small" text disabled>
+                      {{ currentGuidanceTurnIndex + 1 }}/{{ guidanceTurns.length }}
+                    </el-button>
+                    <el-button
+                      size="small"
+                      text
+                      :disabled="currentGuidanceTurnIndex >= guidanceTurns.length - 1"
+                      @click="currentGuidanceTurnIndex = Math.min(guidanceTurns.length - 1, currentGuidanceTurnIndex + 1)"
+                    >
+                      &gt;
+                    </el-button>
+                  </el-button-group>
+                </div>
               </div>
 
               <div class="guidance-block">
@@ -511,6 +488,34 @@
                 </ul>
               </div>
 
+              <div class="guidance-block" v-if="lastAnalysisRequest.keys.length">
+                <div class="guidance-title">外部知识文档（可选）</div>
+                <div class="guidance-config-grid">
+                  <el-select
+                    v-model="selectedKnowledgeDocIds"
+                    multiple
+                    filterable
+                    clearable
+                    placeholder="选择知识库文档"
+                  >
+                    <el-option
+                      v-for="doc in knowledgeDocs"
+                      :key="doc.id"
+                      :label="doc.title || doc.name || doc.id"
+                      :value="doc.id"
+                    >
+                      <div class="knowledge-option">
+                        <span>{{ doc.title || doc.name || doc.id }}</span>
+                        <span class="knowledge-option-id">{{ doc.id }}</span>
+                      </div>
+                    </el-option>
+                  </el-select>
+                </div>
+                <div class="guidance-config-hint">
+                  已选择 {{ selectedKnowledgeDocIds.length }} / {{ knowledgeDocs.length }} 份文档。
+                </div>
+              </div>
+
               <div class="guidance-block">
                 <div class="guidance-title">继续完善建议</div>
                 <el-input
@@ -529,26 +534,6 @@
                   >
                     基于反馈完善
                   </el-button>
-                </div>
-              </div>
-
-              <div class="guidance-block" v-if="guidanceTurns.length > 1">
-                <div class="guidance-title">历史轮次</div>
-                <div class="history-list">
-                  <div
-                    v-for="(turn, index) in guidanceTurns"
-                    :key="`${turn.stage}-${index}`"
-                    class="history-item"
-                  >
-                    <div class="history-header">
-                      <span>第 {{ index + 1 }} 轮</span>
-                      <el-tag size="small" type="info" effect="plain">
-                        {{ turn.stage === 'initial_diagnosis' ? 'Initial' : 'Refinement' }}
-                      </el-tag>
-                    </div>
-                    <div class="history-feedback" v-if="turn.feedback">反馈: {{ turn.feedback }}</div>
-                    <div class="history-summary">{{ turn.guidance?.diagnosis_summary || '-' }}</div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -707,6 +692,7 @@ const guidanceSession = ref(null)
 const guidanceFeedback = ref('')
 const knowledgeDocs = ref([])
 const selectedKnowledgeDocIds = ref([])
+const currentGuidanceTurnIndex = ref(0)
 const lastAnalysisRequest = ref({
   keys: [],
   agentAssistKeys: [],
@@ -912,7 +898,8 @@ const guidanceTurns = computed(() => guidanceSession.value?.turns || [])
 
 const currentGuidanceTurn = computed(() => {
   if (!guidanceTurns.value.length) return null
-  return guidanceTurns.value[guidanceTurns.value.length - 1]
+  const index = Math.min(currentGuidanceTurnIndex.value, guidanceTurns.value.length - 1)
+  return guidanceTurns.value[index] || null
 })
 
 const normalizeAgentAssistKeys = (keys = []) => {
@@ -940,6 +927,7 @@ const getCurrentAgentAssistKeys = () => {
 const clearGuidanceSession = () => {
   guidanceSession.value = null
   guidanceFeedback.value = ''
+  currentGuidanceTurnIndex.value = 0
 }
 
 const buildExternalKnowledgePayload = () => ({
@@ -1055,6 +1043,7 @@ const handleGenerateGuidance = async () => {
     if (result.success) {
       guidanceSession.value = result.session
       guidanceFeedback.value = ''
+      currentGuidanceTurnIndex.value = (result.session?.turns?.length || 1) - 1
       ElMessage.success('已生成首轮改进建议')
     } else {
       ElMessage.error(result.message || '生成改进建议失败')
@@ -1087,6 +1076,7 @@ const handleRefineGuidance = async () => {
     if (result.success) {
       guidanceSession.value = result.session
       guidanceFeedback.value = ''
+      currentGuidanceTurnIndex.value = (result.session?.turns?.length || 1) - 1
       ElMessage.success('已根据反馈更新建议')
     } else {
       ElMessage.error(result.message || '更新改进建议失败')
@@ -1360,6 +1350,22 @@ onMounted(() => {
 .guidance-model {
   font-size: 12px;
   color: var(--color-text-secondary);
+}
+
+.guidance-pagination {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+:deep(.guidance-pagination .el-button-group) {
+  display: flex;
+  gap: 0;
+}
+
+:deep(.guidance-pagination .el-button) {
+  padding: 4px 8px;
+  font-size: 12px;
 }
 
 .guidance-block {
