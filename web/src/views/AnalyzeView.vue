@@ -699,14 +699,26 @@ const lastAnalysisRequest = ref({
 })
 
 const PREDEFINED_AGENT_METRICS = [
-  'data_ownership_clear',
-  'data_consistency_model',
-  'dr_plan_exists',
+  'ft_fallback',
+  'ft_bulkhead',
+  'dr_recovery_plan',
   'dr_rto_rpo_defined',
-  'dr_drill_regular',
-  'ft_fallback_mechanism',
-  'ft_bulkhead_pattern',
-  'sl_data_consistency_adaptation',
+  'dr_recovery_testing',
+  'data_consistency_model',
+  'data_migration_strategy',
+  'data_ownership_clear',
+  'sd_consistency_model',
+  'hm_proactive_monitoring',
+  'log_structure',
+  'log_context',
+  'dash_diversity',
+  'mon_coverage_gap',
+  'test_automation',
+  'deployment_automation',
+  'release_management',
+  'security_automation',
+  'api_documentation_auto',
+  'api_contract_testing'
 ]
 
 const showDetail = ref(false)
