@@ -121,6 +121,41 @@ def _state_from_score(score: int) -> ScoreState:
     return ScoreState.SCORED if score > 0 else ScoreState.NOT_SCORED
 
 
+def _llm_temperature() -> float:
+    return float(
+        os.getenv("SESORA_AGENT_ASSIST_TEMPERATURE")
+        or os.getenv("SESORA_AGENT_TEMPERATURE", "0.1")
+    )
+
+
+def _call_llm_json(
+    api_key: str,
+    base_url: str,
+    model_name: str,
+    system_prompt: str,
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    response = requests.post(
+        f"{base_url}/chat/completions",
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        json={
+            "model": model_name,
+            "temperature": _llm_temperature(),
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
+            ],
+        },
+        timeout=120,
+    )
+    response.raise_for_status()
+    content = response.json()["choices"][0]["message"]["content"]
+    return _extract_json_object(content)
+
+
 def maybe_apply_agent_assisted_assessment(analyzer: Any, store: Any, original: ScoreResult) -> ScoreResult:
     if original.state == ScoreState.NOT_EVALUATED:
         return original
@@ -137,15 +172,14 @@ def maybe_apply_agent_assisted_assessment(analyzer: Any, store: Any, original: S
         )
 
     api_key, base_url, model_name = config
-    payload = {
+    data_snapshot = _build_data_snapshot(analyzer, store)
+
+    extraction_payload = {
         "metric_key": original.key,
         "dimension": analyzer.dimension(),
         "category": analyzer.category(),
         "max_score": analyzer.max_score(),
-        "method": {
-            "step_1": "Evidence Extraction: 从相关数据中提取证据 E_m",
-            "step_2": "Evidence-Based Scoring: 基于 E_m 给出 0-max_score 分值与理由",
-        },
+        "task": "stage_1_evidence_extraction",
         "rule_based_result": {
             "state": original.state.value,
             "score": original.score,
@@ -153,67 +187,100 @@ def maybe_apply_agent_assisted_assessment(analyzer: Any, store: Any, original: S
             "reason": original.reason,
             "evidence": original.evidence[:8],
         },
-        "data_snapshot": _build_data_snapshot(analyzer, store),
+        "data_snapshot": data_snapshot,
         "output_format": {
-            "score": "integer within [0, max_score]",
-            "reason": "string",
             "evidence": ["string"],
             "data_gaps": ["string"],
             "confidence": "float in [0,1]",
         },
     }
 
-    system_prompt = (
-        "你是云原生成熟度评估助手。请严格按两阶段执行："
-        "先提取证据，再基于证据打分。不得编造。仅输出 JSON。"
+    extraction_prompt = (
+        "你是云原生成熟度评估助手的证据抽取器。"
+        "只执行阶段1：从输入数据中提取可核验证据与数据缺口，不打分。"
+        "不得编造。仅输出 JSON。"
     )
 
     try:
-        response = requests.post(
-            f"{base_url}/chat/completions",
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": model_name,
-                "temperature": float(
-                    os.getenv("SESORA_AGENT_ASSIST_TEMPERATURE")
-                    or os.getenv("SESORA_AGENT_TEMPERATURE", "0.1")
-                ),
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
-                ],
-            },
-            timeout=120,
+        extracted = _call_llm_json(
+            api_key=api_key,
+            base_url=base_url,
+            model_name=model_name,
+            system_prompt=extraction_prompt,
+            payload=extraction_payload,
         )
-        response.raise_for_status()
-        content = response.json()["choices"][0]["message"]["content"]
-        parsed = _extract_json_object(content)
 
-        score = int(parsed.get("score"))
+        evidence_raw = extracted.get("evidence") or []
+        if not isinstance(evidence_raw, list):
+            evidence_raw = [str(evidence_raw)]
+        extracted_evidence = [str(item) for item in evidence_raw[:20]]
+
+        gaps = extracted.get("data_gaps") or []
+        if not isinstance(gaps, list):
+            gaps = [str(gaps)]
+        extracted_gaps = [str(g) for g in gaps[:5]]
+
+        extraction_confidence = extracted.get("confidence")
+
+        scoring_payload = {
+            "metric_key": original.key,
+            "dimension": analyzer.dimension(),
+            "category": analyzer.category(),
+            "max_score": analyzer.max_score(),
+            "task": "stage_2_evidence_based_scoring",
+            "evidence_bundle": {
+                "evidence": extracted_evidence,
+                "data_gaps": extracted_gaps,
+                "confidence": extraction_confidence,
+            },
+            "rule_based_result": {
+                "state": original.state.value,
+                "score": original.score,
+                "max_score": original.max_score,
+                "reason": original.reason,
+            },
+            "output_format": {
+                "score": "integer within [0, max_score]",
+                "reason": "string",
+                "confidence": "float in [0,1]",
+            },
+        }
+
+        scoring_prompt = (
+            "你是云原生成熟度评估助手的评分器。"
+            "只执行阶段2：严格基于输入的 evidence_bundle 给出评分与理由。"
+            "不得引入 evidence_bundle 之外的新事实。仅输出 JSON。"
+        )
+
+        scored = _call_llm_json(
+            api_key=api_key,
+            base_url=base_url,
+            model_name=model_name,
+            system_prompt=scoring_prompt,
+            payload=scoring_payload,
+        )
+
+        score = int(scored.get("score"))
         if score < 0:
             score = 0
         if score > analyzer.max_score():
             score = analyzer.max_score()
 
-        reason = str(parsed.get("reason") or "Agent 辅助评估完成")
+        reason = str(scored.get("reason") or "Agent 辅助评估完成")
 
-        evidence_raw = parsed.get("evidence") or []
-        if not isinstance(evidence_raw, list):
-            evidence_raw = [str(evidence_raw)]
+        evidence = [
+            "ℹ️ 使用 Agent 辅助评估（agent-assist）",
+            "ℹ️ 两阶段流程: stage1=证据抽取, stage2=证据评分",
+        ]
+        evidence.extend(extracted_evidence[:10])
+        evidence.extend([f"⚠️ 数据缺口: {g}" for g in extracted_gaps[:3]])
 
-        evidence = ["ℹ️ 使用 Agent 辅助评估（agent-assist）"]
-        evidence.extend(str(item) for item in evidence_raw[:10])
+        if extraction_confidence is not None:
+            evidence.append(f"ℹ️ 证据抽取置信度: {extraction_confidence}")
 
-        gaps = parsed.get("data_gaps") or []
-        if isinstance(gaps, list):
-            evidence.extend([f"⚠️ 数据缺口: {str(g)}" for g in gaps[:3]])
-
-        confidence = parsed.get("confidence")
-        if confidence is not None:
-            evidence.append(f"ℹ️ 辅助评估置信度: {confidence}")
+        scoring_confidence = scored.get("confidence")
+        if scoring_confidence is not None:
+            evidence.append(f"ℹ️ 评分置信度: {scoring_confidence}")
 
         return ScoreResult(
             key=original.key,
