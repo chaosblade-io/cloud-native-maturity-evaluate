@@ -108,13 +108,16 @@ async def run_analysis(request: AnalyzeRequest):
     可以指定分析器 key 列表，不指定则执行全部
     """
     try:
+        effective_agent_assist_keys = request.agent_assist_keys if request.agent_assist_keys else None
+        effective_agent_assist = bool(effective_agent_assist_keys)
+
         # 在后台线程中执行，避免阻塞其他请求
         results, summary, total_score, total_max, total_pct, maturity = \
             await asyncio.to_thread(
                 AnalyzeService.run_analysis,
                 keys=request.keys if request.keys else None,
-                agent_assist=request.agent_assist,
-                agent_assist_keys=request.agent_assist_keys if request.agent_assist_keys else None,
+                agent_assist=effective_agent_assist,
+                agent_assist_keys=effective_agent_assist_keys,
                 agent_assist_temperature=request.agent_assist_temperature,
             )
         
@@ -157,6 +160,9 @@ async def run_analysis(request: AnalyzeRequest):
 async def generate_guidance(request: GuidanceRequest):
     """基于评估结果生成首轮改进建议"""
     try:
+        effective_agent_assist_keys = request.agent_assist_keys if request.agent_assist_keys else None
+        effective_agent_assist = bool(effective_agent_assist_keys)
+
         session, current_turn = await asyncio.to_thread(
             GuidanceService.generate_guidance,
             keys=request.keys if request.keys else None,
@@ -168,8 +174,8 @@ async def generate_guidance(request: GuidanceRequest):
             api_key=request.api_key,
             base_url=request.base_url,
             model_name=request.model_name,
-            agent_assist=request.agent_assist,
-            agent_assist_keys=request.agent_assist_keys if request.agent_assist_keys else None,
+            agent_assist=effective_agent_assist,
+            agent_assist_keys=effective_agent_assist_keys,
             agent_assist_temperature=request.agent_assist_temperature,
             external_knowledge_max_chars=request.external_knowledge_max_chars,
             external_knowledge_max_chunks=request.external_knowledge_max_chunks,

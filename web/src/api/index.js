@@ -156,7 +156,7 @@ export const deleteKnowledgeDoc = (docId) => api.delete(`/knowledge/docs/${docId
 export const runAnalysis = (keys = [], options = {}) =>
   api.post('/analyze', {
     keys,
-    agent_assist: !!options.agentAssist,
+    agent_assist: !!(options.agentAssistKeys && options.agentAssistKeys.length > 0),
     agent_assist_keys: options.agentAssistKeys || [],
     agent_assist_temperature: options.agentAssistTemperature ?? null,
   })

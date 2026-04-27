@@ -74,15 +74,27 @@
 
         <div class="section-footer action-bar">
           <div class="assist-options">
-            <el-switch
-              v-model="agentAssistEnabled"
-              inline-prompt
-              active-text="AI辅助"
-              inactive-text="规则"
-            />
-            <el-checkbox v-model="agentAssistOnlySelected" :disabled="!agentAssistEnabled">
-              仅当前选中项
-            </el-checkbox>
+            <div class="assist-label">Agent 指标集合</div>
+            <el-select
+              v-model="agentAssistKeys"
+              multiple
+              filterable
+              collapse-tags
+              collapse-tags-tooltip
+              placeholder="选择由 Agent 分析的 metrics"
+              style="width: 380px"
+            >
+              <el-option
+                v-for="item in analyzers"
+                :key="item.key"
+                :label="item.key"
+                :value="item.key"
+              />
+            </el-select>
+            <el-button size="small" text @click="applyDefaultAgentAssistKeys">使用预置</el-button>
+            <el-button size="small" text @click="useSelectedAsAgentAssistKeys">同步当前选中</el-button>
+            <el-button size="small" text @click="clearAgentAssistKeys">清空</el-button>
+            <el-tag size="small" type="info">{{ getCurrentAgentAssistKeys().length }} 项生效</el-tag>
           </div>
           <el-button
             type="primary"
@@ -645,8 +657,6 @@ const handleJsonFileChange = (event) => {
 const analyzing = ref(false)
 const analyzeProgress = ref(0)
 const checkingStatus = ref(false)
-const agentAssistEnabled = ref(false)
-const agentAssistOnlySelected = ref(true)
 const generatingGuidance = ref(false)
 const refiningGuidance = ref(false)
 
@@ -654,6 +664,7 @@ const analyzers = ref([])
 const analyzersByDimension = ref({})
 const expandedDimensions = ref([])  // 默认收起所有维度
 const selectedKeys = ref([])
+const agentAssistKeys = ref([])
 
 const dataStatus = ref(null)
 const analyzeResult = ref(null)
@@ -667,9 +678,19 @@ const guidanceExternalMaxChunks = ref(12)
 const guidanceExternalChunkChars = ref(800)
 const lastAnalysisRequest = ref({
   keys: [],
-  agentAssist: false,
   agentAssistKeys: [],
 })
+
+const PREDEFINED_AGENT_METRICS = [
+  'data_ownership_clear',
+  'data_consistency_model',
+  'dr_plan_exists',
+  'dr_rto_rpo_defined',
+  'dr_drill_regular',
+  'ft_fallback_mechanism',
+  'ft_bulkhead_pattern',
+  'sl_data_consistency_adaptation',
+]
 
 const showDetail = ref(false)
 const currentDimension = ref(null)
@@ -846,9 +867,26 @@ const currentGuidanceTurn = computed(() => {
   return guidanceTurns.value[guidanceTurns.value.length - 1]
 })
 
+const normalizeAgentAssistKeys = (keys = []) => {
+  const valid = new Set(analyzers.value.map(a => a.key))
+  return [...new Set(keys)].filter(k => valid.has(k))
+}
+
+const applyDefaultAgentAssistKeys = () => {
+  agentAssistKeys.value = normalizeAgentAssistKeys(PREDEFINED_AGENT_METRICS)
+}
+
+const useSelectedAsAgentAssistKeys = () => {
+  agentAssistKeys.value = normalizeAgentAssistKeys(selectedKeys.value)
+}
+
+const clearAgentAssistKeys = () => {
+  agentAssistKeys.value = []
+}
+
 const getCurrentAgentAssistKeys = () => {
-  if (!agentAssistEnabled.value) return []
-  return agentAssistOnlySelected.value ? [...selectedKeys.value] : []
+  const selectedSet = new Set(selectedKeys.value)
+  return normalizeAgentAssistKeys(agentAssistKeys.value).filter(k => selectedSet.has(k))
 }
 
 const clearGuidanceSession = () => {
@@ -888,6 +926,7 @@ const loadAnalyzers = async () => {
       expandedDimensions.value = []
       // 默认全选
       selectedKeys.value = analyzers.value.map(a => a.key)
+      applyDefaultAgentAssistKeys()
     }
   } catch (error) {
     ElMessage.error('加载分析器失败')
@@ -921,7 +960,6 @@ const handleAnalyze = async () => {
 
   const analysisRequest = {
     keys: [...selectedKeys.value],
-    agentAssist: agentAssistEnabled.value,
     agentAssistKeys: getCurrentAgentAssistKeys(),
   }
   
@@ -934,7 +972,6 @@ const handleAnalyze = async () => {
   
   try {
     const result = await runAnalysis(analysisRequest.keys, {
-      agentAssist: analysisRequest.agentAssist,
       agentAssistKeys: analysisRequest.agentAssistKeys,
     })
     analyzeProgress.value = 100
@@ -964,7 +1001,7 @@ const handleGenerateGuidance = async () => {
   try {
     const result = await generateGuidance({
       keys: lastAnalysisRequest.value.keys,
-      agent_assist: lastAnalysisRequest.value.agentAssist,
+      agent_assist: lastAnalysisRequest.value.agentAssistKeys.length > 0,
       agent_assist_keys: lastAnalysisRequest.value.agentAssistKeys,
       ...buildExternalKnowledgePayload(),
     })
